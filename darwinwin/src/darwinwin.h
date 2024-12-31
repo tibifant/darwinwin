@@ -41,3 +41,9 @@ struct viewCone
 {
   uint8_t viewCone[8];
 };
+
+void level_initLinear(level *pLevel);
+void level_print(const level &level);
+
+viewCone viewCone_get(const level &lvl, const animal &animal);
+void viewCone_print(const viewCone &viewCone, const animal &animal);

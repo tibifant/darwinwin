@@ -14,6 +14,9 @@ namespace asio
     template <typename Exception>
     void throw_exception(const Exception &e)
     {
+#ifdef _MSC_VER
+      __debugbreak(); // windows only, sorry!
+#endif
       printf("Exception thrown: %s.\n", e.what());
     }
   }
@@ -44,6 +47,8 @@ namespace asio
 
 //////////////////////////////////////////////////////////////////////////
 
+#include "core.h"
+#include "darwinwin.h"
 #include "io.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -54,6 +59,18 @@ std::atomic<bool> _IsRunning = true;
 
 int32_t main(void)
 {
+  level level;
+  animal dingu;
+  dingu.look_at_dir = d_up;
+  dingu.pos.x = 4;
+  dingu.pos.y = 7;
+
+  level_initLinear(&level);
+  level_print(level);
+
+  viewCone cone = viewCone_get(level, dingu);
+  viewCone_print(cone, dingu);
+
   crow::App<crow::CORSHandler> app;
 
   auto &cors = app.get_middleware<crow::CORSHandler>();
