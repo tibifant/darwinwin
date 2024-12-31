@@ -10,8 +10,8 @@ enum dww_tile_flag : uint8_t
   tf_Vitamin = 1 << 3,
   tf_Fat = 1 << 4,
   tf_Collidable = 1 << 5,
-  tf_OtherAnimal = 1 << 6, // this is not permanently on the grid!
-  tf_Hidden = 1 << 7, // not on the map!
+  tf_OtherAnimal = 1 << 6, // not on the map
+  tf_Hidden = 1 << 7, // not on the map
 };
 
 struct level
@@ -30,6 +30,7 @@ enum dww_direction
   d_right,
 };
 
+// Beings: hunger, energy etc
 struct animal
 {
   vec2u8 pos;
@@ -37,6 +38,3 @@ struct animal
 
   uint8_t viewCone[8];
 };
-
-
-// Beings: position, orientation, hunger, energy

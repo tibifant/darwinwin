@@ -1,6 +1,5 @@
 #include "darwinwin.h"
 
-// position, what direction are we looking at
 void getViewcone(level lvl, animal animal)
 {
   size_t currentIdx = animal.pos.y * lvl.width + animal.pos.x;
