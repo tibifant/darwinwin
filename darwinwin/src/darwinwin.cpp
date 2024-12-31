@@ -37,9 +37,8 @@ void level_print(const level &level)
   for (size_t y = 0; y < level::height; y++)
   {
     for (size_t x = 0; x < level::width; x++)
-    {
-      print(level.grid[y * level::width + x], ' ');
-    }
+      print(FU(Min(4))(level.grid[y * level::width + x]));
+
     print('\n');
   }
 }
@@ -134,10 +133,8 @@ void printEmpty()
 
 void printValue(const uint8_t val)
 {
-  for (uint64_t i = 1; i <= (1ULL << 7); i <<= 1)
-    print((uint8_t)!!(val & i));
-
-  print(' ');
+  //print(FU(Bin, Min(8), Fill0)(val), ' ');
+  print(FU(Min(8))(val), ' ');
 }
 
 void viewCone_print(const viewCone &viewCone, const animal &animal)
@@ -148,4 +145,3 @@ void viewCone_print(const viewCone &viewCone, const animal &animal)
   printValue(viewCone.viewCone[0]); printValue(viewCone.viewCone[2]);  printValue(viewCone.viewCone[5]);  printValue(viewCone.viewCone[7]);  print('\n');
   printEmpty();                     printValue(viewCone.viewCone[3]);  printValue(viewCone.viewCone[6]);  print('\n');
 }
-
