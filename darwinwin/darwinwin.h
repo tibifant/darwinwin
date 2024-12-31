@@ -35,6 +35,9 @@ struct animal
 {
   vec2u8 pos;
   dww_direction look_at_dir;
+};
 
+struct viewCone
+{
   uint8_t viewCone[8];
 };
