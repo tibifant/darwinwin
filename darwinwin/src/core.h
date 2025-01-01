@@ -276,8 +276,8 @@ inline constexpr size_t LS_ARRAYSIZE(const T(&)[TCount]) { return TCount; }
 #define lsAssert(a) lsAssertInternal(a, #a)
 #else
 #define lsFail() do { } while (0)
-#define lsAssertInternal(a, expression_text) do { if (!(a)) { } } while (0)
-#define lsAssert(a) do { if (!(a)) { } } while (0)
+#define lsAssertInternal(a, expression_text) do { if (false) { if (!(a)) { } } } while (0)
+#define lsAssert(a) do { if (false) { if (!(a)) { } } } while (0)
 #endif
 
 #define LS_DEBUG_ERROR_ASSERT(a) \

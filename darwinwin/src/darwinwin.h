@@ -2,7 +2,7 @@
 
 #include "core.h"
 
-enum dww_tile_flag : uint8_t
+enum tileFlag : uint8_t
 {
   tf_Underwater = 1,
   tf_Protein = 1 << 1,
@@ -10,9 +10,12 @@ enum dww_tile_flag : uint8_t
   tf_Vitamin = 1 << 3,
   tf_Fat = 1 << 4,
   tf_Collidable = 1 << 5,
-  tf_OtherAnimal = 1 << 6, // not on the map
+  tf_OtherActor = 1 << 6, // not on the map
   tf_Hidden = 1 << 7, // not on the map
 };
+
+void tileFlag_toTempString(const uint8_t flag, char(&out)[9]);
+void tileFlag_print(const uint8_t flag);
 
 struct level
 {
@@ -22,32 +25,54 @@ struct level
   uint8_t grid[width * height];
 };
 
-enum dww_direction
+enum lookDirection
 {
-  d_left,
-  d_up,
-  d_right,
-  d_down,
+  ld_left,
+  ld_up,
+  ld_right,
+  ld_down,
 
-  d_Count,
+  _lookDirection_Count,
 };
 
+const char *lookDirection_name(const lookDirection dir);
+
 // Beings: hunger, energy etc
-struct animal
+struct actor
 {
   vec2u8 pos;
-  dww_direction look_at_dir;
+  lookDirection look_at_dir;
 
-  animal(const vec2u8 pos, const dww_direction dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x > 3 && pos.x < (level::width - 3) && pos.y > 3 && pos.y < (level::height - 3)); }
+  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x > 3 && pos.x < (level::width - 3) && pos.y > 3 && pos.y < (level::height - 3)); }
+};
+
+enum viewConePosition
+{
+  vcp_self,
+  vcp_nearLeft,
+  vcp_nearCenter,
+  vcp_nearRight,
+  vcp_midLeft,
+  vcp_midCenter,
+  vcp_midRight,
+  vcp_farCenter,
+
+  _viewConePosition_Count,
 };
 
 struct viewCone
 {
-  uint8_t viewCone[8];
+  uint8_t values[_viewConePosition_Count];
+
+  uint8_t operator [](const viewConePosition pos) const
+  {
+    lsAssert(pos < LS_ARRAYSIZE(values));
+    return values[pos];
+  }
 };
 
 void level_initLinear(level *pLevel);
 void level_print(const level &level);
 
-viewCone viewCone_get(const level &lvl, const animal &animal);
-void viewCone_print(const viewCone &viewCone, const animal &animal);
+viewCone viewCone_get(const level &lvl, const actor &actor);
+void viewCone_print(const viewCone &values, const actor &actor);

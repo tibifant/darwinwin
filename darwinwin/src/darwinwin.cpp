@@ -1,5 +1,38 @@
 #include "darwinwin.h"
 
+const char *lookDirection_toName[] =
+{
+  "left",
+  "up",
+  "right",
+  "down",
+};
+
+static_assert(LS_ARRAYSIZE(lookDirection_toName) == _lookDirection_Count);
+
+void tileFlag_toTempString(const uint8_t flag, char(&out)[9])
+{
+  const char lut[9] = "UPSVFCOH";
+
+  for (size_t i = 0, mask = 1; i < 8; mask <<= 1, i++)
+    out[i] = (flag & mask) ? lut[i] : ' ';
+
+  out[LS_ARRAYSIZE(out) - 1] = '\0';
+}
+
+void tileFlag_print(const uint8_t flag)
+{
+  char tmp[9];
+  tileFlag_toTempString(flag, tmp);
+  print(tmp);
+}
+
+const char *lookDirection_name(const lookDirection dir)
+{
+  lsAssert(dir < LS_ARRAYSIZE(lookDirection_toName));
+  return lookDirection_toName[dir];
+}
+
 void level_initLinear(level *pLevel)
 {
   for (size_t i = 0; i < level::width * level::height; i++)
@@ -47,47 +80,42 @@ void level_print(const level &level)
   }
 }
 
-viewCone viewCone_get(const level &lvl, const animal &animal)
+viewCone viewCone_get(const level &lvl, const actor &actor)
 {
-  // view cone: (0 = current pos)
-  //  14
-  // 0257
-  //  36
+  viewCone ret;
 
-  size_t currentIdx = animal.pos.y * level::width + animal.pos.x;
+  size_t currentIdx = actor.pos.y * level::width + actor.pos.x;
   constexpr ptrdiff_t width = (ptrdiff_t)level::width;
-  static const ptrdiff_t lut[d_Count][8] = {
+  static const ptrdiff_t lut[_lookDirection_Count][LS_ARRAYSIZE(ret.values)] = {
     { 0, width - 1, -1, -width - 1, width - 2, -2, -width - 2, -3 },
     { 0, -width - 1, -width, -width + 1, -width * 2 - 1, -width * 2, -width * 2 + 1, -width * 3 },
     { 0, -width + 1, 1, width + 1, -width + 2, 2, width + 2, 3 },
     { 0, width + 1, width, width - 1, width * 2 + 1, width * 2, width * 2 - 1, width * 3 },
   };
 
-  viewCone viewCone;
-  
-  for (size_t i = 0; i < 8; i++)
-    viewCone.viewCone[i] = lvl.grid[currentIdx + lut[animal.look_at_dir][i]];
+  for (size_t i = 0; i < LS_ARRAYSIZE(ret.values); i++)
+    ret.values[i] = lvl.grid[currentIdx + lut[actor.look_at_dir][i]];
 
   // hidden flags
-  if (viewCone.viewCone[1] & tf_Collidable)
-    viewCone.viewCone[4] = tf_Hidden;
+  if (ret.values[1] & tf_Collidable)
+    ret.values[4] = tf_Hidden;
 
-  if (viewCone.viewCone[2] & tf_Collidable)
+  if (ret.values[2] & tf_Collidable)
   {
-    viewCone.viewCone[5] = tf_Hidden;
-    viewCone.viewCone[7] = tf_Hidden;
+    ret.values[5] = tf_Hidden;
+    ret.values[7] = tf_Hidden;
   }
-  else if (viewCone.viewCone[5] & tf_Collidable)
+  else if (ret.values[5] & tf_Collidable)
   {
-    viewCone.viewCone[7] = tf_Hidden;
+    ret.values[7] = tf_Hidden;
   }
 
-  if (viewCone.viewCone[3] & tf_Collidable)
-    viewCone.viewCone[6] = tf_Hidden;
+  if (ret.values[3] & tf_Collidable)
+    ret.values[6] = tf_Hidden;
 
-  // TODO: other animal flag
+  // TODO: other actor flag
 
-  return viewCone;
+  return ret;
 }
 
 void printEmpty()
@@ -97,15 +125,17 @@ void printEmpty()
 
 void printValue(const uint8_t val)
 {
-  print(FU(Bin, Min(8), Fill0)(val), ' ');
+  tileFlag_print(val);
+  print(' ');
+  //print(FU(Bin, Min(8), Fill0)(val), ' ');
   //print(FU(Min(8))(val), ' ');
 }
 
-void viewCone_print(const viewCone &viewCone, const animal &animal)
+void viewCone_print(const viewCone &v, const actor &actor)
 {
-  print("VIEWCONE from pos ", animal.pos, " with looking direction: ", (uint8_t)animal.look_at_dir, '\n');
+  print("VIEWCONE from pos ", actor.pos, " with look direction: ", lookDirection_name(actor.look_at_dir), '\n');
 
-  printEmpty();                     printValue(viewCone.viewCone[1]);  printValue(viewCone.viewCone[4]);  print('\n');
-  printValue(viewCone.viewCone[0]); printValue(viewCone.viewCone[2]);  printValue(viewCone.viewCone[5]);  printValue(viewCone.viewCone[7]);  print('\n');
-  printEmpty();                     printValue(viewCone.viewCone[3]);  printValue(viewCone.viewCone[6]);  print('\n');
+  printEmpty();             printValue(v[vcp_nearLeft]);    printValue(v[vcp_midLeft]);    print('\n');
+  printValue(v[vcp_self]);  printValue(v[vcp_nearCenter]);  printValue(v[vcp_midCenter]);  printValue(v[vcp_farCenter]);  print('\n');
+  printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
 }
