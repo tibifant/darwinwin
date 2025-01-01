@@ -24,10 +24,12 @@ struct level
 
 enum dww_direction
 {
-  d_up,
-  d_down,
   d_left,
+  d_up,
   d_right,
+  d_down,
+
+  d_Count,
 };
 
 // Beings: hunger, energy etc

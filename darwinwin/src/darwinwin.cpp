@@ -50,65 +50,19 @@ viewCone viewCone_get(const level &lvl, const animal &animal)
   // 0257
   //  36
 
-  viewCone viewCone;
-
   size_t currentIdx = animal.pos.y * level::width + animal.pos.x;
-  viewCone.viewCone[0] = lvl.grid[currentIdx];
+  constexpr ptrdiff_t width = (ptrdiff_t)level::width;
+  static const ptrdiff_t lut[d_Count][8] = {
+    { 0, width - 1, -1, -width - 1, width - 2, -2, -width - 2, -3 },
+    { 0, -width - 1, -width, -width + 1, -width * 2 - 1, -width * 2, -width * 2 + 1, -width * 3 },
+    { 0, -width + 1, 1, width + 1, -width + 2, 2, width + 2, 3 },
+    { 0, width + 1, width, width - 1, width * 2 + 1, width * 2, width * 2 - 1, width * 3 },
+  };
 
-  // TODO: lookup for viewcone values
-
-  switch (animal.look_at_dir)
-  {
-  case d_up:
-  {
-    static const size_t lut[7] = { -1 * (level::width + 1), -1 * level::width, -1 * (level::width - 1), -1 * (level::width * 2 + 1), -1 * level::width * 2, -1 * (level::width * 2 - 1), -1 * level::width * 3 };
-    
-    for (size_t i = 0; i < 7; i++)
-      viewCone.viewCone[i + 1] = lvl.grid[currentIdx + lut[i]];
-
-    break;
-  }
-
-  case d_down:
-  {
-    static const size_t lut[7] = { level::width + 1, level::width, level::width - 1, level::width * 2 + 1, level::width * 2, level::width * 2 - 1, level::width * 3 };
-    // reading is no longer as linear as possible...
-    for (size_t i = 0; i < 7; i++)
-      viewCone.viewCone[i + 1] = lvl.grid[currentIdx + lut[i]];
-
-    break;
-  }
-
-  case d_right:
-  {
-    size_t leftNear = currentIdx + 1 - level::width;
-    viewCone.viewCone[1] = lvl.grid[leftNear]; // near left
-    viewCone.viewCone[4] = lvl.grid[leftNear + 1]; // far left
-    viewCone.viewCone[2] = lvl.grid[currentIdx + 1]; // straight ahead near
-    viewCone.viewCone[5] = lvl.grid[currentIdx + 2]; // straight ahead middle
-    viewCone.viewCone[7] = lvl.grid[currentIdx + 3]; // straight ahead far
-    size_t rightNear = currentIdx + 1 + level::width;
-    viewCone.viewCone[3] = lvl.grid[rightNear]; // near right
-    viewCone.viewCone[6] = lvl.grid[rightNear + 1]; // far right
-
-    break;
-  }
-
-  case d_left:
-  {
-    size_t rightFar = currentIdx - 2 - level::width;
-    viewCone.viewCone[6] = lvl.grid[rightFar]; // far right
-    viewCone.viewCone[3] = lvl.grid[rightFar + 1]; // near right
-    viewCone.viewCone[7] = lvl.grid[currentIdx - 3]; // straight ahead far
-    viewCone.viewCone[5] = lvl.grid[currentIdx - 2]; // straight ahead middle
-    viewCone.viewCone[2] = lvl.grid[currentIdx - 1]; // straight ahead near
-    size_t leftFar = currentIdx - 2 + level::width;
-    viewCone.viewCone[4] = lvl.grid[leftFar]; // far left
-    viewCone.viewCone[1] = lvl.grid[leftFar + 1]; // near left
-
-    break;
-  }
-  }
+  viewCone viewCone;
+  
+  for (size_t i = 0; i < 8; i++)
+    viewCone.viewCone[i] = lvl.grid[currentIdx + lut[animal.look_at_dir][i]];
 
   // TODO: hidden flag
   // TODO: other animal flag
