@@ -61,30 +61,20 @@ viewCone viewCone_get(const level &lvl, const animal &animal)
   {
   case d_up:
   {
-    size_t leftNear = currentIdx - level::width - 1;
-    viewCone.viewCone[1] = lvl.grid[leftNear]; // near left
-    viewCone.viewCone[2] = lvl.grid[leftNear + 1]; // straight ahead near
-    viewCone.viewCone[3] = lvl.grid[leftNear + 2]; // near right
-    size_t leftFar = leftNear - level::width;
-    viewCone.viewCone[4] = lvl.grid[leftFar]; // far left
-    viewCone.viewCone[5] = lvl.grid[leftFar + 1]; // straight ahead middle
-    viewCone.viewCone[6] = lvl.grid[leftFar + 2]; // far right
-    viewCone.viewCone[7] = lvl.grid[leftFar + 1 - level::width]; // straight ahead far
+    static const size_t lut[7] = { -1 * (level::width + 1), -1 * level::width, -1 * (level::width - 1), -1 * (level::width * 2 + 1), -1 * level::width * 2, -1 * (level::width * 2 - 1), -1 * level::width * 3 };
+    
+    for (size_t i = 0; i < 7; i++)
+      viewCone.viewCone[i + 1] = lvl.grid[currentIdx + lut[i]];
 
     break;
   }
 
   case d_down:
   {
-    size_t rightNear = currentIdx + level::width - 1;
-    viewCone.viewCone[3] = lvl.grid[rightNear]; // near right
-    viewCone.viewCone[2] = lvl.grid[rightNear + 1]; // straight ahead near
-    viewCone.viewCone[1] = lvl.grid[rightNear + 2]; // near left
-    size_t rightFar = rightNear + level::width;
-    viewCone.viewCone[6] = lvl.grid[rightFar]; // far right
-    viewCone.viewCone[5] = lvl.grid[rightFar + 1]; // straight ahead middle
-    viewCone.viewCone[4] = lvl.grid[rightFar + 2]; // far left
-    viewCone.viewCone[7] = lvl.grid[rightFar + 1 + level::width]; // straight ahead far
+    static const size_t lut[7] = { level::width + 1, level::width, level::width - 1, level::width * 2 + 1, level::width * 2, level::width * 2 - 1, level::width * 3 };
+    // reading is no longer as linear as possible...
+    for (size_t i = 0; i < 7; i++)
+      viewCone.viewCone[i + 1] = lvl.grid[currentIdx + lut[i]];
 
     break;
   }
@@ -133,8 +123,8 @@ void printEmpty()
 
 void printValue(const uint8_t val)
 {
-  print(FU(Bin, Min(8), Fill0)(val), ' ');
-  //print(FU(Min(8))(val), ' ');
+  //print(FU(Bin, Min(8), Fill0)(val), ' ');
+  print(FU(Min(8))(val), ' ');
 }
 
 void viewCone_print(const viewCone &viewCone, const animal &animal)
