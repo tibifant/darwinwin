@@ -5,8 +5,12 @@ void level_initLinear(level *pLevel)
   for (size_t i = 0; i < level::width * level::height; i++)
     pLevel->grid[i] = (uint8_t)(i);
 
-  // Making the Borders collidable
+  // Setting things to collidable for testing
+  pLevel->grid[6 * level::width + 6] = tf_Collidable;
+  pLevel->grid[5 * level::width + 7] = tf_Collidable;
+  pLevel->grid[6 * level::width + 8] = tf_Collidable;
 
+  // Making the Borders collidable
   for (size_t i = 0; i < level::width; i++)
   {
     pLevel->grid[i] = tf_Collidable;
@@ -45,7 +49,7 @@ void level_print(const level &level)
 
 viewCone viewCone_get(const level &lvl, const animal &animal)
 {
-  // view cone: (0 is the current pos)
+  // view cone: (0 = current pos)
   //  14
   // 0257
   //  36
@@ -64,7 +68,23 @@ viewCone viewCone_get(const level &lvl, const animal &animal)
   for (size_t i = 0; i < 8; i++)
     viewCone.viewCone[i] = lvl.grid[currentIdx + lut[animal.look_at_dir][i]];
 
-  // TODO: hidden flag
+  // hidden flags
+  if (viewCone.viewCone[1] & tf_Collidable)
+    viewCone.viewCone[4] = tf_Hidden;
+
+  if (viewCone.viewCone[2] & tf_Collidable)
+  {
+    viewCone.viewCone[5] = tf_Hidden;
+    viewCone.viewCone[7] = tf_Hidden;
+  }
+  else if (viewCone.viewCone[5] & tf_Collidable)
+  {
+    viewCone.viewCone[7] = tf_Hidden;
+  }
+
+  if (viewCone.viewCone[3] & tf_Collidable)
+    viewCone.viewCone[6] = tf_Hidden;
+
   // TODO: other animal flag
 
   return viewCone;
@@ -77,8 +97,8 @@ void printEmpty()
 
 void printValue(const uint8_t val)
 {
-  //print(FU(Bin, Min(8), Fill0)(val), ' ');
-  print(FU(Min(8))(val), ' ');
+  print(FU(Bin, Min(8), Fill0)(val), ' ');
+  //print(FU(Min(8))(val), ' ');
 }
 
 void viewCone_print(const viewCone &viewCone, const animal &animal)

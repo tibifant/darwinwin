@@ -60,7 +60,7 @@ std::atomic<bool> _IsRunning = true;
 int32_t main(void)
 {
   level level;
-  animal dingu = animal(vec2u8(7, 7), d_down);
+  animal dingu = animal(vec2u8(7, 7), d_up);
 
   level_initLinear(&level);
   level_print(level);
