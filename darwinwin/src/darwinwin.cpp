@@ -133,8 +133,8 @@ void printEmpty()
 
 void printValue(const uint8_t val)
 {
-  //print(FU(Bin, Min(8), Fill0)(val), ' ');
-  print(FU(Min(8))(val), ' ');
+  print(FU(Bin, Min(8), Fill0)(val), ' ');
+  //print(FU(Min(8))(val), ' ');
 }
 
 void viewCone_print(const viewCone &viewCone, const animal &animal)

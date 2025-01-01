@@ -35,6 +35,8 @@ struct animal
 {
   vec2u8 pos;
   dww_direction look_at_dir;
+
+  animal(const vec2u8 pos, const dww_direction dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x > 3 && pos.x < (level::width - 3) && pos.y > 3 && pos.y < (level::height - 3)); }
 };
 
 struct viewCone
