@@ -22,6 +22,8 @@ struct level
   static constexpr size_t width = 32;
   static constexpr size_t height = 32;
 
+  static constexpr uint8_t wallThickness = 3; // this needs a shorter name
+
   uint8_t grid[width * height];
 };
 
@@ -40,10 +42,10 @@ const char *lookDirection_name(const lookDirection dir);
 // Beings: hunger, energy etc
 struct actor
 {
-  vec2u8 pos;
+  vec2u pos; // which size is best?
   lookDirection look_at_dir;
 
-  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x > 3 && pos.x < (level::width - 3) && pos.y > 3 && pos.y < (level::height - 3)); }
+  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x > level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y > level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };
 
 enum viewConePosition
@@ -76,3 +78,5 @@ void level_print(const level &level);
 
 viewCone viewCone_get(const level &lvl, const actor &actor);
 void viewCone_print(const viewCone &values, const actor &actor);
+
+void actor_move(const level &lvl, actor *pActor);

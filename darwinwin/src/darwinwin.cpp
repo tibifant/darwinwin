@@ -125,10 +125,10 @@ void printEmpty()
 
 void printValue(const uint8_t val)
 {
-  tileFlag_print(val);
-  print(' ');
+  //tileFlag_print(val);
+  //print(' ');
   //print(FU(Bin, Min(8), Fill0)(val), ' ');
-  //print(FU(Min(8))(val), ' ');
+  print(FU(Min(8))(val), ' ');
 }
 
 void viewCone_print(const viewCone &v, const actor &actor)
@@ -138,4 +138,20 @@ void viewCone_print(const viewCone &v, const actor &actor)
   printEmpty();             printValue(v[vcp_nearLeft]);    printValue(v[vcp_midLeft]);    print('\n');
   printValue(v[vcp_self]);  printValue(v[vcp_nearCenter]);  printValue(v[vcp_midCenter]);  printValue(v[vcp_farCenter]);  print('\n');
   printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
+}
+
+void actor_move(const level &lvl, actor *pActor)
+{
+  lsAssert(pActor->pos.x > 0 && pActor->pos.y < level::width);
+
+  static vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+
+  vec2u newPos = vec2u(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
+
+  // check bounds
+  lsAssert(newPos.x > level::wallThickness && newPos.x < level::width - level::wallThickness && newPos.y > level::wallThickness && newPos.y < level::height - level::wallThickness);
+
+  // check collidable
+  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable))
+    pActor->pos = newPos;
 }

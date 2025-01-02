@@ -68,6 +68,10 @@ int32_t main(void)
   viewCone cone = viewCone_get(level, dingu);
   viewCone_print(cone, dingu);
 
+  actor_move(level, &dingu);
+  cone = viewCone_get(level, dingu);
+  viewCone_print(cone, dingu);
+
   crow::App<crow::CORSHandler> app;
 
   auto &cors = app.get_middleware<crow::CORSHandler>();
