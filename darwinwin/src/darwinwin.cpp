@@ -97,21 +97,21 @@ viewCone viewCone_get(const level &lvl, const actor &actor)
     ret.values[i] = lvl.grid[currentIdx + lut[actor.look_at_dir][i]];
 
   // hidden flags
-  if (ret.values[1] & tf_Collidable)
-    ret.values[4] = tf_Hidden;
+  if (ret.values[vcp_nearLeft] & tf_Collidable)
+    ret.values[vcp_midLeft] = tf_Hidden;
 
-  if (ret.values[2] & tf_Collidable)
+  if (ret.values[vcp_nearCenter] & tf_Collidable)
   {
-    ret.values[5] = tf_Hidden;
-    ret.values[7] = tf_Hidden;
+    ret.values[vcp_midCenter] = tf_Hidden;
+    ret.values[vcp_farCenter] = tf_Hidden;
   }
-  else if (ret.values[5] & tf_Collidable)
+  else if (ret.values[vcp_midCenter] & tf_Collidable)
   {
-    ret.values[7] = tf_Hidden;
+    ret.values[vcp_farCenter] = tf_Hidden;
   }
 
-  if (ret.values[3] & tf_Collidable)
-    ret.values[6] = tf_Hidden;
+  if (ret.values[vcp_nearRight] & tf_Collidable)
+    ret.values[vcp_midRight] = tf_Hidden;
 
   // TODO: other actor flag
 
