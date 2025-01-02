@@ -148,10 +148,6 @@ void actor_move(const level &lvl, actor *pActor)
 
   vec2u newPos = vec2u(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
 
-  // check bounds
-  lsAssert(newPos.x > level::wallThickness && newPos.x < level::width - level::wallThickness && newPos.y > level::wallThickness && newPos.y < level::height - level::wallThickness);
-
-  // check collidable
-  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable))
+  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
     pActor->pos = newPos;
 }
