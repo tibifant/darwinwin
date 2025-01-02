@@ -79,4 +79,4 @@ void level_print(const level &level);
 viewCone viewCone_get(const level &lvl, const actor &actor);
 void viewCone_print(const viewCone &values, const actor &actor);
 
-void actor_move(const level &lvl, actor *pActor);
+void actor_move(actor *pActor, const level &lvl);

@@ -80,11 +80,13 @@ void level_print(const level &level)
   }
 }
 
-viewCone viewCone_get(const level &lvl, const actor &actor)
+viewCone viewCone_get(const level &lvl, const actor &a)
 {
+  lsAssert(a.pos.x > 0 && a.pos.y < level::width);
+
   viewCone ret;
 
-  size_t currentIdx = actor.pos.y * level::width + actor.pos.x;
+  size_t currentIdx = a.pos.y * level::width + a.pos.x;
   constexpr ptrdiff_t width = (ptrdiff_t)level::width;
   static const ptrdiff_t lut[_lookDirection_Count][LS_ARRAYSIZE(ret.values)] = {
     { 0, width - 1, -1, -width - 1, width - 2, -2, -width - 2, -3 },
@@ -94,7 +96,7 @@ viewCone viewCone_get(const level &lvl, const actor &actor)
   };
 
   for (size_t i = 0; i < LS_ARRAYSIZE(ret.values); i++)
-    ret.values[i] = lvl.grid[currentIdx + lut[actor.look_at_dir][i]];
+    ret.values[i] = lvl.grid[currentIdx + lut[a.look_at_dir][i]];
 
   // hidden flags
   if (ret.values[vcp_nearLeft] & tf_Collidable)
@@ -140,9 +142,10 @@ void viewCone_print(const viewCone &v, const actor &actor)
   printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
 }
 
-void actor_move(const level &lvl, actor *pActor)
+void actor_move(actor *pActor, const level &lvl)
 {
   lsAssert(pActor->pos.x > 0 && pActor->pos.y < level::width);
+  lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   static vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
@@ -150,4 +153,26 @@ void actor_move(const level &lvl, actor *pActor)
 
   if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
     pActor->pos = newPos;
+}
+
+void actor_turn(actor *pActor, const lookDirection dir)
+{
+  lsAssert(dir < _lookDirection_Count);
+
+  pActor->look_at_dir = dir; // Or should dir be the turn we want to do and we need to change the current look_dir to be turned in the dir?
+}
+
+void actor_eat(actor *pActor, const level &lvl)
+{
+  lsAssert(pActor->pos.x > 0 && pActor->pos.y < level::width);
+
+  size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
+
+  // Check if there is food
+  if (lvl.grid[currentIdx] & tf_Protein || lvl.grid[currentIdx] & tf_Sugar || lvl.grid[currentIdx] & tf_Vitamin || lvl.grid[currentIdx] & tf_Fat)
+  {
+    // TODO: Change the hunger/energy level
+
+    // TODO: Remove the food from the map
+  }
 }
