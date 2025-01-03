@@ -1,5 +1,9 @@
 #include "darwinwin.h"
 
+static constexpr size_t _movementEnergyCost = 10; // maybe these should live in the level?
+static constexpr size_t _idleEnergyCost = 1;
+static constexpr size_t _underwaterAirCost = 5;
+
 const char *lookDirection_toName[] =
 {
   "left",
@@ -144,35 +148,56 @@ void viewCone_print(const viewCone &v, const actor &actor)
 
 void actor_move(actor *pActor, const level &lvl)
 {
-  lsAssert(pActor->pos.x > 0 && pActor->pos.y < level::width);
-  lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
+  lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
+  //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
-  static vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+  static const vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
-  vec2u newPos = vec2u(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
+  if (pActor->energy >= _movementEnergyCost)
+  {
+    vec2u newPos = vec2u(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
 
-  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
-    pActor->pos = newPos;
+    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
+    {
+      pActor->pos = newPos;
+      pActor->energy -= _movementEnergyCost;
+    }
+  }
 }
 
-void actor_turn(actor *pActor, const lookDirection dir)
+void actor_turnAround(actor *pActor, const lookDirection targetDir)
 {
-  lsAssert(dir < _lookDirection_Count);
+  lsAssert(targetDir < _lookDirection_Count);
 
-  pActor->look_at_dir = dir; // Or should dir be the turn we want to do and we need to change the current look_dir to be turned in the dir?
+  pActor->look_at_dir = targetDir; // Or should dir be the turn we want to do and we need to change the current look_dir to be turned in the dir?
 }
 
-void actor_eat(actor *pActor, const level &lvl)
+void actor_eat(actor *pActor, level *pLvl, const viewCone cone)
 {
-  lsAssert(pActor->pos.x > 0 && pActor->pos.y < level::width);
+  // View cone must be updated before calling this!
+
+  lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
   size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
 
-  // Check if there is food
-  if (lvl.grid[currentIdx] & tf_Protein || lvl.grid[currentIdx] & tf_Sugar || lvl.grid[currentIdx] & tf_Vitamin || lvl.grid[currentIdx] & tf_Fat)
+  if (cone[vcp_self] & tf_Protein && pActor->protein < _maxFoodLevel)
   {
-    // TODO: Change the hunger/energy level
-
-    // TODO: Remove the food from the map
+    pActor->protein++;
+    pLvl->grid[currentIdx] &= !tf_Protein; // This will remove the protein completely...
+  }
+  if (cone[vcp_self] & tf_Sugar && pActor->sugar < _maxFoodLevel)
+  {
+    pActor->sugar++;
+    pLvl->grid[currentIdx] &= !tf_Sugar; // This will remove the protein completely...
+  }
+  if (cone[vcp_self] & tf_Vitamin && pActor->vitamin < _maxFoodLevel)
+  {
+    pActor->vitamin++;
+    pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
+  }
+  if (cone[vcp_self] & tf_Fat && pActor->fat < _maxFoodLevel)
+  {
+    pActor->fat ++;
+    pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
 }

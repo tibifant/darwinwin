@@ -68,7 +68,7 @@ int32_t main(void)
   viewCone cone = viewCone_get(level, dingu);
   viewCone_print(cone, dingu);
 
-  actor_move(level, &dingu);
+  actor_move(&dingu, level);
   cone = viewCone_get(level, dingu);
   viewCone_print(cone, dingu);
 

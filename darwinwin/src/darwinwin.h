@@ -39,13 +39,22 @@ enum lookDirection
 
 const char *lookDirection_name(const lookDirection dir);
 
-// Beings: hunger, energy etc
+constexpr uint8_t _maxFoodLevel = 128;
+
 struct actor
 {
   vec2u pos; // which size is best?
   lookDirection look_at_dir;
 
-  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x > level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y > level::wallThickness && pos.y < (level::height - level::wallThickness)); }
+  uint8_t energy = 100; // TODO: figure out start values, but we probably want to custimize the values anyways when training.
+  uint8_t air = 100;
+  uint8_t protein = 100;
+  uint8_t sugar = 100;
+  uint8_t vitamin = 100;
+  uint8_t fat = 100;
+  // room for atleast two more attributes
+
+  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };
 
 enum viewConePosition
