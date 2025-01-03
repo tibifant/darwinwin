@@ -146,6 +146,21 @@ void viewCone_print(const viewCone &v, const actor &actor)
   printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////
+
+void actor_updateStats(actorStats *pStats, const viewCone cone)
+{
+  // Always update view cone first!
+  
+  // Remove energy
+  if (pStats->energy)
+    pStats->energy = pStats->energy > _idleEnergyCost ? (pStats->energy - _idleEnergyCost) : 0;
+
+  // Check underwater
+  if (pStats->air && cone[vcp_self] & tf_Underwater)
+    pStats->energy = pStats->air > _underwaterAirCost ? (pStats->air - _underwaterAirCost) : 0;
+}
+
 void actor_move(actor *pActor, actorStats *pStats, const level &lvl)
 {
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
