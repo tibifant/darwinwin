@@ -61,6 +61,7 @@ int32_t main(void)
 {
   level level;
   actor dingu = actor(vec2u8(7, 7), ld_up);
+  actorStats stats;
 
   level_initLinear(&level);
   level_print(level);
@@ -68,7 +69,8 @@ int32_t main(void)
   viewCone cone = viewCone_get(level, dingu);
   viewCone_print(cone, dingu);
 
-  actor_move(&dingu, level);
+  actor_move(&dingu, &stats, level);
+  actor_turnAround(&dingu, ld_left);
   cone = viewCone_get(level, dingu);
   viewCone_print(cone, dingu);
 

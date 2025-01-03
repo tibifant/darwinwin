@@ -1,6 +1,6 @@
 #include "darwinwin.h"
 
-static constexpr size_t _movementEnergyCost = 10; // maybe these should live in the level?
+static constexpr size_t _movementEnergyCost = 10; // maybe these should live in the level or the stats?
 static constexpr size_t _idleEnergyCost = 1;
 static constexpr size_t _underwaterAirCost = 5;
 
@@ -131,10 +131,10 @@ void printEmpty()
 
 void printValue(const uint8_t val)
 {
-  //tileFlag_print(val);
-  //print(' ');
+  tileFlag_print(val);
+  print(' ');
   //print(FU(Bin, Min(8), Fill0)(val), ' ');
-  print(FU(Min(8))(val), ' ');
+  //print(FU(Min(8))(val), ' ');
 }
 
 void viewCone_print(const viewCone &v, const actor &actor)
@@ -146,21 +146,21 @@ void viewCone_print(const viewCone &v, const actor &actor)
   printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
 }
 
-void actor_move(actor *pActor, const level &lvl)
+void actor_move(actor *pActor, actorStats *pStats, const level &lvl)
 {
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   static const vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
-  if (pActor->energy >= _movementEnergyCost)
+  if (pStats->energy >= _movementEnergyCost)
   {
     vec2u newPos = vec2u(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
 
     if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
     {
       pActor->pos = newPos;
-      pActor->energy -= _movementEnergyCost;
+      pStats->energy -= _movementEnergyCost;
     }
   }
 }
@@ -172,7 +172,7 @@ void actor_turnAround(actor *pActor, const lookDirection targetDir)
   pActor->look_at_dir = targetDir; // Or should dir be the turn we want to do and we need to change the current look_dir to be turned in the dir?
 }
 
-void actor_eat(actor *pActor, level *pLvl, const viewCone cone)
+void actor_eat(actor *pActor, actorStats *pStats, level *pLvl, const viewCone cone)
 {
   // View cone must be updated before calling this!
 
@@ -180,24 +180,24 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone cone)
 
   size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
 
-  if (cone[vcp_self] & tf_Protein && pActor->protein < _maxFoodLevel)
+  if (cone[vcp_self] & tf_Protein && pStats->protein < actorStats::_maxLevel)
   {
-    pActor->protein++;
+    pStats->protein++;
     pLvl->grid[currentIdx] &= !tf_Protein; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Sugar && pActor->sugar < _maxFoodLevel)
+  if (cone[vcp_self] & tf_Sugar && pStats->sugar < actorStats::_maxLevel)
   {
-    pActor->sugar++;
+    pStats->sugar++;
     pLvl->grid[currentIdx] &= !tf_Sugar; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Vitamin && pActor->vitamin < _maxFoodLevel)
+  if (cone[vcp_self] & tf_Vitamin && pStats->vitamin < actorStats::_maxLevel)
   {
-    pActor->vitamin++;
+    pStats->vitamin++;
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Fat && pActor->fat < _maxFoodLevel)
+  if (cone[vcp_self] & tf_Fat && pStats->fat < actorStats::_maxLevel)
   {
-    pActor->fat ++;
+    pStats->fat ++;
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
 }
