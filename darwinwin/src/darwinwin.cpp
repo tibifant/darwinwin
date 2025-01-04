@@ -1,6 +1,7 @@
 #include "darwinwin.h"
 
 static constexpr size_t _movementEnergyCost = 10; // maybe these should live in the level or the stats?
+static constexpr size_t _doubleMovementEnergyCost = 17; // maybe these should live in the level or the stats?
 static constexpr size_t _idleEnergyCost = 1;
 static constexpr size_t _underwaterAirCost = 5;
 
@@ -176,6 +177,25 @@ void actor_move(actor *pActor, actorStats *pStats, const level &lvl)
     {
       pActor->pos = newPos;
       pStats->energy -= _movementEnergyCost;
+    }
+  }
+}
+
+void actor_moveTwo(actor *pActor, actorStats *pStats, const level &lvl)
+{
+  lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
+  //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
+
+  static const vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+
+  if (pStats->energy >= _doubleMovementEnergyCost)
+  {
+    vec2u newPos = vec2u(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
+
+    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
+    {
+      pActor->pos = newPos;
+      pStats->energy -= _doubleMovementEnergyCost;
     }
   }
 }
