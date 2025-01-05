@@ -53,6 +53,11 @@ namespace asio
 
 //////////////////////////////////////////////////////////////////////////
 
+crow::response handle_getLevel(const crow::request &req);
+crow::response handle_setTile(const crow::request &req);
+
+//////////////////////////////////////////////////////////////////////////
+
 static std::atomic<bool> _IsRunning = true;
 static level _WebLevel;
 static actor _WebActor(vec2u8(level::width / 2, level::height / 2), ld_up);
@@ -93,6 +98,8 @@ int32_t main(const int32_t argc, const char **pArgv)
   cors.global().origin("*");
 #endif
 
+  CROW_ROUTE(app, "/getLevel").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_setTile(req); });
+
   app.port(21110).multithreaded().run();
 
   // TODO: /get_level
@@ -103,4 +110,24 @@ int32_t main(const int32_t argc, const char **pArgv)
 }
 
 //////////////////////////////////////////////////////////////////////////
+
+
+
+crow::response handle_setTile(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body || body.has("x") || body.has("y") || body.has("value"))
+    return crow::response(crow::status::BAD_REQUEST);
+
+  const size_t x = body["x"].i();
+  const size_t y = body["y"].i();
+  const uint8_t val = body["value"].i();
+
+  if (x > level::width || y > level::height || val > 256)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  // TODO: when actually doing something with the level: thredlock?
+  _WebLevel.grid[y * level::width + x] = (tileFlag)val;
+}
 
