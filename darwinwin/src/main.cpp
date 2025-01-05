@@ -53,7 +53,9 @@ namespace asio
 
 //////////////////////////////////////////////////////////////////////////
 
-std::atomic<bool> _IsRunning = true;
+static std::atomic<bool> _IsRunning = true;
+static level _WebLevel;
+static actor _WebActor(vec2u8(level::width / 2, level::height / 2), ld_up);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -86,9 +88,6 @@ int32_t main(const int32_t argc, const char **pArgv)
   actor actr(vec2u8(level::width / 2, level::height / 2), ld_up);
   actorStats stats;
 
-  neural_net_buffer<1> in, out;
-  neural_net_eval(actr.brain, in, out);
-
   level_initLinear(&lvl);
   level_print(lvl);
 
@@ -109,7 +108,11 @@ int32_t main(const int32_t argc, const char **pArgv)
   cors.global().origin("*");
 #endif
 
-  app.port(61919).multithreaded().run();
+  app.port(21110).multithreaded().run();
+
+  // TODO: /get_level
+  // TODO: /set_tile (x, y, value)
+  // TODO: /manual_act (action_id)
 
   _IsRunning = false;
 }
