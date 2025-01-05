@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core.h"
+#include "neural_net.h"
 
 enum tileFlag : uint8_t
 {
@@ -43,6 +44,7 @@ struct actor
 {
   vec2u pos; // which size is best?
   lookDirection look_at_dir;
+  neural_net<1, 8> brain;
 
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };
