@@ -86,16 +86,22 @@ void level_print(const level &level)
 }
 
 template <size_t actor_count>
-void level_performStep(level &lvl, actor *pActors)
+bool level_performStep(level &lvl, actor *pActors)
 {
   // TODO: optional level internal step. (grow plants, etc.)
 
+  bool anyAlive = false;
+
   for (size_t i = 0; i < actor_count; i++)
   {
-    if (!pActors->alive)
+    if (pActors[i].stats.energy == 0)
       continue;
 
+    anyAlive = true;
+
     const viewCone cone = viewCone_get(lvl, pActors[i]);
+    actor_updateStats(&pActors[i].stats, cone);
+
     neural_net_buffer<decltype(actor::brain)::layer_blocks> ioBuffer;
 
     for (size_t j = 0; j < LS_ARRAYSIZE(cone.values); j++)
@@ -112,25 +118,38 @@ void level_performStep(level &lvl, actor *pActors)
     size_t bestActionIndex = 0;
     constexpr size_t maxActionIndex = lsMin(LS_ARRAYSIZE(ioBuffer.data), _actorAction_Count);
 
-    for (size_t i = 1; i < maxActionIndex; i++)
+    for (size_t actionIndex = 1; actionIndex < maxActionIndex; actionIndex++)
     {
-      if (maxValue < ioBuffer.data[i])
+      if (maxValue < ioBuffer.data[actionIndex])
       {
-        maxValue = ioBuffer.data[i];
-        bestActionIndex = i;
+        maxValue = ioBuffer.data[actionIndex];
+        bestActionIndex = actionIndex;
       }
     }
 
     switch ((actorAction)bestActionIndex)
     {
       // TODO: Respond.
+
+    case aa_Move:
+      actor_move(&pActors[i], lvl);
+      break;
+
+    default:
+      lsFail(); // not implemented.
+      break;
     }
   }
+
+  lsAssert(anyAlive); // otherwise, maybe don't call us???
+
+  return anyAlive;
 }
-void level_performStep1(level &lvl, actor &actor) { level_performStep<1>(lvl, &actor); }
-void level_performStep2(level &lvl, actor *pActors) { level_performStep<2>(lvl, pActors); }
-void level_performStep3(level &lvl, actor *pActors) { level_performStep<3>(lvl, pActors); }
-void level_performStep4(level &lvl, actor *pActors) { level_performStep<4>(lvl, pActors); }
+
+bool level_performStep1(level &lvl, actor &actor) { return level_performStep<1>(lvl, &actor); }
+bool level_performStep2(level &lvl, actor *pActors) { return level_performStep<2>(lvl, pActors); }
+bool level_performStep3(level &lvl, actor *pActors) { return level_performStep<3>(lvl, pActors); }
+bool level_performStep4(level &lvl, actor *pActors) { return level_performStep<4>(lvl, pActors); }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
@@ -211,40 +230,40 @@ void actor_updateStats(actorStats *pStats, const viewCone cone)
     pStats->energy = pStats->air > _underwaterAirCost ? (pStats->air - _underwaterAirCost) : 0;
 }
 
-void actor_move(actor *pActor, actorStats *pStats, const level &lvl)
+void actor_move(actor *pActor, const level &lvl)
 {
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   static const vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
-  if (pStats->energy >= _movementEnergyCost)
+  if (pActor->stats.energy >= _movementEnergyCost)
   {
     vec2u newPos = vec2u(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
 
     if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
     {
       pActor->pos = newPos;
-      pStats->energy -= _movementEnergyCost;
+      pActor->stats.energy -= _movementEnergyCost;
     }
   }
 }
 
-void actor_moveTwo(actor *pActor, actorStats *pStats, const level &lvl)
+void actor_moveTwo(actor *pActor, const level &lvl)
 {
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   static const vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
-  if (pStats->energy >= _doubleMovementEnergyCost)
+  if (pActor->stats.energy >= _doubleMovementEnergyCost)
   {
     vec2u newPos = vec2u(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
 
     if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
     {
       pActor->pos = newPos;
-      pStats->energy -= _doubleMovementEnergyCost;
+      pActor->stats.energy -= _doubleMovementEnergyCost;
     }
   }
 }
@@ -256,7 +275,7 @@ void actor_turnAround(actor *pActor, const lookDirection targetDir)
   pActor->look_at_dir = targetDir; // Or should dir be the turn we want to do and we need to change the current look_dir to be turned in the dir?
 }
 
-void actor_eat(actor *pActor, actorStats *pStats, level *pLvl, const viewCone cone)
+void actor_eat(actor *pActor, level *pLvl, const viewCone cone)
 {
   // View cone must be updated before calling this!
 
@@ -264,24 +283,24 @@ void actor_eat(actor *pActor, actorStats *pStats, level *pLvl, const viewCone co
 
   size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
 
-  if (cone[vcp_self] & tf_Protein && pStats->protein < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Protein && pActor->stats.protein < actorStats::_maxLevel)
   {
-    pStats->protein++;
+    pActor->stats.protein++;
     pLvl->grid[currentIdx] &= !tf_Protein; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Sugar && pStats->sugar < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Sugar && pActor->stats.sugar < actorStats::_maxLevel)
   {
-    pStats->sugar++;
+    pActor->stats.sugar++;
     pLvl->grid[currentIdx] &= !tf_Sugar; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Vitamin && pStats->vitamin < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Vitamin && pActor->stats.vitamin < actorStats::_maxLevel)
   {
-    pStats->vitamin++;
+    pActor->stats.vitamin++;
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Fat && pStats->fat < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Fat && pActor->stats.fat < actorStats::_maxLevel)
   {
-    pStats->fat++;
+    pActor->stats.fat++;
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
 }

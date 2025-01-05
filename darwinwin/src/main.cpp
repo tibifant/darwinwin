@@ -98,7 +98,7 @@ int32_t main(const int32_t argc, const char **pArgv)
   viewCone cone = viewCone_get(lvl, actr);
   viewCone_print(cone, actr);
 
-  actor_move(&actr, &stats, lvl);
+  actor_move(&actr, lvl);
   actor_turnAround(&actr, ld_left);
   cone = viewCone_get(lvl, actr);
   viewCone_print(cone, actr);

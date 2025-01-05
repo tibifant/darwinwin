@@ -8,8 +8,8 @@ struct neural_net
   static constexpr size_t layer_blocks = layer_blocks_;
   static constexpr size_t layers = layers_;
 
-  static constexpr size_t block_size = sizeof(__m256) / sizeof(int16_t);
-  static constexpr size_t neurons_per_layer = layer_blocks * 16;
+  static constexpr size_t block_size = sizeof(__m256) / sizeof(int8_t);
+  static constexpr size_t neurons_per_layer = layer_blocks * block_size;
   static constexpr size_t weights_per_neuron = neurons_per_layer;
   static constexpr size_t weights_per_layer = neurons_per_layer * neurons_per_layer;
   static constexpr size_t biases_per_layer = neurons_per_layer;
@@ -24,7 +24,7 @@ struct neural_net
 template <size_t layer_blocks>
 struct neural_net_buffer
 {
-  static constexpr size_t block_size = sizeof(__m256) / sizeof(int16_t);
+  static constexpr size_t block_size = sizeof(__m256) / sizeof(int8_t);
   LS_ALIGN(32) int8_t data[layer_blocks * block_size];
 };
 
@@ -61,7 +61,7 @@ inline void neural_net_eval(const neural_net<layer_blocks, layers> &nn, neural_n
     // Accumulate Weights.
     for (size_t neuron = 0; neuron < nn.neurons_per_layer; neuron++)
     {
-      for (size_t inputBlock = 0; inputBlock < layer_blocks; inputBlock++)
+      for (size_t inputBlock = 0; inputBlock < nn.layer_blocks; inputBlock++)
       {
         const __m128i *pLayer128 = reinterpret_cast<const __m128i *>(pLayer);
         const __m128i weightLo = _mm_load_si128(pLayer128);
