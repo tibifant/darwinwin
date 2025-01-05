@@ -88,6 +88,10 @@ int32_t main(const int32_t argc, const char **pArgv)
   actor actr(vec2u8(level::width / 2, level::height / 2), ld_up);
   actorStats stats;
 
+  neural_net_buffer<1> b;
+  neural_net_buffer_prepare(b);
+  level_performStep1(lvl, actr);
+
   level_initLinear(&lvl);
   level_print(lvl);
 

@@ -44,7 +44,7 @@ struct actor
 {
   vec2u pos; // which size is best?
   lookDirection look_at_dir;
-  neural_net<1, 8> brain;
+  neural_net<5, 4> brain;
 
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };
@@ -87,8 +87,23 @@ struct actorStats
   // room for atleast two more attributes
 };
 
+enum actorAction
+{
+  aa_Move,
+  aa_Move2,
+  aa_TurnLeft,
+  aa_TurnRight,
+
+  _actorAction_Count
+};
+
 void level_initLinear(level *pLevel);
 void level_print(const level &level);
+
+void level_performStep1(level &lvl, actor &actor);
+void level_performStep2(level &lvl, actor *pActors);
+void level_performStep3(level &lvl, actor *pActors);
+void level_performStep4(level &lvl, actor *pActors);
 
 viewCone viewCone_get(const level &lvl, const actor &actor);
 void viewCone_print(const viewCone &values, const actor &actor);

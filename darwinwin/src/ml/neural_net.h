@@ -2,9 +2,12 @@
 
 #include "core.h"
 
-template <size_t layer_blocks, size_t layers>
+template <size_t layer_blocks_, size_t layers_>
 struct neural_net
 {
+  static constexpr size_t layer_blocks = layer_blocks_;
+  static constexpr size_t layers = layers_;
+
   static constexpr size_t block_size = sizeof(__m256) / sizeof(int16_t);
   static constexpr size_t neurons_per_layer = layer_blocks * 16;
   static constexpr size_t weights_per_neuron = neurons_per_layer;
@@ -25,22 +28,33 @@ struct neural_net_buffer
   LS_ALIGN(32) int8_t data[layer_blocks * block_size];
 };
 
+// convert any non-zero values to `lsMaxValue<int8_t>()` => ~1 in fixed point.
+template <size_t layer_blocks>
+inline void neural_net_buffer_prepare(neural_net_buffer<layer_blocks> &b)
+{
+  __m256i *pBuffer = reinterpret_cast<__m256i *>(b.data);
+  const __m256i expected = _mm256_set1_epi8(lsMaxValue<int8_t>());
+
+  for (size_t inputBlock = 0; inputBlock < layer_blocks; inputBlock++)
+  {
+    const __m256i raw = _mm256_load_si256(pBuffer + inputBlock);
+    const __m256i cmp = _mm256_cmpeq_epi8(_mm256_cmpeq_epi8(raw, _mm256_setzero_si256()), _mm256_setzero_si256());
+    const __m256i out = _mm256_and_si256(cmp, expected);
+    _mm256_store_si256(pBuffer + inputBlock, out);
+  }
+}
+
 template <size_t layer_blocks, size_t layers>
-inline void neural_net_eval(const neural_net<layer_blocks, layers> &nn, const neural_net_buffer<layer_blocks> &in, neural_net_buffer<layer_blocks> &out)
+inline void neural_net_eval(const neural_net<layer_blocks, layers> &nn, neural_net_buffer<layer_blocks> &io)
 {
   LS_ALIGN(32) int16_t tmp[layer_blocks * nn.block_size];
 
-  const __m256i *pIn = reinterpret_cast<const __m256i *>(in.data);
-  __m256i *pOut = reinterpret_cast<__m256i *>(out.data);
+  __m256i *pOut = reinterpret_cast<__m256i *>(io.data);
   __m256i *pTmp = reinterpret_cast<__m256i *>(tmp);
   const __m256i *pLayer = reinterpret_cast<const __m256i *>(nn.data);
   const __m128i _FFFF_64 = _mm_set1_epi64x(0xFFFF);
   const __m256i _min_16 = _mm256_set1_epi8(lsMinValue<int8_t>());
   const __m256i _max_16 = _mm256_set1_epi8(lsMaxValue<int8_t>());
-
-  // copy to out.
-  for (size_t i = 0; i < layer_blocks; i++)
-    _mm256_store_si256(pOut + i, _mm256_load_si256(pIn + i));
 
   for (size_t layer = 0; layer < layers; layer++)
   {

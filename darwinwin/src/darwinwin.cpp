@@ -85,6 +85,55 @@ void level_print(const level &level)
   }
 }
 
+template <size_t actor_count>
+void level_performStep(level &lvl, actor *pActors)
+{
+  // TODO: optional level internal step. (grow plants, etc.)
+
+  for (size_t i = 0; i < actor_count; i++)
+  {
+    if (!pActors->alive)
+      continue;
+
+    const viewCone cone = viewCone_get(lvl, pActors[i]);
+    neural_net_buffer<decltype(actor::brain)::layer_blocks> ioBuffer;
+
+    for (size_t j = 0; j < LS_ARRAYSIZE(cone.values); j++)
+      for (size_t bit = 1; bit < 256; bit <<= 1)
+        ioBuffer.data[j] = (int8_t)(cone[(viewConePosition)j] & bit);
+
+    neural_net_buffer_prepare(ioBuffer);
+
+    // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[64 + x]`.
+
+    neural_net_eval(pActors->brain, ioBuffer);
+
+    int8_t maxValue = ioBuffer.data[0];
+    size_t bestActionIndex = 0;
+    constexpr size_t maxActionIndex = lsMin(LS_ARRAYSIZE(ioBuffer.data), _actorAction_Count);
+
+    for (size_t i = 1; i < maxActionIndex; i++)
+    {
+      if (maxValue < ioBuffer.data[i])
+      {
+        maxValue = ioBuffer.data[i];
+        bestActionIndex = i;
+      }
+    }
+
+    switch ((actorAction)bestActionIndex)
+    {
+      // TODO: Respond.
+    }
+  }
+}
+void level_performStep1(level &lvl, actor &actor) { level_performStep<1>(lvl, &actor); }
+void level_performStep2(level &lvl, actor *pActors) { level_performStep<2>(lvl, pActors); }
+void level_performStep3(level &lvl, actor *pActors) { level_performStep<3>(lvl, pActors); }
+void level_performStep4(level &lvl, actor *pActors) { level_performStep<4>(lvl, pActors); }
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
 viewCone viewCone_get(const level &lvl, const actor &a)
 {
   lsAssert(a.pos.x > 0 && a.pos.y < level::width);
@@ -152,7 +201,7 @@ void viewCone_print(const viewCone &v, const actor &actor)
 void actor_updateStats(actorStats *pStats, const viewCone cone)
 {
   // Always update view cone first!
-  
+
   // Remove energy
   if (pStats->energy)
     pStats->energy = pStats->energy > _idleEnergyCost ? (pStats->energy - _idleEnergyCost) : 0;
@@ -232,7 +281,7 @@ void actor_eat(actor *pActor, actorStats *pStats, level *pLvl, const viewCone co
   }
   if (cone[vcp_self] & tf_Fat && pStats->fat < actorStats::_maxLevel)
   {
-    pStats->fat ++;
+    pStats->fat++;
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
 }
