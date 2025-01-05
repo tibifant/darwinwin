@@ -320,6 +320,26 @@ constexpr inline T lsClamp(const T &a, const T &min, const T &max)
 
 //////////////////////////////////////////////////////////////////////////
 
+namespace cpu_info
+{
+  extern bool _CpuFeaturesDetected;
+  extern bool sseSupported;
+  extern bool sse2Supported;
+  extern bool sse3Supported;
+  extern bool ssse3Supported;
+  extern bool sse41Supported;
+  extern bool sse42Supported;
+  extern bool avxSupported;
+  extern bool avx2Supported;
+  extern bool fma3Supported;
+  extern bool aesNiSupported;
+
+  void DetectCpuFeatures();
+  const char *GetCpuName();
+};
+
+//////////////////////////////////////////////////////////////////////////
+
 enum lsConsoleColor
 {
   lsCC_Black,
@@ -896,7 +916,7 @@ struct vec2t
   // Polar: r, theta;
   inline constexpr vec2t(T _x, T _y) : x(_x), y(_y) {}
 
-  template <typename T2> inline constexpr explicit vec2t(const vec2t<T2> &cast) : x((T)cast.x), y((T)cast.y) { }
+  template <typename T2> inline constexpr explicit vec2t(const vec2t<T2> &cast) : x((T)cast.x), y((T)cast.y) {}
 
   inline vec2t<T>  operator +  (const vec2t<T> &a) const { return vec2t<T>(x + a.x, y + a.y); };
   inline vec2t<T>  operator -  (const vec2t<T> &a) const { return vec2t<T>(x - a.x, y - a.y); };

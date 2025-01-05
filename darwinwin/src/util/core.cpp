@@ -101,20 +101,20 @@ uint64_t lsGetRand()
   return last[1] ^ last[0];
 #else
   static uint64_t last[2] = { (uint64_t)lsGetCurrentTimeNs(), (uint64_t)lsGetCurrentTicks() };
-  
+
   const uint64_t oldstate_hi = last[0];
   const uint64_t oldstate_lo = oldstate_hi * 6364136223846793005ULL + (last[1] | 1);
   last[0] = oldstate_hi * 6364136223846793005ULL + (last[1] | 1);
-  
+
   const uint32_t xorshifted_hi = (uint32_t)(((oldstate_hi >> 18) ^ oldstate_hi) >> 27);
   const uint32_t rot_hi = (uint32_t)(oldstate_hi >> 59);
-  
+
   const uint32_t xorshifted_lo = (uint32_t)(((oldstate_lo >> 18) ^ oldstate_lo) >> 27);
   const uint32_t rot_lo = (uint32_t)(oldstate_lo >> 59);
-  
+
   const uint32_t hi = (xorshifted_hi >> rot_hi) | (xorshifted_hi << (uint32_t)((-(int32_t)rot_hi) & 31));
   const uint32_t lo = (xorshifted_lo >> rot_lo) | (xorshifted_lo << (uint32_t)((-(int32_t)rot_lo) & 31));
-  
+
   return ((uint64_t)hi << 32) | lo;
 #endif
 }
@@ -124,16 +124,16 @@ uint64_t lsGetRand(rand_seed &seed)
   const uint64_t oldstate_hi = seed.v[0];
   const uint64_t oldstate_lo = oldstate_hi * 6364136223846793005ULL + (seed.v[1] | 1);
   seed.v[0] = oldstate_hi * 6364136223846793005ULL + (seed.v[1] | 1);
-  
+
   const uint32_t xorshifted_hi = (uint32_t)(((oldstate_hi >> 18) ^ oldstate_hi) >> 27);
   const uint32_t rot_hi = (uint32_t)(oldstate_hi >> 59);
-  
+
   const uint32_t xorshifted_lo = (uint32_t)(((oldstate_lo >> 18) ^ oldstate_lo) >> 27);
   const uint32_t rot_lo = (uint32_t)(oldstate_lo >> 59);
-  
+
   const uint32_t hi = (xorshifted_hi >> rot_hi) | (xorshifted_hi << (uint32_t)((-(int32_t)rot_hi) & 31));
   const uint32_t lo = (xorshifted_lo >> rot_lo) | (xorshifted_lo << (uint32_t)((-(int32_t)rot_lo) & 31));
-  
+
   return ((uint64_t)hi << 32) | lo;
 }
 
@@ -1181,3 +1181,116 @@ epilogue:
   return result;
 }
 #endif
+
+#ifdef _MSC_VER
+#define cpuid __cpuid
+#else
+#include <cpuid.h>
+
+static void cpuid(int info[4], int infoType)
+{
+  __cpuid_count(infoType, 0, info[0], info[1], info[2], info[3]);
+}
+#ifndef _XCR_XFEATURE_ENABLED_MASK
+#define _XCR_XFEATURE_ENABLED_MASK  0
+#endif
+#endif
+
+namespace cpu_info
+{
+  bool _CpuFeaturesDetected = false;
+  bool sseSupported = false;
+  bool sse2Supported = false;
+  bool sse3Supported = false;
+  bool ssse3Supported = false;
+  bool sse41Supported = false;
+  bool sse42Supported = false;
+  bool avxSupported = false;
+  bool avx2Supported = false;
+  bool fma3Supported = false;
+  bool aesNiSupported = false;
+
+  char _CpuName[0x80] = "Unknown";
+
+  void DetectCpuFeatures()
+  {
+    if (_CpuFeaturesDetected)
+      return;
+
+    int32_t info[4];
+    cpuid(info, 0);
+    const uint32_t idCount = info[0];
+
+    if (idCount >= 0x1)
+    {
+      int32_t cpuInfo[4];
+      cpuid(cpuInfo, 1);
+
+      const bool osUsesXSAVE_XRSTORE = (cpuInfo[2] & (1 << 27)) != 0;
+      const bool cpuAVXSuport = (cpuInfo[2] & (1 << 28)) != 0;
+
+      if (osUsesXSAVE_XRSTORE && cpuAVXSuport)
+      {
+        const uint64_t xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
+        avxSupported = (xcrFeatureMask & 0x6) != 0;
+      }
+
+      sseSupported = (cpuInfo[3] & (1 << 25)) != 0;
+      sse2Supported = (cpuInfo[3] & (1 << 26)) != 0;
+      sse3Supported = (cpuInfo[2] & (1 << 0)) != 0;
+      ssse3Supported = (cpuInfo[2] & (1 << 9)) != 0;
+      sse41Supported = (cpuInfo[2] & (1 << 19)) != 0;
+      sse42Supported = (cpuInfo[2] & (1 << 20)) != 0;
+      fma3Supported = (cpuInfo[2] & (1 << 12)) != 0;
+      aesNiSupported = (cpuInfo[2] & (1 << 25)) != 0;
+    }
+
+    if (idCount >= 0x7)
+    {
+      int32_t cpuInfo[4];
+      cpuid(cpuInfo, 7);
+
+      avx2Supported = (cpuInfo[1] & (1 << 5)) != 0;
+    }
+
+    cpuid(info, 0x80000000);
+    const uint32_t extLength = info[0];
+
+    // Parse CPU Name.
+    for (uint32_t i = 0x80000002; i <= extLength && i <= 0x80000005; i++)
+    {
+      cpuid(info, i);
+
+      const int32_t index = (i & 0x7) - 2;
+
+      if (index >= 0 && index <= 4)
+        memcpy(_CpuName + sizeof(info) * index, info, sizeof(info));
+    }
+
+    // Trim Spaces at the end.
+    {
+      size_t end = 1;
+
+      for (; end < sizeof(_CpuName); end++)
+        if (_CpuName[end] == '\0')
+          break;
+
+      end--;
+
+      for (; end > 1; end--)
+      {
+        if (_CpuName[end] == ' ')
+          _CpuName[end] = '\0';
+        else
+          break;
+      }
+    }
+
+    _CpuFeaturesDetected = true;
+  }
+
+  const char *GetCpuName()
+  {
+    return _CpuName;
+  }
+};

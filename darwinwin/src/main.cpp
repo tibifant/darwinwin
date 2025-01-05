@@ -53,26 +53,51 @@ namespace asio
 
 //////////////////////////////////////////////////////////////////////////
 
-std::atomic<bool> _IsRunning = true;
+static std::atomic<bool> _IsRunning = true;
+static level _WebLevel;
+static actor _WebActor(vec2u8(level::width / 2, level::height / 2), ld_up);
 
 //////////////////////////////////////////////////////////////////////////
 
-int32_t main(void)
+int32_t main(const int32_t argc, const char **pArgv)
 {
-  level level;
-  actor dingu = actor(vec2u8(7, 7), ld_up);
+  (void)pArgv;
+
+  if (argc > 1)
+  {
+    print_error_line("Unsupported Argument!");
+    return EXIT_FAILURE;
+  }
+
+  cpu_info::DetectCpuFeatures();
+
+  if (!(cpu_info::avx2Supported && cpu_info::avxSupported))
+  {
+    print_error_line("CPU Platform does not provide support for AVX/AVX2!");
+    return EXIT_FAILURE;
+  }
+
+  sformatState_ResetCulture();
+  print("DarWinWin (built " __DATE__ " " __TIME__ ") running on ", cpu_info::GetCpuName(), ".\n");
+  print("\nConfiguration:\n");
+  print("Level size: ", FF(Group, Frac(3), AllFrac)(sizeof(level) / 1024.0), " KiB\n");
+  print("Actor size: ", FF(Group, Frac(3), AllFrac)(sizeof(actor) / 1024.0), " KiB\n");
+  print("\n");
+
+  level lvl;
+  actor actr(vec2u8(level::width / 2, level::height / 2), ld_up);
   actorStats stats;
 
-  level_initLinear(&level);
-  level_print(level);
+  level_initLinear(&lvl);
+  level_print(lvl);
 
-  viewCone cone = viewCone_get(level, dingu);
-  viewCone_print(cone, dingu);
+  viewCone cone = viewCone_get(lvl, actr);
+  viewCone_print(cone, actr);
 
-  actor_move(&dingu, &stats, level);
-  actor_turnAround(&dingu, ld_left);
-  cone = viewCone_get(level, dingu);
-  viewCone_print(cone, dingu);
+  actor_move(&actr, &stats, lvl);
+  actor_turnAround(&actr, ld_left);
+  cone = viewCone_get(lvl, actr);
+  viewCone_print(cone, actr);
 
   crow::App<crow::CORSHandler> app;
 
@@ -83,7 +108,11 @@ int32_t main(void)
   cors.global().origin("*");
 #endif
 
-  app.port(61919).multithreaded().run();
+  app.port(21110).multithreaded().run();
+
+  // TODO: /get_level
+  // TODO: /set_tile (x, y, value)
+  // TODO: /manual_act (action_id)
 
   _IsRunning = false;
 }
