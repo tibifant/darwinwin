@@ -91,6 +91,8 @@ int32_t main(const int32_t argc, const char **pArgv)
   print("\n");
 
   crow::App<crow::CORSHandler> app;
+  
+  level_initLinear(&_WebLevel);
 
   auto &cors = app.get_middleware<crow::CORSHandler>();
 #ifndef DARWINWIN_LOCALHOST
@@ -155,7 +157,6 @@ crow::response handle_setTile(const crow::request &req)
   if (x >= level::width || y >= level::height)
     return crow::response(crow::status::BAD_REQUEST);
 
-  // TODO: when actually doing something with the level: thredlock?
   _WebLevel.grid[y * level::width + x] = (tileFlag)val;
 
   return crow::response(crow::status::OK);

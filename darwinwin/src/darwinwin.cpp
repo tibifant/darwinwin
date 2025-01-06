@@ -44,11 +44,6 @@ void level_initLinear(level *pLevel)
   for (size_t i = 0; i < level::width * level::height; i++)
     pLevel->grid[i] = (uint8_t)(i);
 
-  // Setting things to collidable for testing
-  pLevel->grid[6 * level::width + 6] = tf_Collidable;
-  pLevel->grid[5 * level::width + 7] = tf_Collidable;
-  pLevel->grid[6 * level::width + 8] = tf_Collidable;
-
   // Making the Borders collidable
   for (size_t i = 0; i < level::width; i++)
   {
@@ -313,7 +308,8 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
   // View cone must be updated before calling this!
 
-  static constexpr uint8_t _maxLevel = 100;
+  static constexpr uint8_t _maxLevel = 255;
+  static constexpr uint8_t _FoodEnergyValue = 3;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
@@ -322,21 +318,25 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
   if (cone[vcp_self] & tf_Protein && pActor->stats[as_Protein] < _maxLevel)
   {
     pActor->stats[as_Protein]++;
+    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
     pLvl->grid[currentIdx] &= !tf_Protein; // This will remove the protein completely...
   }
   if (cone[vcp_self] & tf_Sugar && pActor->stats[as_Sugar] < _maxLevel)
   {
     pActor->stats[as_Sugar]++;
+    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
     pLvl->grid[currentIdx] &= !tf_Sugar; // This will remove the protein completely...
   }
   if (cone[vcp_self] & tf_Vitamin && pActor->stats[as_Vitamin] < _maxLevel)
   {
     pActor->stats[as_Vitamin]++;
+    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
   if (cone[vcp_self] & tf_Fat && pActor->stats[as_Fat] < _maxLevel)
   {
     pActor->stats[as_Fat]++;
+    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
 }
