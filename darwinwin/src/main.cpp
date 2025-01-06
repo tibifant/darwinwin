@@ -111,7 +111,23 @@ int32_t main(const int32_t argc, const char **pArgv)
 
 //////////////////////////////////////////////////////////////////////////
 
+crow::response handle_getLevel(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
 
+  if (!body)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  crow::json::wvalue ret;
+
+  ret["width"] = _WebLevel.width;
+  ret["height"] = _WebLevel.height;
+
+  for (size_t i = 0; i < LS_ARRAYSIZE(_WebLevel.grid); i++)
+    ret["grid"][i] = _WebLevel.grid[i];
+
+  return ret;
+}
 
 crow::response handle_setTile(const crow::request &req)
 {
