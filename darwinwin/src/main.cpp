@@ -122,12 +122,14 @@ crow::response handle_setTile(const crow::request &req)
 
   const size_t x = body["x"].i();
   const size_t y = body["y"].i();
-  const uint8_t val = body["value"].i();
+  const uint8_t val = (uint8_t)body["value"].i();
 
-  if (x > level::width || y > level::height || val > 256)
+  if (x >= level::width || y >= level::height)
     return crow::response(crow::status::BAD_REQUEST);
 
   // TODO: when actually doing something with the level: thredlock?
   _WebLevel.grid[y * level::width + x] = (tileFlag)val;
+
+  return crow::response(crow::status::NOT_IMPLEMENTED);
 }
 
