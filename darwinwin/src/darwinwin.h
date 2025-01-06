@@ -28,6 +28,16 @@ struct level
   uint8_t grid[width * height];
 };
 
+void level_initLinear(level *pLevel);
+void level_print(const level &level);
+
+struct actor;
+
+bool level_performStep1(level &lvl, actor &actor);
+bool level_performStep2(level &lvl, actor *pActors);
+bool level_performStep3(level &lvl, actor *pActors);
+bool level_performStep4(level &lvl, actor *pActors);
+
 enum lookDirection
 {
   ld_left,
@@ -63,6 +73,10 @@ struct actor
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };
 
+void actor_updateStats(actorStats *pStats, const viewCone cone);
+void actor_move(actor *pActor, const level &lvl);
+void actor_turnAround(actor *pActor, const lookDirection targetDir);
+void actor_eat(actor *pActor, level *pLvl, const viewCone cone);
 
 enum actorAction
 {
@@ -99,18 +113,5 @@ struct viewCone
   }
 };
 
-void level_initLinear(level *pLevel);
-void level_print(const level &level);
-
-bool level_performStep1(level &lvl, actor &actor);
-bool level_performStep2(level &lvl, actor *pActors);
-bool level_performStep3(level &lvl, actor *pActors);
-bool level_performStep4(level &lvl, actor *pActors);
-
 viewCone viewCone_get(const level &lvl, const actor &actor);
 void viewCone_print(const viewCone &values, const actor &actor);
-
-void actor_updateStats(actorStats *pStats, const viewCone cone);
-void actor_move(actor *pActor, const level &lvl);
-void actor_turnAround(actor *pActor, const lookDirection targetDir);
-void actor_eat(actor *pActor, level *pLvl, const viewCone cone);

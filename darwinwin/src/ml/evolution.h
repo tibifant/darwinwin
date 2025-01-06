@@ -48,7 +48,6 @@ struct evolution
   {
     target t;
     size_t score;
-    bool hasScore = false;
   };
 
   pool<gene> genes;

@@ -30,12 +30,14 @@ struct neural_net_buffer
 
 // convert any non-zero values to `lsMaxValue<int8_t>()` => ~1 in fixed point.
 template <size_t layer_blocks>
-inline void neural_net_buffer_prepare(neural_net_buffer<layer_blocks> &b)
+inline void neural_net_buffer_prepare(neural_net_buffer<layer_blocks> &b, const size_t blockCount = layer_blocks)
 {
+  lsAssert(blockCount <= layer_blocks);
+
   __m256i *pBuffer = reinterpret_cast<__m256i *>(b.data);
   const __m256i expected = _mm256_set1_epi8(lsMaxValue<int8_t>());
 
-  for (size_t inputBlock = 0; inputBlock < layer_blocks; inputBlock++)
+  for (size_t inputBlock = 0; inputBlock < blockCount; inputBlock++)
   {
     const __m256i raw = _mm256_load_si256(pBuffer + inputBlock);
     const __m256i cmp = _mm256_cmpeq_epi8(_mm256_cmpeq_epi8(raw, _mm256_setzero_si256()), _mm256_setzero_si256());
@@ -119,8 +121,8 @@ inline void neural_net_eval(const neural_net<layer_blocks, layers> &nn, neural_n
       const __m256i resLo16 = _mm256_max_epi16(_mm256_min_epi16(sumLo16, _max_16), _min_16);
       const __m256i resHi16 = _mm256_max_epi16(_mm256_min_epi16(sumHi16, _max_16), _min_16);
 
-      const __m128i sumLo8 = _mm256_cvtepi16_epi8(resLo16);
-      const __m128i sumHi8 = _mm256_cvtepi16_epi8(resHi16);
+      const __m128i sumLo8 = _mm256_cvtepi16_epi8(resLo16); // !!! this is AVX-512 VL, rewrite via AVX2, but potentially make all buffers `int16_t` anyways.
+      const __m128i sumHi8 = _mm256_cvtepi16_epi8(resHi16); // !!! this is AVX-512 VL, rewrite via AVX2, but potentially make all buffers `int16_t` anyways.
 
       const __m256i sum8 = _mm256_set_m128i(sumHi8, sumLo8);
       _mm256_store_si256(pOut + inputBlock, sum8);

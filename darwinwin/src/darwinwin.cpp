@@ -108,7 +108,7 @@ bool level_performStep(level &lvl, actor *pActors)
       for (size_t bit = 1; bit < 256; bit <<= 1)
         ioBuffer.data[j] = (int8_t)(cone[(viewConePosition)j] & bit);
 
-    neural_net_buffer_prepare(ioBuffer);
+    neural_net_buffer_prepare(ioBuffer, LS_ARRAYSIZE(cone.values) / ioBuffer.block_size);
 
     // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[64 + x]`.
 
