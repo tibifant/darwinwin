@@ -50,44 +50,6 @@ enum lookDirection
 
 const char *lookDirection_name(const lookDirection dir);
 
-struct actorStats
-{
-  static constexpr uint8_t _maxLevel = 128;
-
-  uint8_t energy = 100; // TODO: figure out start values, but we probably want to custimize the values anyways when training.
-  uint8_t air = 100;
-  uint8_t protein = 100;
-  uint8_t sugar = 100;
-  uint8_t vitamin = 100;
-  uint8_t fat = 100;
-  // room for atleast two more attributes
-};
-
-struct actor
-{
-  vec2u pos; // which size is best?
-  lookDirection look_at_dir;
-  actorStats stats;
-  neural_net<3, 4> brain;
-
-  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
-};
-
-void actor_updateStats(actorStats *pStats, const viewCone cone);
-void actor_move(actor *pActor, const level &lvl);
-void actor_turnAround(actor *pActor, const lookDirection targetDir);
-void actor_eat(actor *pActor, level *pLvl, const viewCone cone);
-
-enum actorAction
-{
-  aa_Move,
-  aa_Move2,
-  aa_TurnLeft,
-  aa_TurnRight,
-
-  _actorAction_Count
-};
-
 enum viewConePosition
 {
   vcp_self,
@@ -111,6 +73,44 @@ struct viewCone
     lsAssert(pos < LS_ARRAYSIZE(values));
     return values[pos];
   }
+};
+
+struct actorStats
+{
+  static constexpr uint8_t _maxLevel = 128;
+
+  uint8_t energy = 100; // TODO: figure out start values, but we probably want to custimize the values anyways when training.
+  uint8_t air = 100;
+  uint8_t protein = 100;
+  uint8_t sugar = 100;
+  uint8_t vitamin = 100;
+  uint8_t fat = 100;
+  // room for atleast two more attributes
+};
+
+struct actor
+{
+  vec2u pos; // which size is best?
+  lookDirection look_at_dir;
+  actorStats stats;
+  neural_net<(_viewConePosition_Count * 8 + 16 /* <- stats count */ + (neural_net_block_size - 1)) / neural_net_block_size, 4> brain;
+
+  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
+};
+
+void actor_updateStats(actorStats *pStats, const viewCone &cone);
+void actor_move(actor *pActor, const level &lvl);
+void actor_turnAround(actor *pActor, const lookDirection targetDir);
+void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
+
+enum actorAction
+{
+  aa_Move,
+  aa_Move2,
+  aa_TurnLeft,
+  aa_TurnRight,
+
+  _actorAction_Count
 };
 
 viewCone viewCone_get(const level &lvl, const actor &actor);

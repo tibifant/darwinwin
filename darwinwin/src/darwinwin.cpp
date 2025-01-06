@@ -108,13 +108,13 @@ bool level_performStep(level &lvl, actor *pActors)
       for (size_t bit = 1; bit < 256; bit <<= 1)
         ioBuffer.data[j] = (int8_t)(cone[(viewConePosition)j] & bit);
 
-    neural_net_buffer_prepare(ioBuffer, LS_ARRAYSIZE(cone.values) / ioBuffer.block_size);
+    neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
 
     // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[64 + x]`.
 
     neural_net_eval(pActors->brain, ioBuffer);
 
-    int8_t maxValue = ioBuffer.data[0];
+    int16_t maxValue = ioBuffer.data[0];
     size_t bestActionIndex = 0;
     constexpr size_t maxActionIndex = lsMin(LS_ARRAYSIZE(ioBuffer.data), _actorAction_Count);
 
@@ -217,7 +217,7 @@ void viewCone_print(const viewCone &v, const actor &actor)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-void actor_updateStats(actorStats *pStats, const viewCone cone)
+void actor_updateStats(actorStats *pStats, const viewCone &cone)
 {
   // Always update view cone first!
 
@@ -275,7 +275,7 @@ void actor_turnAround(actor *pActor, const lookDirection targetDir)
   pActor->look_at_dir = targetDir; // Or should dir be the turn we want to do and we need to change the current look_dir to be turned in the dir?
 }
 
-void actor_eat(actor *pActor, level *pLvl, const viewCone cone)
+void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
   // View cone must be updated before calling this!
 
