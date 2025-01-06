@@ -1,9 +1,10 @@
 #include "darwinwin.h"
 
-static constexpr size_t _movementEnergyCost = 10; // maybe these should live in the level or the stats?
-static constexpr size_t _doubleMovementEnergyCost = 17; // maybe these should live in the level or the stats?
-static constexpr size_t _idleEnergyCost = 1;
-static constexpr size_t _underwaterAirCost = 5;
+void actor_move(actor *pActor, const level &lvl);
+void actor_moveTwo(actor *pActor, const level &lvl);
+void actor_turnLeft(actor *pActor);
+void actor_turnRight(actor *pActor);
+void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
 
 const char *lookDirection_toName[] =
 {
@@ -85,6 +86,63 @@ void level_print(const level &level)
   }
 }
 
+template <size_t actor_count>
+bool level_performStep(level &lvl, actor *pActors)
+{
+  // TODO: optional level internal step. (grow plants, etc.)
+
+  bool anyAlive = false;
+
+  for (size_t i = 0; i < actor_count; i++)
+  {
+    if (pActors[i].stats[as_Energy] == 0)
+      continue;
+
+    anyAlive = true;
+
+    const viewCone cone = viewCone_get(lvl, pActors[i]);
+    actor_updateStats(&pActors[i], cone);
+
+    neural_net_buffer<decltype(actor::brain)::layer_blocks> ioBuffer;
+
+    for (size_t j = 0; j < LS_ARRAYSIZE(cone.values); j++)
+      for (size_t bit = 1; bit < 256; bit <<= 1)
+        ioBuffer.data[j] = (int8_t)(cone[(viewConePosition)j] & bit);
+
+    neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
+
+    // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[64 + x]`.
+
+    neural_net_eval(pActors->brain, ioBuffer);
+
+    int16_t maxValue = ioBuffer.data[0];
+    size_t bestActionIndex = 0;
+    constexpr size_t maxActionIndex = lsMin(LS_ARRAYSIZE(ioBuffer.data), _actorAction_Count);
+
+    for (size_t actionIndex = 1; actionIndex < maxActionIndex; actionIndex++)
+    {
+      if (maxValue < ioBuffer.data[actionIndex])
+      {
+        maxValue = ioBuffer.data[actionIndex];
+        bestActionIndex = actionIndex;
+      }
+    }
+
+    actor_act(&pActors[i], &lvl, cone, (actorAction)bestActionIndex);
+  }
+
+  lsAssert(anyAlive); // otherwise, maybe don't call us???
+
+  return anyAlive;
+}
+
+bool level_performStep1(level &lvl, actor &actor) { return level_performStep<1>(lvl, &actor); }
+bool level_performStep2(level &lvl, actor *pActors) { return level_performStep<2>(lvl, pActors); }
+bool level_performStep3(level &lvl, actor *pActors) { return level_performStep<3>(lvl, pActors); }
+bool level_performStep4(level &lvl, actor *pActors) { return level_performStep<4>(lvl, pActors); }
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
 viewCone viewCone_get(const level &lvl, const actor &a)
 {
   lsAssert(a.pos.x > 0 && a.pos.y < level::width);
@@ -149,90 +207,136 @@ void viewCone_print(const viewCone &v, const actor &actor)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-void actor_updateStats(actorStats *pStats, const viewCone cone)
+void actor_updateStats(actor *pActor, const viewCone &cone)
 {
+  static constexpr size_t _idleEnergyCost = 3;
+  static constexpr size_t _underwaterAirCost = 5;
+
   // Always update view cone first!
-  
+
   // Remove energy
-  if (pStats->energy)
-    pStats->energy = pStats->energy > _idleEnergyCost ? (pStats->energy - _idleEnergyCost) : 0;
+  if (pActor->stats[as_Energy])
+    pActor->stats[as_Energy] = pActor->stats[as_Energy] > _idleEnergyCost ? (pActor->stats[as_Energy] - _idleEnergyCost) : 0;
 
   // Check underwater
-  if (pStats->air && cone[vcp_self] & tf_Underwater)
-    pStats->energy = pStats->air > _underwaterAirCost ? (pStats->air - _underwaterAirCost) : 0;
+  if (pActor->stats[as_Air] && cone[vcp_self] & tf_Underwater)
+    pActor->stats[as_Energy] = pActor->stats[as_Air] > _underwaterAirCost ? (pActor->stats[as_Air] - _underwaterAirCost) : 0;
 }
 
-void actor_move(actor *pActor, actorStats *pStats, const level &lvl)
+void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action)
 {
+
+  switch (action)
+  {
+  case aa_Move:
+    actor_move(pActor, *pLevel);
+    break;
+
+  case aa_Move2:
+    actor_moveTwo(pActor, *pLevel);
+    break;
+
+  case aa_TurnLeft:
+    actor_turnLeft(pActor);
+    break;
+
+  case aa_TurnRight:
+    actor_turnRight(pActor);
+    break;
+
+  case aa_Eat:
+    actor_eat(pActor, pLevel, cone);
+    break;
+
+  default:
+    lsFail(); // not implemented.
+    break;
+  }
+}
+
+void actor_move(actor *pActor, const level &lvl)
+{
+  static constexpr size_t _movementEnergyCost = 10;
+
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
-  static const vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+  static constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
-  if (pStats->energy >= _movementEnergyCost)
+  if (pActor->stats[as_Energy] >= _movementEnergyCost)
   {
-    vec2u newPos = vec2u(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
+    vec2u16 newPos = vec2u16(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
 
     if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
     {
       pActor->pos = newPos;
-      pStats->energy -= _movementEnergyCost;
+      pActor->stats[as_Energy] -= _movementEnergyCost;
     }
   }
 }
 
-void actor_moveTwo(actor *pActor, actorStats *pStats, const level &lvl)
+void actor_moveTwo(actor *pActor, const level &lvl)
 {
+  static constexpr size_t _doubleMovementEnergyCost = 17;
+
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
-  static const vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+  static constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
-  if (pStats->energy >= _doubleMovementEnergyCost)
+  if (pActor->stats[as_Energy] >= _doubleMovementEnergyCost)
   {
-    vec2u newPos = vec2u(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
+    vec2u16 newPos = vec2u16(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
+    size_t nearIdx = (pActor->pos.y + lut[pActor->look_at_dir].y) * level::width + (pActor->pos.x + lut[pActor->look_at_dir].x);
 
-    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
+    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && !(lvl.grid[nearIdx] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
     {
       pActor->pos = newPos;
-      pStats->energy -= _doubleMovementEnergyCost;
+      pActor->stats[as_Energy] -= _doubleMovementEnergyCost;
     }
   }
 }
 
-void actor_turnAround(actor *pActor, const lookDirection targetDir)
+void actor_turnLeft(actor *pActor)
 {
-  lsAssert(targetDir < _lookDirection_Count);
-
-  pActor->look_at_dir = targetDir; // Or should dir be the turn we want to do and we need to change the current look_dir to be turned in the dir?
+  pActor->look_at_dir = pActor->look_at_dir == ld_left ? ld_down : (lookDirection)(pActor->look_at_dir - 1);
+  lsAssert(pActor->look_at_dir < _lookDirection_Count);
 }
 
-void actor_eat(actor *pActor, actorStats *pStats, level *pLvl, const viewCone cone)
+void actor_turnRight(actor *pActor)
+{
+  pActor->look_at_dir = pActor->look_at_dir == ld_down ? ld_left : (lookDirection)(pActor->look_at_dir + 1);
+  lsAssert(pActor->look_at_dir < _lookDirection_Count);
+}
+
+void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
   // View cone must be updated before calling this!
+
+  static constexpr uint8_t _maxLevel = 100;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
   size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
 
-  if (cone[vcp_self] & tf_Protein && pStats->protein < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Protein && pActor->stats[as_Protein] < _maxLevel)
   {
-    pStats->protein++;
+    pActor->stats[as_Protein]++;
     pLvl->grid[currentIdx] &= !tf_Protein; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Sugar && pStats->sugar < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Sugar && pActor->stats[as_Sugar] < _maxLevel)
   {
-    pStats->sugar++;
+    pActor->stats[as_Sugar]++;
     pLvl->grid[currentIdx] &= !tf_Sugar; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Vitamin && pStats->vitamin < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Vitamin && pActor->stats[as_Vitamin] < _maxLevel)
   {
-    pStats->vitamin++;
+    pActor->stats[as_Vitamin]++;
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
-  if (cone[vcp_self] & tf_Fat && pStats->fat < actorStats::_maxLevel)
+  if (cone[vcp_self] & tf_Fat && pActor->stats[as_Fat] < _maxLevel)
   {
-    pStats->fat ++;
+    pActor->stats[as_Fat]++;
     pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
   }
 }

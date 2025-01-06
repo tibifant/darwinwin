@@ -53,6 +53,12 @@ namespace asio
 
 //////////////////////////////////////////////////////////////////////////
 
+crow::response handle_getLevel(const crow::request &req);
+crow::response handle_setTile(const crow::request &req);
+crow::response handle_manualAct(const crow::request &req);
+
+//////////////////////////////////////////////////////////////////////////
+
 static std::atomic<bool> _IsRunning = true;
 static level _WebLevel;
 static actor _WebActor(vec2u8(level::width / 2, level::height / 2), ld_up);
@@ -84,21 +90,6 @@ int32_t main(const int32_t argc, const char **pArgv)
   print("Actor size: ", FF(Group, Frac(3), AllFrac)(sizeof(actor) / 1024.0), " KiB\n");
   print("\n");
 
-  level lvl;
-  actor actr(vec2u8(level::width / 2, level::height / 2), ld_up);
-  actorStats stats;
-
-  level_initLinear(&lvl);
-  level_print(lvl);
-
-  viewCone cone = viewCone_get(lvl, actr);
-  viewCone_print(cone, actr);
-
-  actor_move(&actr, &stats, lvl);
-  actor_turnAround(&actr, ld_left);
-  cone = viewCone_get(lvl, actr);
-  viewCone_print(cone, actr);
-
   crow::App<crow::CORSHandler> app;
 
   auto &cors = app.get_middleware<crow::CORSHandler>();
@@ -108,14 +99,83 @@ int32_t main(const int32_t argc, const char **pArgv)
   cors.global().origin("*");
 #endif
 
-  app.port(21110).multithreaded().run();
+  CROW_ROUTE(app, "/getLevel").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_getLevel(req); });
+  CROW_ROUTE(app, "/setTile").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_setTile(req); });
+  CROW_ROUTE(app, "/manualAct").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_manualAct(req); });
 
-  // TODO: /get_level
-  // TODO: /set_tile (x, y, value)
-  // TODO: /manual_act (action_id)
+  app.port(21110).multithreaded().run();
 
   _IsRunning = false;
 }
 
 //////////////////////////////////////////////////////////////////////////
 
+crow::response handle_getLevel(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  crow::json::wvalue ret;
+
+  ret["level"]["width"] = _WebLevel.width;
+  ret["level"]["height"] = _WebLevel.height;
+
+  for (size_t i = 0; i < LS_ARRAYSIZE(_WebLevel.grid); i++)
+  {
+    auto &item = ret["level"]["grid"][(uint32_t)i];
+    item = _WebLevel.grid[i];
+  }
+
+  ret["actor"][0]["posX"] = _WebActor.pos.x;
+  ret["actor"][0]["posY"] = _WebActor.pos.y;
+  ret["actor"][0]["lookDir"] = _WebActor.look_at_dir;
+
+  for (size_t i = 0; i < _actorStats_Count; i++)
+  {
+    auto &item = ret["actor"][0]["stats"][(uint32_t)i];
+    item = _WebActor.stats[i];
+  }
+
+  return ret;
+}
+
+crow::response handle_setTile(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body || !body.has("x") || !body.has("y") || !body.has("value"))
+    return crow::response(crow::status::BAD_REQUEST);
+
+  const size_t x = body["x"].i();
+  const size_t y = body["y"].i();
+  const uint8_t val = (uint8_t)body["value"].i();
+
+  if (x >= level::width || y >= level::height)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  // TODO: when actually doing something with the level: thredlock?
+  _WebLevel.grid[y * level::width + x] = (tileFlag)val;
+
+  return crow::response(crow::status::OK);
+}
+
+crow::response handle_manualAct(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body || !body.has("actionId"))
+    return crow::response(crow::status::BAD_REQUEST);
+
+  const uint8_t id = (uint8_t)body["actionId"].i();
+
+  if (id > _actorAction_Count)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  viewCone cone = viewCone_get(_WebLevel, _WebActor);
+  actor_updateStats(&_WebActor, cone);
+  actor_act(&_WebActor, &_WebLevel, cone, actorAction(id));
+
+  return crow::response(crow::status::OK);
+}
