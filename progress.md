@@ -1,6 +1,7 @@
 # Progress Report DarWinWin
 
 06.01.2025:
+
 Aktueller Stand:
 
 Projektorganisation: Daily um 11 Uhr. Taeglicher Progress Report.
