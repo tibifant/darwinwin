@@ -111,7 +111,7 @@ bool level_performStep(level &lvl, actor *pActors)
 
     neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
 
-    // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[64 + x]`.
+    // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[LS_ARRAYSIZE(cone.values) * 8 + x]`.
 
     neural_net_eval(pActors->brain, ioBuffer);
 
