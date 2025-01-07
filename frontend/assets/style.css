@@ -79,10 +79,19 @@ div.box {
 }
 
 .level-tile{
+  display: flex;
+  flex-wrap: wrap;
   height: 20pt;
   width: 20pt;
   margin: 1pt;
   background-color: #bcb6b6;
+}
+
+.food{
+  margin: 1pt;
+  height: 3pt;
+  width: 3pt;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 .actor{

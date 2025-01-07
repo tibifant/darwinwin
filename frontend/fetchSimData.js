@@ -2,6 +2,9 @@ const server_url = 'http://localhost:21110/';
 
 let actorTile;
 let actor;
+let mapWidth;
+let mapHeight;
+let mapGridArray;
 
 setup();
 
@@ -22,8 +25,8 @@ function setUpActor(){
 }
 
 function setUpMap(data){
-  const mapHeight = data.level.height;
-  const mapWidth = data.level.width;
+  mapHeight = data.level.height;
+  mapWidth = data.level.width;
 
   setUpMapColumns(mapWidth);
 
@@ -63,11 +66,74 @@ function fetchLevelData(){
 }
 
 function updateLevelData(newData){
-  console.log("Received World Data:", newData)
+  console.log("Received World Data:\n", newData);
+
+  mapGridArray = convertGridTo2dArray(newData.level.grid)
+  updateTiles(mapGridArray);
 
   const actor = newData.actor[0];
-
   updateActor(actor.posX, actor.posY, actor.lookDir);
+}
+
+function convertGridTo2dArray(grid) {
+  let gridArray = [];
+
+  for(let i=0; i<mapWidth; i++){
+    gridArray.push([])
+    for (let j = 0; j < mapHeight; j++){
+      gridArray[i][j] = grid[i * mapWidth + j ];
+    }
+  }
+
+  return gridArray;
+}
+
+function updateTiles(tileArray){
+  for(let i=0; i<tileArray.length; i++){
+    for (let j = 0; j < tileArray[i].length; j++){
+      const tileElement = document.getElementById("tile-"+i+"-"+j);
+      tileElement.innerHTML = '';
+
+      const tileInfoBinary = tileArray[i][j].toString(2).padStart(8, "0");
+
+      if(tileInfoBinary[0] === '1'){ //Hidden
+
+      }
+      if(tileInfoBinary[1] === '1'){ //Other Actor
+
+      }
+      if(tileInfoBinary[2] === '1'){ //Collidable
+        tileElement.background = '#e40f0f'
+      }
+      if(tileInfoBinary[3] === '1'){ //Fat
+        let newItem = document.createElement("div");
+        newItem.classList.add('food');
+        newItem.innerHTML = 'F'
+        tileElement.appendChild(newItem);
+      }
+      if(tileInfoBinary[4] === '1'){ //Vitamin
+        let newItem = document.createElement("div");
+        newItem.classList.add('food');
+        newItem.innerHTML = 'V'
+        tileElement.appendChild(newItem);
+      }
+      if(tileInfoBinary[5] === '1'){ //Sugar
+        let newItem = document.createElement("div");
+        newItem.classList.add('food');
+        newItem.innerHTML = 'S'
+        tileElement.appendChild(newItem);
+      }
+      if(tileInfoBinary[6] === '1'){ //Protein
+        let newItem = document.createElement("div");
+        newItem.classList.add('food');
+        newItem.innerHTML = 'P'
+        tileElement.appendChild(newItem);
+      }
+      if(tileInfoBinary[7] === '1'){ //Underwater
+        tileElement.style.backgroundColor = '#0000ff';
+      }
+    }
+  }
 }
 
 function updateActor(posX, posY, lookDirection){
