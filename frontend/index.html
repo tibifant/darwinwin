@@ -8,57 +8,10 @@
   <link rel="icon" type="image/png" href="assets/favicon.ico">
   <link rel="stylesheet" href="assets/style.css">
 </head>
-
 <body>
   <div id="app_container">
-    <script type="module">
-      const server_url = 'http://localhost:21110/';
-
-      function load_url(url, callback, payload, failure_callback) {
-        var xmlhttp;
-
-        console.log("Sending request to '" + url + "':");
-        console.log(payload);
-
-        if (window.XMLHttpRequest)
-          xmlhttp = new XMLHttpRequest();
-        else
-          xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-
-        xmlhttp.onreadystatechange = function () {
-          if (xmlhttp.readyState == 4) {
-            if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
-              try {
-                let obj = JSON.parse(xmlhttp.responseText);
-                callback(obj);
-              } catch (e) {            
-                  failure_callback(false);
-              }
-            } else { // TODO: handle all relevant error codes
-              if (xmlhttp.status == 403) {
-
-              } else {
-                failure_callback(false);
-              }
-            }
-          }
-        }
-
-        xmlhttp.ontimeout = (e) => {
-          failure_callback();
-        };
-
-        xmlhttp.timeout = 7500;
-        xmlhttp.open("POST", url, true);
-        xmlhttp.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        xmlhttp.send(JSON.stringify(payload));
-      }
-
-      function load_backend_url(url, callback, payload, failure_callback) {
-        load_url(server_url + url, callback, payload, failure_callback);
-      }
-
-    </script>
+    <script type="module" src="fetchSimData.js"></script>
+    <div id="level-container" class="level-container"></div>
+  </div>
 </body>
-
 </html>

@@ -66,3 +66,28 @@ div.box {
   color: #fff;
   font-family: 'Segoe UI', sans-serif;
 }
+
+.level-container {
+  display: flex;
+  margin: 10pt;
+  flex-direction: row;
+}
+
+.level-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.level-tile{
+  height: 20pt;
+  width: 20pt;
+  margin: 1pt;
+  background-color: #bcb6b6;
+}
+
+.actor{
+  height: 20pt;
+  width: 20pt;
+  border-radius: 50%;
+  background-color: darkred;
+}
