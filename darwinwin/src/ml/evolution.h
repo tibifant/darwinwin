@@ -81,7 +81,7 @@ void evolution_generation(evolution<target, config> &e, typename evolution<targe
   {
     // Choose parents
     const typename evolution<target, config>::gene &mama = *pool_get(e.genes, e.bestGeneIndices[config::survivingGenes % maxParentIndex]);
-    const typename evolution<target, config>::gene &papa = *pool_get(e.genes, e.bestGeneIndices[config::survivingGenes % maxParentIndex];
+    const typename evolution<target, config>::gene &papa = *pool_get(e.genes, e.bestGeneIndices[config::survivingGenes % maxParentIndex]);
 
     typename evolution<target, config>::gene baby;
 
@@ -92,8 +92,6 @@ void evolution_generation(evolution<target, config> &e, typename evolution<targe
     typename config::mutator mutator;
     mutator_init(mutator, e.generationIndex);
     mutate(baby.t, mutator);
-
-    //const size_t score = (*pEvalFunc)(baby.t);
 
     // Add Baby to pool and bestGeneIndices
     baby.score = (*pEvalFunc)(baby.t);
