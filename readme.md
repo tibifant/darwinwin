@@ -2,9 +2,11 @@
 
 ## How to start the server:
 - Open project solution in Visual Studio
-- Start Server by compiling the project
-- Open localhost on port `21110` in Browser
+- Compile and run the project
+- Queries will be processed on port `21110`
 
-When there are new project files you need to run `create_project_bat 1` in the commandline to compile successfully via VS.
+## How to generate project files:
+- Run `create_project.bat` from the commandline
+- Select `1. Visual Studio 2022 Solution` 
 
 See Progress Report [here](https://github.com/tibifant/darwinwin/blob/main/progress.md).

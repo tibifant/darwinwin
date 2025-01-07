@@ -53,11 +53,11 @@ Vorab: Ziel Testbarkeit fuer Actor movement, level Generierung und Interaktion, 
 ## 06.01.2025: Besprechung der Grundlagen und Rahmenbedingungen.
 
 Aktueller Stand:
-- Level mit Bitflags für die Umgebung, kann generiert und benutzt werden
-- Actor hat verschieden Stats (z.B. Energie, Luft, Hunger etc.), befindet sich auf dem Spielfeld, kann Aktionen ausfuehren, Stats werden je nach Aktion angepasst
+- Level mit Bitflags für die Umgebung, kann generiert und benutzt werden.
+- Actor hat verschieden Stats (z.B. Energie, Luft, Hunger etc.), befindet sich auf dem Spielfeld, kann Aktionen ausfuehren, Stats werden je nach Aktion angepasst.
 - Neuronales Netz: Kann mit den Inputs Ergebnisse evaluieren.
-- Genetic ALgorithm: die Grundstruktur besteht
-- Server: kann gestartet werden, handelt `getLevel`, `setTile` und `manualAct`
+- Genetic Algorithm: Prototyp der Infrastruktur besteht.
+- Server: kann gestartet werden, handelt `getLevel`, `setTile` und `manualAct`.
 - Frontend: Infrakstruktur zur Kommunikation mit dem Server besteht.
 
 Projektorganisation: 
@@ -71,3 +71,15 @@ Ziele fuer Ende der Woche:
 Aktuelle Tasks:
 - **Jan, Marvin:** Level visualisieren, Level manuell veraendern, Player manuell steuern.
 - **Malin:** Genetic Algorithm implementieren, weitere Bereitstellung fuer Frontend Funktionalitaeten im Server, Progress Report Setup
+
+## 07.01.2025:
+
+**Jan:** N/A (krank)
+
+**Marvin:** N/A
+
+**Malin:**
+- Das Weblevel wird mit Testwerten initalisiert.
+- Der Actor erhaelt Energie zurueck, wenn er Dinge isst.
+- Erstellen und Updaten der Readne.md und des Progress Reports
+
