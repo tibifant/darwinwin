@@ -69,8 +69,8 @@ Ziele fuer Ende der Woche:
 - Generelle Implementierung evolutioniaerer Algorithmus, testen.
 
 Aktuelle Tasks:
-- **Jan, Marvin:** Level visualisieren, Level manuell veraendern, Player manuell steuern.
-- **Malin:** Genetic Algorithm implementieren, weitere Bereitstellung fuer Frontend Funktionalitaeten im Server, Progress Report Setup
+- Jan, Marvin: Level visualisieren, Level manuell veraendern, Player manuell steuern.
+- Malin: Genetic Algorithm implementieren, weitere Bereitstellung fuer Frontend Funktionalitaeten im Server, Progress Report Setup
 
 ## 07.01.2025:
 
@@ -83,3 +83,6 @@ Aktuelle Tasks:
 - Der Actor erhaelt Energie zurueck, wenn er Dinge isst.
 - Erstellen und Updaten der Readne.md und des Progress Reports
 
+**Hauptrioritaet Frontend:** Visualisierung Level.
+
+**Hauptrioritaet Backend:** Grundstruktur Genetic Algorithm
