@@ -944,7 +944,7 @@ inline void list_sort_descending(small_list<T, internal_count> &l)
   return list_sort<T, internal_count, TGreaterFunc, TLessFunc>(l);
 }
 
-template<typename T, size_t internal_count, typename TComparable>
+template<typename TComparable, typename T, size_t internal_count>
 inline void list_sort(small_list<T, internal_count> &l, const std::function<TComparable(const T &value)> &toComparable)
 {
   struct _internal
