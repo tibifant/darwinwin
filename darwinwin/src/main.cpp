@@ -115,56 +115,6 @@ int32_t main(const int32_t argc, const char **pArgv)
 
 //////////////////////////////////////////////////////////////////////////
 
-#include "evolution.h"
-
-size_t eval_func(const vec2i8 &val)
-{
-  return 1000 - lsAbs((int64_t)val.x) - lsAbs((int64_t)val.y);
-}
-
-template <typename crossbreeder>
-void crossbreed(vec2i8 &val, const vec2i8 parentA, const vec2i8 parentB, const crossbreeder &c)
-{
-  crossbreeder_eval(c, val.x, parentA.x, parentB.x);
-  crossbreeder_eval(c, val.y, parentA.y, parentB.y);
-}
-
-template <typename mutator>
-void mutate(vec2i8 &target, const mutator &m)
-{
-  mutator_eval(m, target.x);
-  mutator_eval(m, target.y);
-}
-
-struct find_high_config
-{
-  using mutator = mutator_naive;
-  using crossbreeder = crossbreeder_naive;
-
-  static constexpr size_t survivingGenes = 4;
-  static constexpr size_t newGenesPerGeneration = 4;
-};
-
-void find_high_in_abs_func()
-{
-  const vec2i8 startPos(10, 10);
-  evolution<vec2i8, find_high_config> evolver;
-
-  evolution_init(evolver, startPos, eval_func);
-
-  for (size_t i = 0; i < 100; i++)
-    evolution_generation(evolver, eval_func);
-
-  const vec2i8 *pBestValue = nullptr;
-  size_t bestScore;
-
-  evolution_get_best(evolver, &pBestValue, bestScore);
-
-  print("best: ", *pBestValue, " with score ", bestScore, "\n");
-}
-
-//////////////////////////////////////////////////////////////////////////
-
 crow::response handle_getLevel(const crow::request &req)
 {
   auto body = crow::json::load(req.body);
