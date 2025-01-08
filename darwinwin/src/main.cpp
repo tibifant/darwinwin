@@ -92,9 +92,6 @@ int32_t main(const int32_t argc, const char **pArgv)
 
   crow::App<crow::CORSHandler> app;
 
-  void find_high_in_abs_func();
-  find_high_in_abs_func();
-
   level_initLinear(&_WebLevel);
 
   auto &cors = app.get_middleware<crow::CORSHandler>();
