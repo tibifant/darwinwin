@@ -82,14 +82,15 @@ div.box {
 
 .level-tile{
   display: flex;
-  flex-wrap: wrap;
   height: 20pt;
   width: 20pt;
+  padding: 1pt;
   margin: 1pt;
   background-color: #bcb6b6;
 }
 
 .food{
+  flex-wrap: wrap;
   margin: 1pt;
   height: 3pt;
   width: 3pt;

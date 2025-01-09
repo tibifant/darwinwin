@@ -5,14 +5,14 @@ let actorElement;
 let mapGridArray;
 let tick = 1;
 
-document.addEventListener('DOMContentLoaded', setup)
+document.addEventListener('DOMContentLoaded', setup);
 
 //Initial Setup Functions
 function setup(){
-  console.log("Initiating Setup...")
-  fetchLevel(setupMap)
+  console.log("Initiating Setup...");
+  fetchLevel(setupMap);
   setInterval(fetchAllData, 1000);
-  console.log("Setup Complete!")
+  console.log("Setup Complete!");
 }
 
 function setupMap(data){
