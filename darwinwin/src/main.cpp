@@ -91,7 +91,7 @@ int32_t main(const int32_t argc, const char **pArgv)
   print("\n");
 
   crow::App<crow::CORSHandler> app;
-  
+
   level_initLinear(&_WebLevel);
 
   auto &cors = app.get_middleware<crow::CORSHandler>();

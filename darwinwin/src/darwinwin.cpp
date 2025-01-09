@@ -90,7 +90,7 @@ bool level_performStep(level &lvl, actor *pActors)
 
   for (size_t i = 0; i < actor_count; i++)
   {
-    if (pActors[i].stats[as_Energy] == 0)
+    if (!pActors[i].alive)
       continue;
 
     anyAlive = true;
@@ -202,25 +202,16 @@ void viewCone_print(const viewCone &v, const actor &actor)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-void actor_updateStats(actor *pActor, const viewCone &cone)
+template <typename T>
+  requires (std::is_integral_v<T> && (sizeof(T) < sizeof(int64_t) || std::is_same_v<T, int64_t>))
+inline void modify_with_clamp(T &value, const int64_t diff, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
 {
-  static constexpr size_t _idleEnergyCost = 3;
-  static constexpr size_t _underwaterAirCost = 5;
-
-  // Always update view cone first!
-
-  // Remove energy
-  if (pActor->stats[as_Energy])
-    pActor->stats[as_Energy] = pActor->stats[as_Energy] > _idleEnergyCost ? (pActor->stats[as_Energy] - _idleEnergyCost) : 0;
-
-  // Check underwater
-  if (pActor->stats[as_Air] && cone[vcp_self] & tf_Underwater)
-    pActor->stats[as_Energy] = pActor->stats[as_Air] > _underwaterAirCost ? (pActor->stats[as_Air] - _underwaterAirCost) : 0;
+  const int64_t val = (int64_t)value + diff;
+  value = (T)lsClamp<int64_t>(val, min, max);
 }
 
 void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action)
 {
-
   switch (action)
   {
   case aa_Move:
@@ -249,6 +240,30 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
   }
 }
 
+void actor_updateStats(actor *pActor, const viewCone &cone)
+{
+  // Always update view cone first!
+
+  static constexpr int64_t _idleEnergyCost = 3;
+  static constexpr int64_t _underwaterAirCost = 5;
+  static constexpr int64_t _airGain = 3;
+
+  if (!pActor->stats[as_Energy] || !pActor->stats[as_Air])
+  {
+    pActor->alive = false;
+    return;
+  }
+
+  // Remove energy
+  modify_with_clamp(pActor->stats[as_Energy], -_idleEnergyCost);
+
+  // Check underwater
+  if (cone[vcp_self] & tf_Underwater)
+    modify_with_clamp(pActor->stats[as_Air], -_underwaterAirCost);
+  else
+    modify_with_clamp(pActor->stats[as_Air], _airGain);
+}
+
 void actor_move(actor *pActor, const level &lvl)
 {
   static constexpr size_t _movementEnergyCost = 10;
@@ -260,9 +275,9 @@ void actor_move(actor *pActor, const level &lvl)
 
   if (pActor->stats[as_Energy] >= _movementEnergyCost)
   {
-    vec2u16 newPos = vec2u16(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
+    const vec2u16 newPos = vec2u16(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y);
 
-    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
+    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
     {
       pActor->pos = newPos;
       pActor->stats[as_Energy] -= _movementEnergyCost;
@@ -281,10 +296,10 @@ void actor_moveTwo(actor *pActor, const level &lvl)
 
   if (pActor->stats[as_Energy] >= _doubleMovementEnergyCost)
   {
-    vec2u16 newPos = vec2u16(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y); // is it ok to add the i to the ui?
-    size_t nearIdx = (pActor->pos.y + lut[pActor->look_at_dir].y) * level::width + (pActor->pos.x + lut[pActor->look_at_dir].x);
+    const vec2u16 newPos = vec2u16(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y);
+    const size_t nearIdx = (pActor->pos.y + lut[pActor->look_at_dir].y) * level::width + (pActor->pos.x + lut[pActor->look_at_dir].x);
 
-    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && !(lvl.grid[nearIdx] & tf_Collidable) && newPos.x > 0 && newPos.x < level::width && newPos.y > 0 && newPos.y < level::height)
+    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && !(lvl.grid[nearIdx] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
     {
       pActor->pos = newPos;
       pActor->stats[as_Energy] -= _doubleMovementEnergyCost;
@@ -294,49 +309,89 @@ void actor_moveTwo(actor *pActor, const level &lvl)
 
 void actor_turnLeft(actor *pActor)
 {
-  pActor->look_at_dir = pActor->look_at_dir == ld_left ? ld_down : (lookDirection)(pActor->look_at_dir - 1);
-  lsAssert(pActor->look_at_dir < _lookDirection_Count);
+  static constexpr int64_t _turnEnergy = 2;
+
+  if (pActor->stats[as_Energy] >= _turnEnergy)
+  {
+    pActor->stats[as_Energy] -= _turnEnergy;
+    pActor->look_at_dir = pActor->look_at_dir == ld_left ? ld_down : (lookDirection)(pActor->look_at_dir - 1);
+    lsAssert(pActor->look_at_dir < _lookDirection_Count);
+  }
 }
 
 void actor_turnRight(actor *pActor)
 {
-  pActor->look_at_dir = pActor->look_at_dir == ld_down ? ld_left : (lookDirection)(pActor->look_at_dir + 1);
-  lsAssert(pActor->look_at_dir < _lookDirection_Count);
+  static constexpr int64_t _turnEnergy = 2;
+
+  if (pActor->stats[as_Energy] >= _turnEnergy)
+  {
+    pActor->stats[as_Energy] -= _turnEnergy;
+    pActor->look_at_dir = pActor->look_at_dir == ld_down ? ld_left : (lookDirection)(pActor->look_at_dir + 1);
+    lsAssert(pActor->look_at_dir < _lookDirection_Count);
+  }
 }
 
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
-  // View cone must be updated before calling this!
+  // View cone must be updated **before** calling this!
 
-  static constexpr uint8_t _maxLevel = 255;
-  static constexpr uint8_t _FoodEnergyValue = 3;
+  static constexpr int64_t _FoodValue = 2;
+  static constexpr int64_t _FoodEnergyValue = 5;
+  // TODO different values for different food;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
-  size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
+  const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
 
-  if (cone[vcp_self] & tf_Protein && pActor->stats[as_Protein] < _maxLevel)
+  if (cone[vcp_self] & tf_Protein)
   {
-    pActor->stats[as_Protein]++;
-    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
-    pLvl->grid[currentIdx] &= !tf_Protein; // This will remove the protein completely...
+    modify_with_clamp(pActor->stats[as_Protein], _FoodValue);
+    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
+    pLvl->grid[currentIdx] &= !tf_Protein;
   }
-  if (cone[vcp_self] & tf_Sugar && pActor->stats[as_Sugar] < _maxLevel)
+  if (cone[vcp_self] & tf_Sugar)
   {
-    pActor->stats[as_Sugar]++;
-    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
-    pLvl->grid[currentIdx] &= !tf_Sugar; // This will remove the protein completely...
+    modify_with_clamp(pActor->stats[as_Sugar], _FoodValue);
+    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
+    pLvl->grid[currentIdx] &= !tf_Sugar;
   }
-  if (cone[vcp_self] & tf_Vitamin && pActor->stats[as_Vitamin] < _maxLevel)
+  if (cone[vcp_self] & tf_Vitamin)
   {
-    pActor->stats[as_Vitamin]++;
-    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
-    pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
+    modify_with_clamp(pActor->stats[as_Vitamin], _FoodValue);
+    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
+    pLvl->grid[currentIdx] &= !tf_Vitamin;
   }
-  if (cone[vcp_self] & tf_Fat && pActor->stats[as_Fat] < _maxLevel)
+  if (cone[vcp_self] & tf_Fat)
   {
-    pActor->stats[as_Fat]++;
-    pActor->stats[as_Energy] = pActor->stats[as_Energy] < _maxLevel ? pActor->stats[as_Energy] + _FoodEnergyValue : pActor->stats[as_Energy];
-    pLvl->grid[currentIdx] &= !tf_Vitamin; // This will remove the protein completely...
+    modify_with_clamp(pActor->stats[as_Fat], _FoodValue);
+    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
+    pLvl->grid[currentIdx] &= !tf_Vitamin;
   }
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+struct nn_config // TODO!
+{
+  using mutator = mutator_naive;
+  using crossbreeder = crossbreeder_naive;
+
+  static constexpr size_t survivingGenes = 8;
+  static constexpr size_t newGenesPerGeneration = 8;
+};
+
+template <typename crossbreeder>
+void crossbreed(actor &val, const actor parentA, const actor parentB, const crossbreeder &c)
+{
+  for (size_t i = 0; i < LS_ARRAYSIZE(val.brain.data); i++)
+    crossbreeder_eval(c, val.brain.data[i], parentA.brain.data[i], parentB.brain.data[i]);
+}
+
+template <typename mutator>
+void mutate(actor &target, const mutator &m)
+{
+  for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
+    mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
+}
+
+// TODO: Eval Funcs... -> Give score
