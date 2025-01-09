@@ -4,16 +4,30 @@
 #include "neural_net.h"
 #include "evolution.h"
 
+enum actorStats
+{
+  as_Air,
+  _actorStats_FoodBegin,
+  as_Protein = _actorStats_FoodBegin,
+  as_Sugar,
+  as_Vitamin,
+  as_Fat,
+  _actorStats_FoodEnd = as_Fat,
+  as_Energy,
+
+  _actorStats_Count
+};
+
 enum tileFlag : uint8_t
 {
-  tf_Underwater = 1,
-  tf_Protein = 1 << 1,
-  tf_Sugar = 1 << 2,
-  tf_Vitamin = 1 << 3,
-  tf_Fat = 1 << 4,
-  tf_Collidable = 1 << 5,
-  tf_OtherActor = 1 << 6, // not on the map
-  tf_Hidden = 1 << 7, // not on the map
+  tf_Underwater = 1ULL << as_Air,
+  tf_Protein = 1ULL << as_Protein,
+  tf_Sugar = 1ULL << as_Sugar,
+  tf_Vitamin = 1ULL << as_Vitamin,
+  tf_Fat = 1ULL << as_Fat,
+  tf_Collidable = 1ULL << 5,
+  tf_OtherActor = 1ULL << 6, // not on the map
+  tf_Hidden = 1ULL << 7, // not on the map
 };
 
 void tileFlag_toTempString(const uint8_t flag, char(&out)[9]);
@@ -79,24 +93,12 @@ struct viewCone
 viewCone viewCone_get(const level &lvl, const actor &actor);
 void viewCone_print(const viewCone &values, const actor &actor);
 
-enum actorStats
-{
-  as_Energy,
-  as_Air,
-  as_Protein,
-  as_Sugar,
-  as_Vitamin,
-  as_Fat,
-
-  _actorStats_Count,
-};
-
 struct actor
 {
   vec2u16 pos;
   lookDirection look_at_dir;
-  bool alive;
   uint8_t stats[_actorStats_Count];
+  uint8_t stomach_remaining_capacity;
   neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 4> brain;
 
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }

@@ -22,6 +22,33 @@ inline void mutator_eval(const mutator_naive &m, T &val, const T min = lsMinValu
   val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
 }
 
+template <typename config>
+struct mutator_chance
+{
+};
+
+template <typename config>
+inline void mutator_init(mutator_chance<config> &mut, const size_t generation)
+{
+  (void)mut;
+  (void)generation;
+}
+
+template <typename T, typename config>
+  requires (std::is_integral_v<T>)
+inline void mutator_eval(const mutator_chance<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>()) // probably worth using a larger integer type than provided internally, to prevent integer overflows.
+{
+  void(m);
+
+  const uint64_t rand = lsGetRand();
+
+  if ((rand & 1024) > config::chanceOf1024)
+    return;
+
+  // TODO: Mutate with normal distribution
+  
+}
+
 struct crossbreeder_naive
 {
 };
