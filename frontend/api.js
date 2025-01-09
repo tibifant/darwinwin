@@ -136,6 +136,9 @@ function updateActor(actor, mapWidth){
   actorTile.appendChild(actorElement);
 }
 
+//Set functions
+
+
 //Net functions
 function handleError(error){
   console.error("Encountered error during fetch:\n", error);
