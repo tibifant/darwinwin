@@ -1,152 +1,139 @@
 const server_url = 'http://localhost:21110/';
 
 let actorTile;
-let actor;
-let mapWidth;
-let mapHeight;
+let actorElement;
 let mapGridArray;
+let tick = 1;
 
-setup();
+document.addEventListener('DOMContentLoaded', setup)
 
-function setup(){
-  setUpActor();
-  fetchMap();
-  setInterval(fetchAllData, 1000);
-}
 //Initial Setup Functions
-function fetchMap(){
-  load_backend_url('getLevel', (response) => {setUpMap(response)},
-    {}, (e) => {handleError(e)});
+function setup(){
+  console.log("Initiating Setup...")
+  fetchLevel(setupMap)
+  setInterval(fetchAllData, 1000);
+  console.log("Setup Complete!")
 }
 
-function setUpActor(){
-  actor = document.createElement("div");
-  actor.classList.add("actor");
-}
+function setupMap(data){
+  const mapHeight = data.level.height;
+  const mapWidth = data.level.width;
 
-function setUpMap(data){
-  mapHeight = data.level.height;
-  mapWidth = data.level.width;
-
-  setUpMapColumns(mapWidth);
-
-  for(let i=0; i<mapWidth; i++){
-    const column = document.getElementById("level-column-" + i)
-
-    for (let j = 0; j < mapHeight; j++){
-      let newTile = document.createElement("div");
-      newTile.id = 'tile-' + i + '-' + j;
-      newTile.classList.add('level-tile');
-      column.appendChild(newTile);
-    }
-  }
-
-  actorTile = document.getElementById("tile-"+data.actor[0].posX+"-"+data.actor[0].posY);
-}
-
-function setUpMapColumns(mapWidth) {
   const levelContainer = document.getElementById("level-container");
+  setLevelContainerSize(levelContainer ,mapWidth, mapHeight);
+  setupTileElements(levelContainer, data.level.grid);
 
-  for (let i = 0; i < mapWidth; i++) {
-    let newColumn = document.createElement("div");
-    newColumn.id = 'level-column-' + i;
-    newColumn.classList.add("level-column");
-    levelContainer.appendChild(newColumn);
-  }
+  setupActor(data.actor[0], data.level.width);
+}
+
+function setLevelContainerSize(levelContainer ,mapWidth, mapHeight){
+  //Adjust according to level-tile css class
+  const tileSize = 20;
+  const tileMargin = 1;
+
+  levelContainer.style.width = mapWidth * (tileSize + tileMargin*4) + 'pt';
+  levelContainer.style.height = mapHeight * (tileSize + tileMargin*4) + 'pt';
+}
+
+function setupTileElements(levelContainer, grid){
+  grid.forEach((tile, i) => {
+    const newTile = document.createElement("div");
+    newTile.classList.add("level-tile");
+    newTile.id = "tile-"+i;
+    levelContainer.appendChild(newTile);
+  })
+}
+
+function setupActor(actor, mapWidth){
+  actorElement = document.createElement("div");
+  actorElement.classList.add("actor");
+
+  updateActor(actor, mapWidth);
 }
 
 //Periodic Update Functions
 function fetchAllData() {
-  fetchLevelData();
+  console.log("Updating World...");
+  fetchLevel(updateWorld)
 }
 
-function fetchLevelData(){
-  load_backend_url('getLevel', (response) => {updateLevelData(response)},
-    {}, (e) => {handleError(e)});
-}
-
-function updateLevelData(newData){
+function updateWorld(newData){
   console.log("Received World Data:\n", newData);
 
-  mapGridArray = convertGridTo2dArray(newData.level.grid)
-  updateTiles(mapGridArray);
+  updateTiles(newData.level.grid);
 
   const actor = newData.actor[0];
-  updateActor(actor.posX, actor.posY, actor.lookDir);
+  removeActorFromTile();
+  updateActor(actor, newData.level.width);
+
+  console.log(`Updated Tick ${tick++}!`);
 }
 
-function convertGridTo2dArray(grid) {
-  let gridArray = [];
+function updateTiles(grid){
+  for(let i=0; i<grid.length; i++){
+    const tileElement = document.getElementById("tile-"+i);
+    tileElement.innerHTML = '';
 
-  for(let i=0; i<mapWidth; i++){
-    gridArray.push([])
-    for (let j = 0; j < mapHeight; j++){
-      gridArray[i][j] = grid[i * mapWidth + j ];
-    }
-  }
-
-  return gridArray;
-}
-
-function updateTiles(tileArray){
-  for(let i=0; i<tileArray.length; i++){
-    for (let j = 0; j < tileArray[i].length; j++){
-      const tileElement = document.getElementById("tile-"+i+"-"+j);
-      tileElement.innerHTML = '';
-
-      const tileInfoBinary = tileArray[i][j].toString(2).padStart(8, "0");
-
-      if(tileInfoBinary[0] === '1'){ //Hidden
-
-      }
-      if(tileInfoBinary[1] === '1'){ //Other Actor
-
-      }
-      if(tileInfoBinary[2] === '1'){ //Collidable
-        tileElement.background = '#e40f0f'
-      }
-      if(tileInfoBinary[3] === '1'){ //Fat
-        let newItem = document.createElement("div");
-        newItem.classList.add('food');
-        newItem.innerHTML = 'F'
-        tileElement.appendChild(newItem);
-      }
-      if(tileInfoBinary[4] === '1'){ //Vitamin
-        let newItem = document.createElement("div");
-        newItem.classList.add('food');
-        newItem.innerHTML = 'V'
-        tileElement.appendChild(newItem);
-      }
-      if(tileInfoBinary[5] === '1'){ //Sugar
-        let newItem = document.createElement("div");
-        newItem.classList.add('food');
-        newItem.innerHTML = 'S'
-        tileElement.appendChild(newItem);
-      }
-      if(tileInfoBinary[6] === '1'){ //Protein
-        let newItem = document.createElement("div");
-        newItem.classList.add('food');
-        newItem.innerHTML = 'P'
-        tileElement.appendChild(newItem);
-      }
-      if(tileInfoBinary[7] === '1'){ //Underwater
-        tileElement.style.backgroundColor = '#0000ff';
-      }
-    }
+    checkTileFlags(grid[i], tileElement);
   }
 }
 
-function updateActor(posX, posY, lookDirection){
-  removeActorFromTile()
+function checkTileFlags(tile, tileElement){
+  const tf_Underwater = 1 << 0;
+  const tf_Protein    = 1 << 1;
+  const tf_Sugar      = 1 << 2;
+  const tf_Vitamin    = 1 << 3;
+  const tf_Fat        = 1 << 4;
+  const tf_Collidable = 1 << 5;
+  const tf_OtherActor = 1 << 6;
+  const tf_Hidden     = 1 << 7;
 
-  actorTile = document.getElementById("tile-"+posX+"-"+posY);
+  if(tile & tf_Hidden){ //Hidden
 
-  actorTile.appendChild(actor);
+  }
+  if(tile & tf_OtherActor){ //Other Actor
+
+  }
+  if(tile & tf_Collidable){ //Collidable
+    tileElement.background = '#e40f0f'
+  }
+  if(tile & tf_Fat){ //Fat
+    let newItem = document.createElement("div");
+    newItem.classList.add('food');
+    newItem.innerText = 'F'
+    tileElement.appendChild(newItem);
+  }
+  if(tile & tf_Vitamin){ //Vitamin
+    let newItem = document.createElement("div");
+    newItem.classList.add('food');
+    newItem.innerText = 'V'
+    tileElement.appendChild(newItem);
+  }
+  if(tile & tf_Sugar){ //Sugar
+    let newItem = document.createElement("div");
+    newItem.classList.add('food');
+    newItem.innerText = 'S'
+    tileElement.appendChild(newItem);
+  }
+  if(tile & tf_Protein){ //Protein
+    let newItem = document.createElement("div");
+    newItem.classList.add('food');
+    newItem.innerText = 'P'
+    tileElement.appendChild(newItem);
+  }
+  if(tile & tf_Underwater){ //Underwater
+    tileElement.style.backgroundColor = '#0000ff';
+  }
 }
 
 function removeActorFromTile(){
-  //Adjust for other information
+  //Todo: Adjust for other information
   actorTile.innerHTML = '';
+}
+
+function updateActor(actor, mapWidth){
+  actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
+  actorTile.appendChild(actorElement);
 }
 
 //Net functions
@@ -158,7 +145,7 @@ function load_url(url, callback, payload, failure_callback) {
   var xmlhttp;
 
   console.log("Sending request to '" + url + "':");
-  console.log(payload);
+  //console.log(payload);
 
   if (window.XMLHttpRequest)
     xmlhttp = new XMLHttpRequest();
@@ -196,4 +183,9 @@ function load_url(url, callback, payload, failure_callback) {
 
 function load_backend_url(url, callback, payload, failure_callback) {
   load_url(server_url + url, callback, payload, failure_callback);
+}
+
+function fetchLevel(callback){
+  load_backend_url('getLevel', callback,
+    {}, handleError);
 }
