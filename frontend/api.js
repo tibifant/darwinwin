@@ -4,6 +4,7 @@ let actorTile;
 let actorElement;
 let mapGridArray;
 let tick = 1;
+let actorStats;
 
 document.addEventListener('DOMContentLoaded', setup);
 
@@ -11,8 +12,21 @@ document.addEventListener('DOMContentLoaded', setup);
 function setup(){
   console.log("Initiating Setup...");
   fetchLevel(setupMap);
+  setupStatsWindow();
   setInterval(fetchAllData, 1000);
   console.log("Setup Complete!");
+}
+
+function setupStatsWindow(){
+  const infoLabelsElement = document.getElementById("stats-info-labels");
+  const optionsLabelsElement = document.getElementById("stats-options-labels");
+
+  let statsMessage = document.createElement("label")
+  statsMessage.innerText = "Click on tile or actor to reveal stats..."
+  infoLabelsElement.appendChild(statsMessage);
+  statsMessage = document.createElement("label")
+  statsMessage.innerText = "Click on tile or actor to see options..."
+  optionsLabelsElement.appendChild(statsMessage);
 }
 
 function setupMap(data){
@@ -47,6 +61,8 @@ function setupTileElements(levelContainer, grid){
 function setupActor(actor, mapWidth){
   actorElement = document.createElement("div");
   actorElement.classList.add("actor");
+  actorElement.id = "actor";
+  actorElement.addEventListener("click", showStatsOfElement)
 
   updateActor(actor, mapWidth);
 }
@@ -134,6 +150,42 @@ function removeActorFromTile(){
 function updateActor(actor, mapWidth){
   actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
   actorTile.appendChild(actorElement);
+  actorStats = actor;
+}
+
+//Stats view functions
+function showStatsOfElement(event){
+  const targetElement = event.target;
+
+  const infoLabelsElement = document.getElementById("stats-info-labels");
+  const infoValuesElement = document.getElementById("stats-info-values");
+  infoLabelsElement.innerHTML = '';
+  infoValuesElement.innerHTML = '';
+
+  switch (targetElement.id){
+    case 'actor':
+      showActorStats(targetElement.id, infoLabelsElement, infoValuesElement);
+      break;
+    default:
+      console.error("Error: targetElementId not recognized");
+  }
+}
+
+function showActorStats(id, infoLabelsElement, infoValuesElement){ //id for when multiple actors exist
+
+  const labels = document.createElement('label')
+  labels.innerText = "Actor ID:\nPosX:\nPosY:\nLookDir:\n\n" +
+    "Energy:\nAir:\nProtein\nSugar:\nVitamin:\nFat:";
+  infoLabelsElement.appendChild(labels);
+  const values = document.createElement('label');
+  values.innerText = `${id}\n${actorStats.posX}\n${actorStats.posY}\n${actorStats.lookDir}\n
+  ${actorStats.stats[0]}\n${actorStats.stats[1]}\n${actorStats.stats[2]}
+  ${actorStats.stats[3]}\n${actorStats.stats[4]}\n${actorStats.stats[5]}\n`;
+  infoValuesElement.appendChild(values);
+
+  const optionLabels = document.createElement('label');
+  optionLabels.innerText = "";
+
 }
 
 //Set functions

@@ -48,6 +48,7 @@ body {
 }
 
 #app_container {
+  display: flex;
   margin: 0;
   background: #1a1a1a;
   width: 100vw;
@@ -75,9 +76,45 @@ div.box {
   flex-direction: row;
 }
 
-.level-column {
+.stats-container {
+  width: 20vw;
+  min-height: 100pt;
+  height: fit-content;
+  margin: 10pt;
+  padding: 10pt;
+  background-color: gray;
+}
+
+.stats-header {
+  height: 10%;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  font-size: 30pt;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.stats-body {
+  height: 90%;
+  width: 100%;
+}
+
+.stats-subsection-header {
+  height: 10%;
+  text-align: center;
+  font-size: 15pt;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.stats-subsection {
   display: flex;
-  flex-direction: column;
+  justify-content: space-around;
+  height: 40%;
+  width: 100%;
+  font-size: 15pt;
+}
+
+.stats-subsection-column {
 }
 
 .level-tile{

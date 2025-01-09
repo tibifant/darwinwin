@@ -10,8 +10,23 @@
 </head>
 <body>
   <div id="app_container">
-    <script type="module" src="fetchSimData.js"></script>
+    <script type="module" src="api.js"></script>
     <div id="level-container" class="level-container"></div>
+    <div id="stats-container" class="stats-container">
+      <div class="stats-header">STATS</div>
+      <div class="stats-body">
+        <div class="stats-subsection-header">INFO</div>
+        <div id="stats-info" class="stats-subsection">
+          <div id="stats-info-labels" class="stats-info-column"></div>
+          <div id="stats-info-values" class="stats-info-column"></div>
+        </div>
+        <div class="stats-subsection-header">OPTIONS</div>
+        <div id="stats-options" class="stats-subsection">
+          <div id="stats-options-labels" class="stats-options-column"></div>
+          <div id="stats-options-buttons" class="stats-options-column"></div>
+        </div>
+      </div>
+    </div>
   </div>
 </body>
 </html>
