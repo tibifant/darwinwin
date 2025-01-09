@@ -86,3 +86,17 @@ Aktuelle Tasks:
 **Hauptrioritaet Frontend:** Visualisierung Level.
 
 **Hauptrioritaet Backend:** Grundstruktur Genetic Algorithm
+
+## 09.01.2025:
+
+**Marvin:**
+- Rudimentaere Darstellung Map inkl. api calls wird gehandlet 
+
+**Malin:**
+- Grundgeruest des Genetic Algorithm ist implementiert und mit einfachem Beispiel erfolgreich getestet
+- Anpassungen der Logik in verschiedenen Actor-Actions.
+- Code Review durchgefuehrt
+
+**Aktuelle Tasks:**
+- Frontend: angefragte Anpassungen implementieren, handling von `manuellAct`
+- Backend: Mutator mit Random Chance implementieren, weitere Fixes in verschiedenen Actions
