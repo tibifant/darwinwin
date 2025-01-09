@@ -2,6 +2,7 @@
 
 #include "core.h"
 #include "neural_net.h"
+#include "evolution.h"
 
 enum tileFlag : uint8_t
 {
@@ -94,6 +95,7 @@ struct actor
 {
   vec2u16 pos;
   lookDirection look_at_dir;
+  bool alive;
   uint8_t stats[_actorStats_Count];
   neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 4> brain;
 
