@@ -74,9 +74,13 @@ Aktuelle Tasks:
 
 ## 07.01.2025:
 
-**Jan:** N/A (krank)
+**Jan:** (Krank)
+- Code Familiarization
+- Planung
 
-**Marvin:** N/A
+**Marvin:** (Nicht beim Meeting erschienen)
+- Code Familiarization
+- Planung
 
 **Malin:**
 - Das Weblevel wird mit Testwerten initalisiert.
@@ -107,12 +111,15 @@ Aktuelle Tasks:
 
 **Jan:** N/A (krank)
 
-**Marvin:** N/A
+**Marvin:** (Nicht beim Meeting erschienen)
+- Implementierung von Feedback und Code-Cleanup
+- Map formatierung jetzt durch Flexbox wrapping anstatt von column elementen
+- Info Anzeige für Actor
 
 **Malin:**
 - ein Mutator mutiert Daten nur bei einer gewissen Wahrscheinlichkeit
 - Actors haben Maegen: es passt nur eine bestimmte Kapazitaet in den Magen, sonst wird keine weitere Nahrung aufgenommen und jede Runde wird Nahrung verdaut, damit wird Energie freigesetzt.
 
 **Aktuelle Tasks:**
-- Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
+- Frontend: Info Anzeige Tiles, handling von `manualAct` und `setTile`
 - Backend: `Mutator` mit Normalverteilung
