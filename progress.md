@@ -89,6 +89,8 @@ Aktuelle Tasks:
 
 ## 09.01.2025:
 
+**Jan:** N/A (krank)
+
 **Marvin:**
 - Rudimentaere Darstellung Map inkl. api calls wird gehandlet 
 
@@ -98,5 +100,19 @@ Aktuelle Tasks:
 - Code Review durchgefuehrt
 
 **Aktuelle Tasks:**
-- Frontend: angefragte Anpassungen implementieren, handling von `manuellAct`
+- Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
 - Backend: Mutator mit Random Chance implementieren, weitere Fixes in verschiedenen Actions
+
+## 10.01.2025:
+
+**Jan:** N/A (krank)
+
+**Marvin:** N/A
+
+**Malin:**
+- ein Mutator mutiert Daten nur bei einer gewissen Wahrscheinlichkeit
+- Actors haben Maegen: es passt nur eine bestimmte Kapazitaet in den Magen, sonst wird keine weitere Nahrung aufgenommen und jede Runde wird Nahrung verdaut, damit wird Energie freigesetzt.
+
+**Aktuelle Tasks:**
+- Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
+- Backend: `Mutator` mit Normalverteilung
