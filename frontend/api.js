@@ -6,6 +6,21 @@ let mapGridArray;
 let tick = 1;
 let actorStats;
 
+const lookDirections = [
+  "left",
+  "up",
+  "right",
+  "down",
+]
+
+const actorActions = [
+  "move",
+  "move 2",
+  "turn left",
+  "turn right",
+  "eat"
+]
+
 document.addEventListener('DOMContentLoaded', setup);
 
 //Initial Setup Functions
@@ -19,14 +34,14 @@ function setup(){
 
 function setupStatsWindow(){
   const infoLabelsElement = document.getElementById("stats-info-labels");
-  const optionsLabelsElement = document.getElementById("stats-options-labels");
+  const optionsElement = document.getElementById("stats-options");
 
   let statsMessage = document.createElement("label")
   statsMessage.innerText = "Click on tile or actor to reveal stats..."
   infoLabelsElement.appendChild(statsMessage);
   statsMessage = document.createElement("label")
   statsMessage.innerText = "Click on tile or actor to see options..."
-  optionsLabelsElement.appendChild(statsMessage);
+  optionsElement.appendChild(statsMessage);
 }
 
 function setupMap(data){
@@ -159,36 +174,49 @@ function showStatsOfElement(event){
 
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
+  const optionsElement = document.getElementById("stats-options");
   infoLabelsElement.innerHTML = '';
   infoValuesElement.innerHTML = '';
+  optionsElement.innerHTML = '';
 
   switch (targetElement.id){
     case 'actor':
-      showActorStats(targetElement.id, infoLabelsElement, infoValuesElement);
+      showActorStats(targetElement.id, infoLabelsElement, infoValuesElement, optionsElement);
       break;
     default:
       console.error("Error: targetElementId not recognized");
   }
 }
 
-function showActorStats(id, infoLabelsElement, infoValuesElement){ //id for when multiple actors exist
+function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement){ //id for when multiple actors exist
 
   const labels = document.createElement('label')
   labels.innerText = "Actor ID:\nPosX:\nPosY:\nLookDir:\n\n" +
     "Energy:\nAir:\nProtein\nSugar:\nVitamin:\nFat:";
   infoLabelsElement.appendChild(labels);
   const values = document.createElement('label');
-  values.innerText = `${id}\n${actorStats.posX}\n${actorStats.posY}\n${actorStats.lookDir}\n
+  values.innerText = `${id}\n${actorStats.posX}\n${actorStats.posY}\n${lookDirections[actorStats.lookDir]}\n
   ${actorStats.stats[0]}\n${actorStats.stats[1]}\n${actorStats.stats[2]}
   ${actorStats.stats[3]}\n${actorStats.stats[4]}\n${actorStats.stats[5]}\n`;
   infoValuesElement.appendChild(values);
 
-  const optionLabels = document.createElement('label');
-  optionLabels.innerText = "";
-
+  const optionsButtonsElement = document.createElement('div');
+  optionsButtonsElement.classList.add('stats-subsection-column');
+  actorActions.forEach((action, i) => {
+    const button = document.createElement('button');
+    button.id = "option-button-"+i;
+    button.innerText = action;
+    button.addEventListener('click', initiateActorActionRequest)
+    optionsButtonsElement.appendChild(button);
+  })
+  optionsElement.appendChild(optionsButtonsElement);
 }
 
 //Set functions
+function initiateActorActionRequest(event){
+  const actionId = event.target.id.slice(-1);
+  postActorAction(actionId);
+}
 
 
 //Net functions
@@ -214,7 +242,7 @@ function load_url(url, callback, payload, failure_callback) {
           let obj = JSON.parse(xmlhttp.responseText);
           callback(obj);
         } catch (e) {
-          failure_callback(false);
+          failure_callback(e);
         }
       } else { // TODO: handle all relevant error codes
         if (xmlhttp.status == 403) {
@@ -243,4 +271,9 @@ function load_backend_url(url, callback, payload, failure_callback) {
 function fetchLevel(callback){
   load_backend_url('getLevel', callback,
     {}, handleError);
+}
+
+function postActorAction(id){
+  load_backend_url('manualAct', {},
+    {actionId: id}, handleError);
 }

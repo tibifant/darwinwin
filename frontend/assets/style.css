@@ -108,13 +108,15 @@ div.box {
 
 .stats-subsection {
   display: flex;
-  justify-content: space-around;
   height: 40%;
   width: 100%;
   font-size: 15pt;
 }
 
 .stats-subsection-column {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 
 .level-tile{
