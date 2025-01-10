@@ -6,20 +6,16 @@ let mapGridArray;
 let tick = 1;
 let actorStats;
 
-const lookDirections = [
-  "left",
-  "up",
-  "right",
-  "down",
-]
-
-const actorActions = [
-  "move",
-  "move 2",
-  "turn left",
-  "turn right",
-  "eat"
-]
+const tileFlags = new Map([
+  ['Underwater', 1 << 0],
+  ['Protein', 1 << 1],
+  ['Sugar', 1 << 2],
+  ['Vitamin', 1 << 3],
+  ['Fat', 1 << 4],
+  ['Collidable', 1 << 5],
+  ['OtherActor', 1 << 6],
+  ['Hidden', 1 << 7],
+])
 
 document.addEventListener('DOMContentLoaded', setup);
 
@@ -69,6 +65,7 @@ function setupTileElements(levelContainer, grid){
     const newTile = document.createElement("div");
     newTile.classList.add("level-tile");
     newTile.id = "tile-"+i;
+    newTile.addEventListener("click", showStatsOfElement)
     levelContainer.appendChild(newTile);
   })
 }
@@ -105,6 +102,7 @@ function updateTiles(grid){
     const tileElement = document.getElementById("tile-"+i);
     tileElement.innerHTML = '';
 
+    mapGridArray = grid;
     checkTileFlags(grid[i], tileElement);
   }
 }
@@ -157,6 +155,10 @@ function checkTileFlags(tile, tileElement){
   }
 }
 
+function hasTileCondition(tile, condition){
+  return !!(tile & tileFlags.get(condition));
+}
+
 function removeActorFromTile(){
   //Todo: Adjust for other information
   actorTile.innerHTML = '';
@@ -179,16 +181,34 @@ function showStatsOfElement(event){
   infoValuesElement.innerHTML = '';
   optionsElement.innerHTML = '';
 
-  switch (targetElement.id){
+  const idBody = targetElement.id.split('-')[0];
+  switch (idBody) {
     case 'actor':
       showActorStats(targetElement.id, infoLabelsElement, infoValuesElement, optionsElement);
+      break;
+    case 'tile':
+      showTileStats(targetElement.id, infoLabelsElement, infoValuesElement, optionsElement);
       break;
     default:
       console.error("Error: targetElementId not recognized");
   }
 }
 
+//Todo: Clean, optimize
 function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement){ //id for when multiple actors exist
+  const actorActions = [
+    "move",
+    "move 2",
+    "turn left",
+    "turn right",
+    "eat"
+  ]
+  const lookDirections = [
+    "left",
+    "up",
+    "right",
+    "down",
+  ]
 
   const labels = document.createElement('label')
   labels.innerText = "Actor ID:\nPosX:\nPosY:\nLookDir:\n\n" +
@@ -212,12 +232,35 @@ function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement
   optionsElement.appendChild(optionsButtonsElement);
 }
 
+//Todo: Clean, optimize
+function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement){
+  const index = id.split('-')[1];
+  const x = index % 32;
+  const y = Math.floor(index / 32);
+
+  const labels = document.createElement('label')
+  labels.innerText = "Tile ID:\nX:\nY:\n\n" +
+    "Underwater:\nProtein:\nSugar:\nVitamin\nFat\n" +
+    "Collidable:\nOther Actor:\nHidden:";
+  infoLabelsElement.appendChild(labels);
+  const values = document.createElement('label');
+  values.innerText = `${id}\n${x}\n${y}\n
+  ${hasTileCondition(mapGridArray[index],"Underwater")}\n${hasTileCondition(mapGridArray[index], "Protein")}
+  ${hasTileCondition(mapGridArray[index], "Sugar")}\n${hasTileCondition(mapGridArray[index], "Vitamin")}
+  ${hasTileCondition(mapGridArray[index], "Fat")}\n${hasTileCondition(mapGridArray[index], "Collidable")}
+  ${hasTileCondition(mapGridArray[index], "OtherActor")}\n${hasTileCondition(mapGridArray[index], "Hidden")}`;
+  infoValuesElement.appendChild(values);
+}
+
 //Set functions
 function initiateActorActionRequest(event){
   const actionId = event.target.id.slice(-1);
   postActorAction(actionId);
 }
 
+function initiateSetTileRequest(event){
+
+}
 
 //Net functions
 function handleError(error){
@@ -276,4 +319,9 @@ function fetchLevel(callback){
 function postActorAction(id){
   load_backend_url('manualAct', {},
     {actionId: id}, handleError);
+}
+
+function postTileSetRequest(payload){
+  load_backend_url('setTile', {},
+    payload, handleError);
 }

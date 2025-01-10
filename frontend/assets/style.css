@@ -134,6 +134,7 @@ div.box {
   height: 3pt;
   width: 3pt;
   font-family: 'Segoe UI', sans-serif;
+  pointer-events: none;
 }
 
 .actor{
