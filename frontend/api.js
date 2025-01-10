@@ -101,6 +101,7 @@ function updateTiles(grid){
   for(let i=0; i<grid.length; i++){
     const tileElement = document.getElementById("tile-"+i);
     tileElement.innerHTML = '';
+    tileElement.style.backgroundColor = '#567345';
 
     mapGridArray = grid;
     checkTileFlags(grid[i], tileElement);
@@ -250,16 +251,57 @@ function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement)
   ${hasTileCondition(mapGridArray[index], "Fat")}\n${hasTileCondition(mapGridArray[index], "Collidable")}
   ${hasTileCondition(mapGridArray[index], "OtherActor")}\n${hasTileCondition(mapGridArray[index], "Hidden")}`;
   infoValuesElement.appendChild(values);
+
+  //Todo: Replace with buttons for each condition
+  const optionsLabelsElement = document.createElement('div');
+  const optionsInputsElement = document.createElement('div');
+  const optionsButtonsElement = document.createElement('div');
+  optionsLabelsElement.classList.add('stats-subsection-column');
+  optionsInputsElement.classList.add('stats-subsection-column');
+  optionsButtonsElement.classList.add('stats-subsection-column');
+
+  optionsLabelsElement.innerText = "Set Stats:"
+
+  const button = document.createElement('button');
+  button.id = "option-button-tile-"+index;
+  button.innerText = "Confirm";
+  button.addEventListener('click', initiateSetTileRequest);
+  optionsButtonsElement.appendChild(button);
+
+  const input = document.createElement('input');
+  input.id = "option-input";
+  optionsInputsElement.appendChild(input);
+
+  optionsElement.appendChild(optionsLabelsElement);
+  optionsElement.appendChild(optionsInputsElement);
+  optionsElement.appendChild(optionsButtonsElement);
 }
 
 //Set functions
 function initiateActorActionRequest(event){
   const actionId = event.target.id.slice(-1);
   postActorAction(actionId);
+  //Todo: Update Infos after
 }
 
 function initiateSetTileRequest(event){
+  const index = event.target.id.split('-')[3]
+  const x = index % 32;
+  const y = Math.floor(index / 32);
 
+  const input = document.getElementById("option-input")
+  const stats = input.value;
+  console.log(stats);
+
+  const payload = {
+    x: x,
+    y: y,
+    value: stats
+  }
+
+  postTileSetRequest(payload);
+
+  //Todo: Update Infos after
 }
 
 //Net functions
