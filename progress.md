@@ -86,3 +86,33 @@ Aktuelle Tasks:
 **Hauptrioritaet Frontend:** Visualisierung Level.
 
 **Hauptrioritaet Backend:** Grundstruktur Genetic Algorithm
+
+## 09.01.2025:
+
+**Jan:** N/A (krank)
+
+**Marvin:**
+- Rudimentaere Darstellung Map inkl. api calls wird gehandlet 
+
+**Malin:**
+- Grundgeruest des Genetic Algorithm ist implementiert und mit einfachem Beispiel erfolgreich getestet
+- Anpassungen der Logik in verschiedenen Actor-Actions.
+- Code Review durchgefuehrt
+
+**Aktuelle Tasks:**
+- Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
+- Backend: Mutator mit Random Chance implementieren, weitere Fixes in verschiedenen Actions
+
+## 10.01.2025:
+
+**Jan:** N/A (krank)
+
+**Marvin:** N/A
+
+**Malin:**
+- ein Mutator mutiert Daten nur bei einer gewissen Wahrscheinlichkeit
+- Actors haben Maegen: es passt nur eine bestimmte Kapazitaet in den Magen, sonst wird keine weitere Nahrung aufgenommen und jede Runde wird Nahrung verdaut, damit wird Energie freigesetzt.
+
+**Aktuelle Tasks:**
+- Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
+- Backend: `Mutator` mit Normalverteilung
