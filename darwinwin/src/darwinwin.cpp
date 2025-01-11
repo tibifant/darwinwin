@@ -106,7 +106,8 @@ bool level_performStep(level &lvl, actor *pActors)
 
     neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
 
-    // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[LS_ARRAYSIZE(cone.values) * 8 + x]`.
+    for (size_t j = 0; j < _actorStats_Count; j++)
+      ioBuffer.data[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
 
     neural_net_eval(pActors->brain, ioBuffer);
 
@@ -136,7 +137,7 @@ bool level_performStep2(level &lvl, actor *pActors) { return level_performStep<2
 bool level_performStep3(level &lvl, actor *pActors) { return level_performStep<3>(lvl, pActors); }
 bool level_performStep4(level &lvl, actor *pActors) { return level_performStep<4>(lvl, pActors); }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 viewCone viewCone_get(const level &lvl, const actor &a)
 {
@@ -200,7 +201,7 @@ void viewCone_print(const viewCone &v, const actor &actor)
   printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 template <typename T>
   requires (std::is_integral_v<T> && (sizeof(T) < sizeof(int64_t) || std::is_same_v<T, int64_t>))
@@ -368,7 +369,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 struct proto_chance_config
 {
@@ -394,8 +395,10 @@ void crossbreed(actor &val, const actor parentA, const actor parentB, const cros
 template <typename mutator>
 void mutate(actor &target, const mutator &m)
 {
-  for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
-    mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
+  //for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
+  //  mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
+  
+  mutator_eval(m, &target.brain.data, LS_ARRAYSIZE(target.brain.data), lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
 }
 
 // TODO: Eval Funcs... -> Give scores

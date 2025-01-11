@@ -4,6 +4,8 @@
 #include "pool.h"
 #include "small_list.h"
 
+//////////////////////////////////////////////////////////////////////////
+
 struct mutator_naive
 {
 };
@@ -16,10 +18,17 @@ inline void mutator_init(mutator_naive &mut, const size_t generation)
 
 template <typename T>
   requires (std::is_integral_v<T>)
-inline void mutator_eval(const mutator_naive &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>()) // probably worth using a larger integer type than provided internally, to prevent integer overflows.
+inline void mutator_eval(const mutator_naive &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
 {
   (void)m;
   val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
+}
+
+template <typename mutator, typename T>
+inline void mutator_eval(const mutator &m, T *pVal, const size_t count, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  for (size_t i = 0; i < count; i++)
+    mutator_eval(m, pVal[i], min, max);
 }
 
 template <typename config>
@@ -36,18 +45,19 @@ inline void mutator_init(mutator_chance<config> &mut, const size_t generation)
 
 template <typename T, typename config>
   requires (std::is_integral_v<T>)
-inline void mutator_eval(const mutator_chance<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>()) // probably worth using a larger integer type than provided internally, to prevent integer overflows.
+inline void mutator_eval(const mutator_chance<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
 {
-  void(m);
+  (void)m;
 
   const uint64_t rand = lsGetRand();
 
   if ((rand & 1024) > config::chanceOf1024)
     return;
 
-  // TODO: Mutate with normal distribution
-  
+  val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 struct crossbreeder_naive
 {
@@ -67,6 +77,8 @@ inline void crossbreeder_eval(const crossbreeder_naive &c, T &val, const T paren
   (void)c;
   val = lsGetRand() & 1 ? parentA : parentB;
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 template <typename target, typename config>
 struct evolution

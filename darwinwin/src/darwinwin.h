@@ -4,6 +4,8 @@
 #include "neural_net.h"
 #include "evolution.h"
 
+//////////////////////////////////////////////////////////////////////////
+
 enum actorStats
 {
   as_Air,
@@ -33,6 +35,8 @@ enum tileFlag : uint8_t
 void tileFlag_toTempString(const uint8_t flag, char(&out)[9]);
 void tileFlag_print(const uint8_t flag);
 
+//////////////////////////////////////////////////////////////////////////
+
 struct level
 {
   static constexpr size_t width = 32;
@@ -53,6 +57,8 @@ bool level_performStep2(level &lvl, actor *pActors);
 bool level_performStep3(level &lvl, actor *pActors);
 bool level_performStep4(level &lvl, actor *pActors);
 
+//////////////////////////////////////////////////////////////////////////
+
 enum lookDirection
 {
   ld_left,
@@ -64,6 +70,8 @@ enum lookDirection
 };
 
 const char *lookDirection_name(const lookDirection dir);
+
+//////////////////////////////////////////////////////////////////////////
 
 enum viewConePosition
 {
@@ -92,6 +100,8 @@ struct viewCone
 
 viewCone viewCone_get(const level &lvl, const actor &actor);
 void viewCone_print(const viewCone &values, const actor &actor);
+
+//////////////////////////////////////////////////////////////////////////
 
 struct actor
 {
