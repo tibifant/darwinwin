@@ -81,14 +81,13 @@ void level_print(const level &level)
   }
 }
 
-template <size_t actor_count>
-bool level_performStep(level &lvl, actor *pActors)
+bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 {
   // TODO: optional level internal step. (grow plants, etc.)
 
   bool anyAlive = false;
 
-  for (size_t i = 0; i < actor_count; i++)
+  for (size_t i = 0; i < actorCount; i++)
   {
     if (!pActors[i].stats[as_Energy])
       continue;
@@ -98,18 +97,18 @@ bool level_performStep(level &lvl, actor *pActors)
     const viewCone cone = viewCone_get(lvl, pActors[i]);
     actor_updateStats(&pActors[i], cone);
 
-    neural_net_buffer<decltype(actor::brain)::layer_blocks> ioBuffer;
+    decltype(actor::brain)::io_buffer_t ioBuffer;
 
     for (size_t j = 0; j < LS_ARRAYSIZE(cone.values); j++)
-      for (size_t bit = 1; bit < 256; bit <<= 1)
-        ioBuffer.data[j] = (int8_t)(cone[(viewConePosition)j] & bit);
+      for (size_t k = 0, bit = 1; k < 8; k++, bit <<= 1)
+        ioBuffer[j * 8 + k] = (int8_t)(cone[(viewConePosition)j] & bit);
 
     neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
 
     for (size_t j = 0; j < _actorStats_Count; j++)
-      ioBuffer.data[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
+      ioBuffer[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
 
-    neural_net_eval(pActors->brain, ioBuffer);
+    neural_net_eval(pActors[i].brain, ioBuffer);
 
     int16_t maxValue = ioBuffer.data[0];
     size_t bestActionIndex = 0;
@@ -131,11 +130,6 @@ bool level_performStep(level &lvl, actor *pActors)
 
   return anyAlive;
 }
-
-bool level_performStep1(level &lvl, actor &actor) { return level_performStep<1>(lvl, &actor); }
-bool level_performStep2(level &lvl, actor *pActors) { return level_performStep<2>(lvl, pActors); }
-bool level_performStep3(level &lvl, actor *pActors) { return level_performStep<3>(lvl, pActors); }
-bool level_performStep4(level &lvl, actor *pActors) { return level_performStep<4>(lvl, pActors); }
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -388,8 +382,8 @@ struct proto_config // TODO!
 template <typename crossbreeder>
 void crossbreed(actor &val, const actor parentA, const actor parentB, const crossbreeder &c)
 {
-  for (size_t i = 0; i < LS_ARRAYSIZE(val.brain.data); i++)
-    crossbreeder_eval(c, val.brain.data[i], parentA.brain.data[i], parentB.brain.data[i]);
+  for (size_t i = 0; i < LS_ARRAYSIZE(val.brain.values); i++)
+    crossbreeder_eval(c, val.brain.values[i], parentA.brain.values[i], parentB.brain.values[i]);
 }
 
 template <typename mutator>
@@ -397,8 +391,8 @@ void mutate(actor &target, const mutator &m)
 {
   //for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
   //  mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
-  
-  mutator_eval(m, &target.brain.data, LS_ARRAYSIZE(target.brain.data), lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
+
+  mutator_eval(m, &target.brain.values, LS_ARRAYSIZE(target.brain.values), lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
 }
 
 // TODO: Eval Funcs... -> Give scores

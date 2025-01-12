@@ -47,9 +47,8 @@ namespace asio
 
 //////////////////////////////////////////////////////////////////////////
 
-#include "core.h"
 #include "darwinwin.h"
-#include "io.h"
+#include "testable.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -59,27 +58,32 @@ crow::response handle_manualAct(const crow::request &req);
 
 //////////////////////////////////////////////////////////////////////////
 
+static bool parse_args(const char **pArgs, const ptrdiff_t count);
+static void print_args();
+
+//////////////////////////////////////////////////////////////////////////
+
 static std::atomic<bool> _IsRunning = true;
 static level _WebLevel;
 static actor _WebActor(vec2u8(level::width / 2, level::height / 2), ld_up);
+
+static struct {
+  bool runTests = true;
+  bool runServer = true;
+} _Args;
 
 //////////////////////////////////////////////////////////////////////////
 
 int32_t main(const int32_t argc, const char **pArgv)
 {
-  (void)pArgv;
-
-  if (argc > 1)
-  {
-    print_error_line("Unsupported Argument!");
+  if (!parse_args(pArgv + 1, argc - 1))
     return EXIT_FAILURE;
-  }
 
   cpu_info::DetectCpuFeatures();
 
-  if (!(cpu_info::avx2Supported && cpu_info::avxSupported))
+  if (!(cpu_info::avx2Supported && cpu_info::avxSupported && cpu_info::aesNiSupported))
   {
-    print_error_line("CPU Platform does not provide support for AVX/AVX2!");
+    print_error_line("CPU Platform does not provide support for AVX/AVX2/AES-NI!");
     return EXIT_FAILURE;
   }
 
@@ -90,24 +94,36 @@ int32_t main(const int32_t argc, const char **pArgv)
   print("Actor size: ", FF(Group, Frac(3), AllFrac)(sizeof(actor) / 1024.0), " KiB\n");
   print("\n");
 
-  crow::App<crow::CORSHandler> app;
+  if (_Args.runTests)
+  {
+    print("Running tests...\n");
+    run_testables();
+    print("\n");
+  }
 
-  level_initLinear(&_WebLevel);
+  if (_Args.runServer)
+  {
+    crow::App<crow::CORSHandler> app;
 
-  auto &cors = app.get_middleware<crow::CORSHandler>();
+    level_initLinear(&_WebLevel);
+
+    auto &cors = app.get_middleware<crow::CORSHandler>();
 #ifndef DARWINWIN_LOCALHOST
-  cors.global().origin(DARWINWIN_HOSTNAME);
+    cors.global().origin(DARWINWIN_HOSTNAME);
 #else
-  cors.global().origin("*");
+    cors.global().origin("*");
 #endif
 
-  CROW_ROUTE(app, "/getLevel").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_getLevel(req); });
-  CROW_ROUTE(app, "/setTile").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_setTile(req); });
-  CROW_ROUTE(app, "/manualAct").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_manualAct(req); });
+    CROW_ROUTE(app, "/getLevel").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_getLevel(req); });
+    CROW_ROUTE(app, "/setTile").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_setTile(req); });
+    CROW_ROUTE(app, "/manualAct").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_manualAct(req); });
 
-  app.port(21110).multithreaded().run();
+    app.port(21110).multithreaded().run();
 
-  _IsRunning = false;
+    _IsRunning = false;
+  }
+
+  return EXIT_SUCCESS;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -179,4 +195,53 @@ crow::response handle_manualAct(const crow::request &req)
   actor_act(&_WebActor, &_WebLevel, cone, actorAction(id));
 
   return crow::response(crow::status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+static const char _ArgNoServer[] = "--no-server";
+static const char _ArgNoTest[] = "--no-test";
+static const char _ArgTestOnly[] = "--test-only";
+
+static bool parse_args(const char **pArgs, const ptrdiff_t count)
+{
+  ptrdiff_t argsRemaining = count;
+
+  while (argsRemaining > 0)
+  {
+    if (lsStringEquals(_ArgNoServer, *pArgs))
+    {
+      _Args.runServer = false;
+      argsRemaining--;
+      pArgs++;
+    }
+    else if (lsStringEquals(_ArgNoTest, *pArgs))
+    {
+      _Args.runTests = false;
+      argsRemaining--;
+      pArgs++;
+    }
+    else if (lsStringEquals(_ArgTestOnly, *pArgs))
+    {
+      _Args.runServer = false;
+      argsRemaining--;
+      pArgs++;
+    }
+    else
+    {
+      print_error_line("Invalid Parameter '", *pArgs, "'. Aborting.");
+      print_args();
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void print_args()
+{
+  print("Usage: \n");
+  print("\t", FS(_ArgNoServer, Min(12)), ": Disable running Webserver.\n");
+  print("\t", FS(_ArgNoTest, Min(12)), ": Disable running Unit-Tests.\n");
+  print("\t", FS(_ArgTestOnly, Min(12)), ": Disable running everything except Unit-Tests (for CI).\n");
 }

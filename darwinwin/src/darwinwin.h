@@ -52,10 +52,7 @@ void level_print(const level &level);
 
 struct actor;
 
-bool level_performStep1(level &lvl, actor &actor);
-bool level_performStep2(level &lvl, actor *pActors);
-bool level_performStep3(level &lvl, actor *pActors);
-bool level_performStep4(level &lvl, actor *pActors);
+bool level_performStep(level &lvl, actor *pActors, const size_t actorCount);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -109,7 +106,7 @@ struct actor
   lookDirection look_at_dir;
   uint8_t stats[_actorStats_Count];
   uint8_t stomach_remaining_capacity;
-  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 4> brain;
+  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 2, 2, 1> brain;
 
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };
