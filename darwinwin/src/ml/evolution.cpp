@@ -76,12 +76,8 @@ DEFINE_TESTABLE(evolution_mt_test)
   lsResult result = lsR_Success;
 
   const size_t maxThreads = thread_pool_max_threads();
-  thread_pool *pThreadPool = nullptr;
-  // thread_pool_new(maxThreads);
+  thread_pool *pThreadPool = thread_pool_new(maxThreads);
 
-  print("max thread count: ", maxThreads, "\n");
-
-  if (pThreadPool)
   {
     const vec2i8 startPos(121, -72);
     evolution<vec2i8, test_config> evolver;
