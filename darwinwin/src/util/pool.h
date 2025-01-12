@@ -209,9 +209,9 @@ lsResult pool_reserve(pool<T, multiBlockAllocCount> *pPool, const size_t count)
   if (count == 0)
     return lsR_Success;
 
-  const size_t blockIndex = (count - 1) / pool<T, multiBlockAllocCount>::BlockSize;
+  const size_t blockCount = (count + pool<T, multiBlockAllocCount>::BlockSize - 1) / pool<T, multiBlockAllocCount>::BlockSize;
 
-  return pool_reserve_blocks(pPool, blockIndex + 1);
+  return pool_reserve_blocks(pPool, blockCount);
 }
 
 template <typename T, size_t multiBlockAllocCount>
@@ -230,7 +230,8 @@ lsResult pool_allocate(pool<T, multiBlockAllocCount> *pPool, T **ppItem, _Out_ s
     if (pPool->pBlockEmptyMask[i] != (uint64_t)-1)
     {
       size_t subIndex = 0;
-      lsAssert(pool_lowest_set_bit(~pPool->pBlockEmptyMask[i], subIndex));
+      const bool anyBitSet = pool_lowest_set_bit(~pPool->pBlockEmptyMask[i], subIndex);
+      lsAssert(anyBitSet);
       lsAssert(((pPool->pBlockEmptyMask[i] >> subIndex) & 1) == 0);
 
       blockIndex = i;
