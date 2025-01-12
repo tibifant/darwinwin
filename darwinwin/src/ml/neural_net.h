@@ -4,6 +4,78 @@
 
 constexpr size_t neural_net_block_size = sizeof(__m256) / sizeof(int16_t);
 
+namespace nn_internal
+{
+  template <size_t ...layer_blocks>
+  struct unwrap_layers_
+  {
+  };
+
+  template <size_t n>
+  struct unwrap_layers_<n>
+  {
+    constexpr static size_t self_blocks = n;
+    constexpr static size_t total_blocks = n;
+    constexpr static size_t self_neurons = n * neural_net_block_size;
+    constexpr static size_t total_neurons = n * neural_net_block_size;
+    constexpr static size_t self_weights = n * neural_net_block_size;
+    constexpr static size_t total_weights = n * neural_net_block_size;
+    constexpr static size_t count = 1;
+    constexpr static size_t self_biases(const size_t prevLayerNeurons) { return prevLayerNeurons * self_neurons; };
+    constexpr static size_t size(const size_t prevLayerNeurons) { return biases(prevLayerNeurons) + self_weights; };
+  };
+
+  template <size_t n, size_t... others>
+  struct unwrap_layers_<n, others...>
+  {
+    constexpr static size_t self_blocks = unwrap_layers_<n>::self_blocks;
+    constexpr static size_t total_blocks = unwrap_layers_<n>::total_blocks + unwrap_layers_<others...>::total_blocks;
+    constexpr static size_t self_neurons = unwrap_layers_<n>::self_neurons;
+    constexpr static size_t total_neurons = unwrap_layers_<n>::total_neurons + unwrap_layers_<others...>::total_neurons;
+    constexpr static size_t self_weights = unwrap_layers_<n>::self_weights;
+    constexpr static size_t total_weights = unwrap_layers_<n>::total_weights + unwrap_layers_<others...>::total_weights;
+    constexpr static size_t count = unwrap_layers_<n>::count + unwrap_layers_<others...>::count;
+    constexpr static size_t self_biases(const size_t prevLayerNeurons) { return unwrap_layers_<n>::self_biases(prevLayerNeurons); };
+    constexpr static size_t size(const size_t prevLayerNeurons) { return unwrap_layers_<n>::size(prevLayerNeurons) + unwrap_layers_<others...>::size(neurons); };
+  };
+
+  template <size_t n, size_t... others>
+  struct unwrap_layers
+  {
+    constexpr static size_t self_blocks = unwrap_layers_<n>::self_blocks;
+    constexpr static size_t total_blocks = unwrap_layers_<others...>::total_blocks;
+    constexpr static size_t self_neurons = unwrap_layers_<n>::self_neurons;
+    constexpr static size_t total_neurons = unwrap_layers_<others...>::total_neurons;
+    constexpr static size_t self_weights = 0;
+    constexpr static size_t total_weights = unwrap_layers_<others...>::total_weights;
+    constexpr static size_t count = unwrap_layers_<others...>::count;
+    constexpr static size_t size() { return unwrap_layers_<others...>::size(self_neurons); };
+  };
+
+  template <size_t prev_layer_neurons, size_t ...layer_blocks>
+  struct layer_data_
+  {
+  };
+
+  template <size_t prev_layer_neurons, size_t layer_blocks>
+  struct layer_data_<prev_layer_neurons, layer_blocks>
+  {
+    uint16_t biases[unwrap_layers_<layer_blocks>::self_biases(prev_layer_neurons)];
+    uint16_t weights[unwrap_layers_<layer_blocks>::self_weights];
+  };
+
+  template <size_t prev_layer_neurons, size_t self_layer_blocks, size_t ...layer_blocks>
+  struct layer_data_<prev_layer_neurons, self_layer_blocks, layer_blocks...> : layer_data_<prev_layer_neurons, self_layer_blocks>
+  {
+    layer_data_<unwrap_layers_<self_layer_blocks>::self_neuros, layer_blocks...> next;
+  };
+
+  template <size_t self_layer_blocks, size_t ...layer_blocks>
+  struct layer_data : layer_data_<unwrap_layers_<self_layer_blocks>::self_neurons, layer_blocks...>
+  {
+  };
+}
+
 template <size_t layer_blocks_, size_t layers_>
 struct neural_net
 {

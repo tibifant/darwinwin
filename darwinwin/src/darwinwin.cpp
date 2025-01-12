@@ -81,14 +81,13 @@ void level_print(const level &level)
   }
 }
 
-template <size_t actor_count>
-bool level_performStep(level &lvl, actor *pActors)
+bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 {
   // TODO: optional level internal step. (grow plants, etc.)
 
   bool anyAlive = false;
 
-  for (size_t i = 0; i < actor_count; i++)
+  for (size_t i = 0; i < actorCount; i++)
   {
     if (!pActors[i].stats[as_Energy])
       continue;
@@ -109,7 +108,7 @@ bool level_performStep(level &lvl, actor *pActors)
     for (size_t j = 0; j < _actorStats_Count; j++)
       ioBuffer.data[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
 
-    neural_net_eval(pActors->brain, ioBuffer);
+    neural_net_eval(pActors[i].brain, ioBuffer);
 
     int16_t maxValue = ioBuffer.data[0];
     size_t bestActionIndex = 0;
@@ -131,11 +130,6 @@ bool level_performStep(level &lvl, actor *pActors)
 
   return anyAlive;
 }
-
-bool level_performStep1(level &lvl, actor &actor) { return level_performStep<1>(lvl, &actor); }
-bool level_performStep2(level &lvl, actor *pActors) { return level_performStep<2>(lvl, pActors); }
-bool level_performStep3(level &lvl, actor *pActors) { return level_performStep<3>(lvl, pActors); }
-bool level_performStep4(level &lvl, actor *pActors) { return level_performStep<4>(lvl, pActors); }
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -397,7 +391,7 @@ void mutate(actor &target, const mutator &m)
 {
   //for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
   //  mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
-  
+
   mutator_eval(m, &target.brain.data, LS_ARRAYSIZE(target.brain.data), lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
 }
 

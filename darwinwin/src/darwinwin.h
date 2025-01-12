@@ -52,10 +52,7 @@ void level_print(const level &level);
 
 struct actor;
 
-bool level_performStep1(level &lvl, actor &actor);
-bool level_performStep2(level &lvl, actor *pActors);
-bool level_performStep3(level &lvl, actor *pActors);
-bool level_performStep4(level &lvl, actor *pActors);
+bool level_performStep(level &lvl, actor *pActors, const size_t actorCount);
 
 //////////////////////////////////////////////////////////////////////////
 
