@@ -23,12 +23,16 @@ struct neural_net
   LS_ALIGN(32) int16_t data[(weights_per_layer + biases_per_layer) * layers];
 };
 
+//////////////////////////////////////////////////////////////////////////
+
 template <size_t layer_blocks>
 struct neural_net_buffer
 {
   static constexpr size_t block_size = neural_net_block_size;
   LS_ALIGN(32) int16_t data[layer_blocks * block_size];
 };
+
+//////////////////////////////////////////////////////////////////////////
 
 // convert any non-zero values to `lsMaxValue<int8_t>()` => ~1 in fixed point.
 template <size_t layer_blocks>
@@ -47,6 +51,8 @@ inline void neural_net_buffer_prepare(neural_net_buffer<layer_blocks> &b, const 
     _mm256_store_si256(pBuffer + inputBlock, out);
   }
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 template <size_t layer_blocks, size_t layers>
 inline void neural_net_eval(const neural_net<layer_blocks, layers> &nn, neural_net_buffer<layer_blocks> &io)

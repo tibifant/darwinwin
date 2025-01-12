@@ -90,7 +90,7 @@ bool level_performStep(level &lvl, actor *pActors)
 
   for (size_t i = 0; i < actor_count; i++)
   {
-    if (!pActors[i].alive)
+    if (!pActors[i].stats[as_Energy])
       continue;
 
     anyAlive = true;
@@ -106,7 +106,8 @@ bool level_performStep(level &lvl, actor *pActors)
 
     neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
 
-    // TOOD: Copy over other values (air, health, energy, ... into `inBuffer[LS_ARRAYSIZE(cone.values) * 8 + x]`.
+    for (size_t j = 0; j < _actorStats_Count; j++)
+      ioBuffer.data[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
 
     neural_net_eval(pActors->brain, ioBuffer);
 
@@ -136,7 +137,7 @@ bool level_performStep2(level &lvl, actor *pActors) { return level_performStep<2
 bool level_performStep3(level &lvl, actor *pActors) { return level_performStep<3>(lvl, pActors); }
 bool level_performStep4(level &lvl, actor *pActors) { return level_performStep<4>(lvl, pActors); }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 viewCone viewCone_get(const level &lvl, const actor &a)
 {
@@ -200,14 +201,16 @@ void viewCone_print(const viewCone &v, const actor &actor)
   printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 template <typename T>
   requires (std::is_integral_v<T> && (sizeof(T) < sizeof(int64_t) || std::is_same_v<T, int64_t>))
-inline void modify_with_clamp(T &value, const int64_t diff, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+inline T modify_with_clamp(T &value, const int64_t diff, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
 {
   const int64_t val = (int64_t)value + diff;
+  const T prevVal = value;
   value = (T)lsClamp<int64_t>(val, min, max);
+  return value - prevVal;
 }
 
 void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action)
@@ -242,142 +245,144 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
 
 void actor_updateStats(actor *pActor, const viewCone &cone)
 {
-  // Always update view cone first!
+  constexpr int64_t IdleEnergyCost = 3;
 
-  static constexpr int64_t _idleEnergyCost = 3;
-  static constexpr int64_t _underwaterAirCost = 5;
-  static constexpr int64_t _airGain = 3;
+  // Remove Idle Energy
+  modify_with_clamp(pActor->stats[as_Energy], -IdleEnergyCost);
 
-  if (!pActor->stats[as_Energy] || !pActor->stats[as_Air])
+  // Check air
+  constexpr int64_t UnderwaterAirCost = 5;
+  constexpr int64_t SurfaceAirAmount = 3;
+  constexpr int64_t NoAirEnergyCost = 8;
+
+  if (cone[vcp_self] & tf_Underwater)
+    modify_with_clamp(pActor->stats[as_Air], -UnderwaterAirCost);
+  else
+    modify_with_clamp(pActor->stats[as_Air], SurfaceAirAmount);
+
+  if (!pActor->stats[as_Air])
+    modify_with_clamp(pActor->stats[as_Energy], -NoAirEnergyCost);
+
+  // Digest
+  constexpr int64_t FoodEnergyAmount = 2;
+  constexpr int64_t FoodDigestionAmount = 1;
+
+  size_t count = 0;
+
+  for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
   {
-    pActor->alive = false;
-    return;
+    if (pActor->stats[i])
+    {
+      modify_with_clamp(pActor->stats[i], -FoodDigestionAmount);
+      count++;
+    }
   }
 
-  // Remove energy
-  modify_with_clamp(pActor->stats[as_Energy], -_idleEnergyCost);
-
-  // Check underwater
-  if (cone[vcp_self] & tf_Underwater)
-    modify_with_clamp(pActor->stats[as_Air], -_underwaterAirCost);
-  else
-    modify_with_clamp(pActor->stats[as_Air], _airGain);
+  modify_with_clamp(pActor->stats[as_Energy], count * FoodEnergyAmount);
 }
 
 void actor_move(actor *pActor, const level &lvl)
 {
-  static constexpr size_t _movementEnergyCost = 10;
+  constexpr size_t _movementEnergyCost = 10;
+  constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
-  static constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
-
   if (pActor->stats[as_Energy] >= _movementEnergyCost)
-  {
-    const vec2u16 newPos = vec2u16(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y);
+    return;
 
-    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
-    {
-      pActor->pos = newPos;
-      pActor->stats[as_Energy] -= _movementEnergyCost;
-    }
+  const vec2u16 newPos = vec2u16(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y);
+
+  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
+  {
+    pActor->pos = newPos;
+    pActor->stats[as_Energy] -= _movementEnergyCost;
   }
 }
 
 void actor_moveTwo(actor *pActor, const level &lvl)
 {
-  static constexpr size_t _doubleMovementEnergyCost = 17;
+  constexpr size_t DoubleMovementEnergyCost = 17;
+  constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
-  static constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+  if (pActor->stats[as_Energy] < DoubleMovementEnergyCost)
+    return;
 
-  if (pActor->stats[as_Energy] >= _doubleMovementEnergyCost)
+  const vec2u16 newPos = vec2u16(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y);
+  const size_t nearIdx = (pActor->pos.y + lut[pActor->look_at_dir].y) * level::width + (pActor->pos.x + lut[pActor->look_at_dir].x);
+
+  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && !(lvl.grid[nearIdx] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
   {
-    const vec2u16 newPos = vec2u16(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y);
-    const size_t nearIdx = (pActor->pos.y + lut[pActor->look_at_dir].y) * level::width + (pActor->pos.x + lut[pActor->look_at_dir].x);
-
-    if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && !(lvl.grid[nearIdx] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
-    {
-      pActor->pos = newPos;
-      pActor->stats[as_Energy] -= _doubleMovementEnergyCost;
-    }
+    pActor->pos = newPos;
+    pActor->stats[as_Energy] -= DoubleMovementEnergyCost;
   }
 }
 
+constexpr int64_t TurnEnergy = 2;
+
 void actor_turnLeft(actor *pActor)
 {
-  static constexpr int64_t _turnEnergy = 2;
+  if (pActor->stats[as_Energy] < TurnEnergy)
+    return;
 
-  if (pActor->stats[as_Energy] >= _turnEnergy)
-  {
-    pActor->stats[as_Energy] -= _turnEnergy;
-    pActor->look_at_dir = pActor->look_at_dir == ld_left ? ld_down : (lookDirection)(pActor->look_at_dir - 1);
-    lsAssert(pActor->look_at_dir < _lookDirection_Count);
-  }
+  pActor->stats[as_Energy] -= TurnEnergy;
+  pActor->look_at_dir = pActor->look_at_dir == ld_left ? ld_down : (lookDirection)(pActor->look_at_dir - 1);
+  lsAssert(pActor->look_at_dir < _lookDirection_Count);
 }
 
 void actor_turnRight(actor *pActor)
 {
-  static constexpr int64_t _turnEnergy = 2;
+  if (pActor->stats[as_Energy] < TurnEnergy)
+    return;
 
-  if (pActor->stats[as_Energy] >= _turnEnergy)
-  {
-    pActor->stats[as_Energy] -= _turnEnergy;
-    pActor->look_at_dir = pActor->look_at_dir == ld_down ? ld_left : (lookDirection)(pActor->look_at_dir + 1);
-    lsAssert(pActor->look_at_dir < _lookDirection_Count);
-  }
+  pActor->stats[as_Energy] -= TurnEnergy;
+  pActor->look_at_dir = pActor->look_at_dir == ld_down ? ld_left : (lookDirection)(pActor->look_at_dir + 1);
+  lsAssert(pActor->look_at_dir < _lookDirection_Count);
 }
 
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
-  // View cone must be updated **before** calling this!
-
-  static constexpr int64_t _FoodValue = 2;
-  static constexpr int64_t _FoodEnergyValue = 5;
-  // TODO different values for different food;
+  // TODO different values for different food?
+  static constexpr int64_t FoodAmount = 2;
+  static constexpr uint8_t StomachCapacity = 255;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
-  const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
+  size_t stomachFoodCount = 0;
 
-  if (cone[vcp_self] & tf_Protein)
+  for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
+    stomachFoodCount += pActor->stats[i];
+
+  lsAssert(stomachFoodCount <= StomachCapacity);
+
+  for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
   {
-    modify_with_clamp(pActor->stats[as_Protein], _FoodValue);
-    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
-    pLvl->grid[currentIdx] &= !tf_Protein;
-  }
-  if (cone[vcp_self] & tf_Sugar)
-  {
-    modify_with_clamp(pActor->stats[as_Sugar], _FoodValue);
-    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
-    pLvl->grid[currentIdx] &= !tf_Sugar;
-  }
-  if (cone[vcp_self] & tf_Vitamin)
-  {
-    modify_with_clamp(pActor->stats[as_Vitamin], _FoodValue);
-    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
-    pLvl->grid[currentIdx] &= !tf_Vitamin;
-  }
-  if (cone[vcp_self] & tf_Fat)
-  {
-    modify_with_clamp(pActor->stats[as_Fat], _FoodValue);
-    modify_with_clamp(pActor->stats[as_Energy], _FoodEnergyValue);
-    pLvl->grid[currentIdx] &= !tf_Vitamin;
+    if (cone[vcp_self] & (1ULL << i))
+    {
+      stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
+      pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i);
+    }
   }
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
-struct nn_config // TODO!
+struct proto_chance_config
 {
-  using mutator = mutator_naive;
+  static constexpr uint64_t chanceOf1024 = 12;
+};
+
+struct proto_config // TODO!
+{
+  using mutator = mutator_chance<proto_chance_config>; // ?
   using crossbreeder = crossbreeder_naive;
 
-  static constexpr size_t survivingGenes = 8;
-  static constexpr size_t newGenesPerGeneration = 8;
+  static constexpr size_t survivingGenes = 4;
+  static constexpr size_t newGenesPerGeneration = 4;
 };
 
 template <typename crossbreeder>
@@ -390,8 +395,10 @@ void crossbreed(actor &val, const actor parentA, const actor parentB, const cros
 template <typename mutator>
 void mutate(actor &target, const mutator &m)
 {
-  for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
-    mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
+  //for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
+  //  mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
+  
+  mutator_eval(m, &target.brain.data, LS_ARRAYSIZE(target.brain.data), lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
 }
 
-// TODO: Eval Funcs... -> Give score
+// TODO: Eval Funcs... -> Give scores
