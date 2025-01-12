@@ -18,11 +18,12 @@ namespace nn_internal
     constexpr static size_t total_blocks = n;
     constexpr static size_t self_neurons = n * neural_net_block_size;
     constexpr static size_t total_neurons = n * neural_net_block_size;
-    constexpr static size_t self_weights = n * neural_net_block_size;
-    constexpr static size_t total_weights = n * neural_net_block_size;
+    constexpr static size_t self_biases = n * neural_net_block_size;
+    constexpr static size_t total_biases = n * neural_net_block_size;
     constexpr static size_t count = 1;
-    constexpr static size_t self_biases(const size_t prevLayerNeurons) { return prevLayerNeurons * self_neurons; };
-    constexpr static size_t size(const size_t prevLayerNeurons) { return biases(prevLayerNeurons) + self_weights; };
+    constexpr static size_t max_child_neurons = self_neurons;
+    constexpr static size_t self_weights(const size_t prevLayerNeurons) { return prevLayerNeurons * self_neurons; };
+    constexpr static size_t size(const size_t prevLayerNeurons) { return self_weights(prevLayerNeurons) + self_biases; };
   };
 
   template <size_t n, size_t... others>
@@ -32,11 +33,12 @@ namespace nn_internal
     constexpr static size_t total_blocks = unwrap_layers_<n>::total_blocks + unwrap_layers_<others...>::total_blocks;
     constexpr static size_t self_neurons = unwrap_layers_<n>::self_neurons;
     constexpr static size_t total_neurons = unwrap_layers_<n>::total_neurons + unwrap_layers_<others...>::total_neurons;
-    constexpr static size_t self_weights = unwrap_layers_<n>::self_weights;
-    constexpr static size_t total_weights = unwrap_layers_<n>::total_weights + unwrap_layers_<others...>::total_weights;
+    constexpr static size_t self_biases = unwrap_layers_<n>::self_biases;
+    constexpr static size_t total_biases = unwrap_layers_<n>::total_biases + unwrap_layers_<others...>::total_biases;
     constexpr static size_t count = unwrap_layers_<n>::count + unwrap_layers_<others...>::count;
-    constexpr static size_t self_biases(const size_t prevLayerNeurons) { return unwrap_layers_<n>::self_biases(prevLayerNeurons); };
-    constexpr static size_t size(const size_t prevLayerNeurons) { return unwrap_layers_<n>::size(prevLayerNeurons) + unwrap_layers_<others...>::size(neurons); };
+    constexpr static size_t max_child_neurons = lsMax(self_neurons, unwrap_layers_<others...>::max_child_neurons);
+    constexpr static size_t self_weights(const size_t prevLayerNeurons) { return unwrap_layers_<n>::self_weights(prevLayerNeurons); };
+    constexpr static size_t size(const size_t prevLayerNeurons) { return unwrap_layers_<n>::size(prevLayerNeurons) + unwrap_layers_<others...>::size(self_neurons); };
   };
 
   template <size_t n, size_t... others>
@@ -46,10 +48,11 @@ namespace nn_internal
     constexpr static size_t total_blocks = unwrap_layers_<others...>::total_blocks;
     constexpr static size_t self_neurons = unwrap_layers_<n>::self_neurons;
     constexpr static size_t total_neurons = unwrap_layers_<others...>::total_neurons;
-    constexpr static size_t self_weights = 0;
-    constexpr static size_t total_weights = unwrap_layers_<others...>::total_weights;
+    constexpr static size_t self_biases = 0;
+    constexpr static size_t total_biases = unwrap_layers_<others...>::total_biases;
     constexpr static size_t count = unwrap_layers_<others...>::count;
-    constexpr static size_t size() { return unwrap_layers_<others...>::size(self_neurons); };
+    constexpr static size_t max_child_neurons = lsMax(self_neurons, unwrap_layers_<others...>::max_child_neurons);
+    constexpr static size_t size = unwrap_layers_<others...>::size(self_neurons);
   };
 
   template <size_t prev_layer_neurons, size_t ...layer_blocks>
@@ -60,14 +63,28 @@ namespace nn_internal
   template <size_t prev_layer_neurons, size_t layer_blocks>
   struct layer_data_<prev_layer_neurons, layer_blocks>
   {
-    uint16_t biases[unwrap_layers_<layer_blocks>::self_biases(prev_layer_neurons)];
-    uint16_t weights[unwrap_layers_<layer_blocks>::self_weights];
+    constexpr static size_t weight_count = unwrap_layers_<layer_blocks>::self_weights(prev_layer_neurons);
+    constexpr static size_t weight_blocks = weight_count / neural_net_block_size;
+    constexpr static size_t bias_count = unwrap_layers_<layer_blocks>::self_biases;
+    constexpr static size_t bias_blocks = bias_count / neural_net_block_size;
+    constexpr static size_t neuron_count = unwrap_layers_<layer_blocks>::self_neurons;
+    constexpr static size_t neuron_blocks = neuron_count / neural_net_block_size;
+    constexpr static size_t layer_combined_size = bias_count + weight_count;
+    constexpr static size_t total_combined_size = layer_combined_size;
+    constexpr static size_t previous_layer_neuron_blocks = prev_layer_neurons / neural_net_block_size;
+    constexpr static bool is_last = true;
+
+    LS_ALIGN(32) uint16_t biases[bias_count];
+    LS_ALIGN(32) uint16_t weights[weight_count];
   };
 
   template <size_t prev_layer_neurons, size_t self_layer_blocks, size_t ...layer_blocks>
   struct layer_data_<prev_layer_neurons, self_layer_blocks, layer_blocks...> : layer_data_<prev_layer_neurons, self_layer_blocks>
   {
-    layer_data_<unwrap_layers_<self_layer_blocks>::self_neuros, layer_blocks...> next;
+    layer_data_<unwrap_layers_<self_layer_blocks>::self_neurons, layer_blocks...> next;
+
+    constexpr static size_t total_combined_size = layer_data_<prev_layer_neurons, self_layer_blocks>::layer_combined_size + next.total_combined_size;
+    constexpr static bool is_last = false;
   };
 
   template <size_t self_layer_blocks, size_t ...layer_blocks>
@@ -76,23 +93,30 @@ namespace nn_internal
   };
 }
 
-template <size_t layer_blocks_, size_t layers_>
+//////////////////////////////////////////////////////////////////////////
+
+template <size_t layer_blocks>
+struct neural_net_buffer;
+
+template <size_t ...layer_blocks_per_layer>
 struct neural_net
 {
-  static constexpr size_t layer_blocks = layer_blocks_;
-  static constexpr size_t layers = layers_;
+  using tmp_buffer_t = neural_net_buffer<nn_internal::unwrap_layers<layer_blocks_per_layer...>::max_child_neurons>;
 
-  static constexpr size_t block_size = neural_net_block_size;
-  static constexpr size_t neurons_per_layer = layer_blocks * block_size;
-  static constexpr size_t weights_per_neuron = neurons_per_layer;
-  static constexpr size_t weights_per_layer = neurons_per_layer * neurons_per_layer;
-  static constexpr size_t biases_per_layer = neurons_per_layer;
+  constexpr static size_t total_value_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::size;
 
-  // data layout:
-  //   sequential layers with:
-  //     weights_per_neuron weights for each neuron
-  //     biases_per_layer bias values (one for each neuron)
-  LS_ALIGN(32) int16_t data[(weights_per_layer + biases_per_layer) * layers];
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4201)
+#endif
+  union
+  {
+    nn_internal::layer_data<layer_blocks_per_layer...> data;
+    uint16_t values[total_value_count];
+  };
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -102,6 +126,18 @@ struct neural_net_buffer
 {
   static constexpr size_t block_size = neural_net_block_size;
   LS_ALIGN(32) int16_t data[layer_blocks * block_size];
+
+  int16_t &operator [](const size_t idx)
+  {
+    lsAssert(idx < layer_blocks * block_size);
+    return data[idx];
+  }
+
+  const int16_t operator [](const size_t idx) const
+  {
+    lsAssert(idx < layer_blocks * block_size);
+    return data[idx];
+  }
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -126,52 +162,59 @@ inline void neural_net_buffer_prepare(neural_net_buffer<layer_blocks> &b, const 
 
 //////////////////////////////////////////////////////////////////////////
 
-template <size_t layer_blocks, size_t layers>
-inline void neural_net_eval(const neural_net<layer_blocks, layers> &nn, neural_net_buffer<layer_blocks> &io)
+template <size_t ...blocks>
+inline void neural_net_eval_layer_recursive_internal(const nn_internal::layer_data_<blocks...> &layer, __m256i *pIO, int16_t *pTmp)
 {
-  LS_ALIGN(32) int16_t tmp[layer_blocks * nn.block_size] = {};
-
-  __m256i *pIO = reinterpret_cast<__m256i *>(io.data);
-  __m256i *pTmp = reinterpret_cast<__m256i *>(tmp);
-  const __m256i *pLayer = reinterpret_cast<const __m256i *>(nn.data);
+  __m256i *pTmp256 = reinterpret_cast<__m256i *>(pTmp);
+  const __m256i *pWeight = reinterpret_cast<const __m256i *>(layer.weights);
+  const __m256i *pBias = reinterpret_cast<const __m256i *>(layer.biases);
   const __m128i _FFFF_64 = _mm_set1_epi64x(0xFFFF);
   const __m256i _min_16 = _mm256_set1_epi8(lsMinValue<int8_t>());
   const __m256i _max_16 = _mm256_set1_epi8(lsMaxValue<int8_t>());
 
-  for (size_t layer = 0; layer < layers; layer++)
+  // Accumulate Weights.
+  for (size_t neuron = 0; neuron < layer.neuron_count; neuron++)
   {
-    // Accumulate Weights.
-    for (size_t neuron = 0; neuron < nn.neurons_per_layer; neuron++)
+    for (size_t inputBlock = 0; inputBlock < layer.previous_layer_neuron_blocks; inputBlock++)
     {
-      for (size_t inputBlock = 0; inputBlock < nn.layer_blocks; inputBlock++)
-      {
-        const __m256i weight = _mm256_load_si256(pLayer);
-        pLayer++;
+      const __m256i weight = _mm256_load_si256(pWeight);
+      pWeight++;
 
-        const __m256i in = _mm256_load_si256(pIO);
+      const __m256i in = _mm256_load_si256(pIO);
 
-        const __m256i resRaw = _mm256_mullo_epi16(weight, in);
-        const __m256i resNormalized = _mm256_srai_epi16(resRaw, 7);
+      const __m256i resRaw = _mm256_mullo_epi16(weight, in);
+      const __m256i resNormalized = _mm256_srai_epi16(resRaw, 7);
 
-        const __m256i resAdd2 = _mm256_hadds_epi16(resNormalized, resNormalized); // ACEG....IKMO....
-        const __m256i resAdd4 = _mm256_hadds_epi16(resAdd2, resAdd2); // AE......IM......
-        const __m256i resAdd8 = _mm256_hadds_epi16(resAdd4, resAdd4); // A.......I.......
+      const __m256i resAdd2 = _mm256_hadds_epi16(resNormalized, resNormalized); // ACEG....IKMO....
+      const __m256i resAdd4 = _mm256_hadds_epi16(resAdd2, resAdd2); // AE......IM......
+      const __m256i resAdd8 = _mm256_hadds_epi16(resAdd4, resAdd4); // A.......I.......
 
-        tmp[neuron] += (int16_t)_mm256_extract_epi16(resAdd8, 0) + (int16_t)_mm256_extract_epi16(resAdd8, 8);
-      }
-    }
-
-    for (size_t inputBlock = 0; inputBlock < layer_blocks; inputBlock++)
-    {
-      const __m256i bias = _mm256_load_si256(pLayer);
-      pLayer++;
-
-      const __m256i weightSum = _mm256_load_si256(pTmp + inputBlock);
-
-      const __m256i sum = _mm256_adds_epi16(bias, weightSum);
-      const __m256i res = _mm256_max_epi16(_mm256_min_epi16(sum, _max_16), _min_16);
-
-      _mm256_store_si256(pIO + inputBlock, res);
+      pTmp[neuron] += (int16_t)_mm256_extract_epi16(resAdd8, 0) + (int16_t)_mm256_extract_epi16(resAdd8, 8);
     }
   }
+
+  for (size_t inputBlock = 0; inputBlock < layer.weight_blocks; inputBlock++)
+  {
+    const __m256i bias = _mm256_load_si256(pBias);
+    pBias++;
+
+    const __m256i weightSum = _mm256_load_si256(pTmp256 + inputBlock);
+
+    const __m256i sum = _mm256_adds_epi16(bias, weightSum);
+    const __m256i res = _mm256_max_epi16(_mm256_min_epi16(sum, _max_16), _min_16);
+
+    _mm256_store_si256(pIO + inputBlock, res);
+  }
+
+  if constexpr (!layer.is_last)
+    neural_net_eval_layer_recursive_internal(layer.next, pIO, pTmp);
+}
+
+template <size_t ...layer_blocks_per_layer>
+inline void neural_net_eval(const neural_net<layer_blocks_per_layer...> &nn, typename neural_net<layer_blocks_per_layer...>::tmp_buffer_t &io)
+{
+  static_assert(nn.data.total_combined_size == nn.total_value_count);
+  LS_ALIGN(32) int16_t tmp[io.block_size] = {};
+
+  neural_net_eval_layer_recursive_internal(nn.data, reinterpret_cast<__m256i *>(io.data), tmp);
 }
