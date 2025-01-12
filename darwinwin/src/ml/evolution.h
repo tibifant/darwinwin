@@ -118,6 +118,33 @@ epilogue:
   return result;
 }
 
+template <typename target, typename config>
+void evolution_generation_finalize_internal(evolution<target, config> &e)
+{
+  // Only let the best survive.
+  const std::function<int64_t(const size_t &index)> &idxToScore = [&e](const size_t &index) -> int64_t {
+    return -(int64_t)pool_get(e.genes, index)->score;
+    };
+
+  list_sort<int64_t>(e.bestGeneIndices, idxToScore);
+
+  // Remove everyone from pool, who is lower than best 4 genes
+  {
+    for (size_t i = config::survivingGenes; i < e.bestGeneIndices.count; i++)
+    {
+      pool_remove(e.genes, e.bestGeneIndices[i]);
+
+#ifdef _DEBUG
+      e.bestGeneIndices[i] = (size_t)-1;
+#endif
+    }
+
+    e.bestGeneIndices.count = config::survivingGenes;
+  }
+
+  e.generationIndex++;
+}
+
 template <typename target, typename config, typename func>
 void evolution_generation(evolution<target, config> &e, func evalFunc)
 {
@@ -150,28 +177,7 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
     LS_DEBUG_ERROR_ASSERT(list_add(&e.bestGeneIndices, babyIndex));
   }
 
-  // Only let the best survive.
-  const std::function<int64_t(const size_t &index)> &idxToScore = [&e](const size_t &index) -> int64_t {
-    return -(int64_t)pool_get(e.genes, index)->score;
-    };
-
-  list_sort<int64_t>(e.bestGeneIndices, idxToScore);
-
-  // Remove everyone from pool, who is lower than best 4 genes
-  {
-    for (size_t i = config::survivingGenes; i < e.bestGeneIndices.count; i++)
-    {
-      pool_remove(e.genes, e.bestGeneIndices[i]);
-
-#ifdef _DEBUG
-      e.bestGeneIndices[i] = (size_t)-1;
-#endif
-    }
-
-    e.bestGeneIndices.count = config::survivingGenes;
-  }
-
-  e.generationIndex++;
+  evolution_generation_finalize_internal(e);
 }
 
 template <typename target, typename config, typename func>
@@ -212,28 +218,7 @@ void evolution_generation(evolution<target, config> &e, func evalFunc, thread_po
 
   thread_pool_await(pThreads);
 
-  // Only let the best survive.
-  const std::function<int64_t(const size_t &index)> &idxToScore = [&e](const size_t &index) -> int64_t {
-    return -(int64_t)pool_get(e.genes, index)->score;
-    };
-
-  list_sort<int64_t>(e.bestGeneIndices, idxToScore);
-
-  // Remove everyone from pool, who is lower than best 4 genes
-  {
-    for (size_t i = config::survivingGenes; i < e.bestGeneIndices.count; i++)
-    {
-      pool_remove(e.genes, e.bestGeneIndices[i]);
-
-#ifdef _DEBUG
-      e.bestGeneIndices[i] = (size_t)-1;
-#endif
-    }
-
-    e.bestGeneIndices.count = config::survivingGenes;
-  }
-
-  e.generationIndex++;
+  evolution_generation_finalize_internal(e);
 }
 
 template <typename target, typename config>
