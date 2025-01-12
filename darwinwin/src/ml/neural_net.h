@@ -52,6 +52,7 @@ namespace nn_internal
     constexpr static size_t total_biases = unwrap_layers_<others...>::total_biases;
     constexpr static size_t count = unwrap_layers_<others...>::count;
     constexpr static size_t max_child_neurons = lsMax(self_neurons, unwrap_layers_<others...>::max_child_neurons);
+    constexpr static size_t max_child_neurons_excl_first = unwrap_layers_<others...>::max_child_neurons;
     constexpr static size_t size = unwrap_layers_<others...>::size(self_neurons);
   };
 
@@ -74,8 +75,8 @@ namespace nn_internal
     constexpr static size_t previous_layer_neuron_blocks = prev_layer_neurons / neural_net_block_size;
     constexpr static bool is_last = true;
 
-    LS_ALIGN(32) uint16_t biases[bias_count];
-    LS_ALIGN(32) uint16_t weights[weight_count];
+    LS_ALIGN(32) int16_t biases[bias_count];
+    LS_ALIGN(32) int16_t weights[weight_count];
   };
 
   template <size_t prev_layer_neurons, size_t self_layer_blocks, size_t ...layer_blocks>
@@ -101,7 +102,7 @@ struct neural_net_buffer;
 template <size_t ...layer_blocks_per_layer>
 struct neural_net
 {
-  using tmp_buffer_t = neural_net_buffer<nn_internal::unwrap_layers<layer_blocks_per_layer...>::max_child_neurons>;
+  using io_buffer_t = neural_net_buffer<nn_internal::unwrap_layers<layer_blocks_per_layer...>::max_child_neurons / neural_net_block_size>;
 
   constexpr static size_t total_value_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::size;
 
@@ -112,7 +113,7 @@ struct neural_net
   union
   {
     nn_internal::layer_data<layer_blocks_per_layer...> data;
-    uint16_t values[total_value_count];
+    int16_t values[total_value_count];
   };
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -169,8 +170,8 @@ inline void neural_net_eval_layer_recursive_internal(const nn_internal::layer_da
   const __m256i *pWeight = reinterpret_cast<const __m256i *>(layer.weights);
   const __m256i *pBias = reinterpret_cast<const __m256i *>(layer.biases);
   const __m128i _FFFF_64 = _mm_set1_epi64x(0xFFFF);
-  const __m256i _min_16 = _mm256_set1_epi8(lsMinValue<int8_t>());
-  const __m256i _max_16 = _mm256_set1_epi8(lsMaxValue<int8_t>());
+  const __m256i _min_16 = _mm256_set1_epi16(lsMinValue<int8_t>());
+  const __m256i _max_16 = _mm256_set1_epi16(lsMaxValue<int8_t>());
 
   // Accumulate Weights.
   for (size_t neuron = 0; neuron < layer.neuron_count; neuron++)
@@ -193,7 +194,7 @@ inline void neural_net_eval_layer_recursive_internal(const nn_internal::layer_da
     }
   }
 
-  for (size_t inputBlock = 0; inputBlock < layer.weight_blocks; inputBlock++)
+  for (size_t inputBlock = 0; inputBlock < layer.bias_blocks; inputBlock++)
   {
     const __m256i bias = _mm256_load_si256(pBias);
     pBias++;
@@ -211,10 +212,10 @@ inline void neural_net_eval_layer_recursive_internal(const nn_internal::layer_da
 }
 
 template <size_t ...layer_blocks_per_layer>
-inline void neural_net_eval(const neural_net<layer_blocks_per_layer...> &nn, typename neural_net<layer_blocks_per_layer...>::tmp_buffer_t &io)
+inline void neural_net_eval(const neural_net<layer_blocks_per_layer...> &nn, typename neural_net<layer_blocks_per_layer...>::io_buffer_t &io)
 {
   static_assert(nn.data.total_combined_size == nn.total_value_count);
-  LS_ALIGN(32) int16_t tmp[io.block_size] = {};
+  LS_ALIGN(32) int16_t tmp[nn_internal::unwrap_layers<layer_blocks_per_layer...>::max_child_neurons_excl_first] = {};
 
   neural_net_eval_layer_recursive_internal(nn.data, reinterpret_cast<__m256i *>(io.data), tmp);
 }

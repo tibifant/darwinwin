@@ -47,9 +47,8 @@ namespace asio
 
 //////////////////////////////////////////////////////////////////////////
 
-#include "core.h"
 #include "darwinwin.h"
-#include "io.h"
+#include "testable.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -77,9 +76,9 @@ int32_t main(const int32_t argc, const char **pArgv)
 
   cpu_info::DetectCpuFeatures();
 
-  if (!(cpu_info::avx2Supported && cpu_info::avxSupported))
+  if (!(cpu_info::avx2Supported && cpu_info::avxSupported && cpu_info::aesNiSupported))
   {
-    print_error_line("CPU Platform does not provide support for AVX/AVX2!");
+    print_error_line("CPU Platform does not provide support for AVX/AVX2/AES-NI!");
     return EXIT_FAILURE;
   }
 
@@ -88,6 +87,10 @@ int32_t main(const int32_t argc, const char **pArgv)
   print("\nConfiguration:\n");
   print("Level size: ", FF(Group, Frac(3), AllFrac)(sizeof(level) / 1024.0), " KiB\n");
   print("Actor size: ", FF(Group, Frac(3), AllFrac)(sizeof(actor) / 1024.0), " KiB\n");
+  print("\n");
+
+  print("Running tests...\n");
+  run_testables();
   print("\n");
 
   crow::App<crow::CORSHandler> app;

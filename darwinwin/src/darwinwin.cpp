@@ -97,7 +97,7 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
     const viewCone cone = viewCone_get(lvl, pActors[i]);
     actor_updateStats(&pActors[i], cone);
 
-    decltype(actor::brain)::tmp_buffer_t ioBuffer;
+    decltype(actor::brain)::io_buffer_t ioBuffer;
 
     for (size_t j = 0; j < LS_ARRAYSIZE(cone.values); j++)
       for (size_t k = 0, bit = 1; k < 8; k++, bit <<= 1)
