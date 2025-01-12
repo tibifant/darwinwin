@@ -84,7 +84,7 @@ namespace nn_internal
   {
     layer_data_<unwrap_layers_<self_layer_blocks>::self_neurons, layer_blocks...> next;
 
-    constexpr static size_t total_combined_size = layer_data_<prev_layer_neurons, self_layer_blocks>::layer_combined_size + next.total_combined_size;
+    constexpr static size_t total_combined_size = layer_data_<prev_layer_neurons, self_layer_blocks>::layer_combined_size + layer_data_<unwrap_layers_<self_layer_blocks>::self_neurons, layer_blocks...>::total_combined_size;
     constexpr static bool is_last = false;
   };
 
