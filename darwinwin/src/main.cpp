@@ -105,7 +105,9 @@ int32_t main(const int32_t argc, const char **pArgv)
   {
     crow::App<crow::CORSHandler> app;
 
-    level_initLinear(&_WebLevel);
+    level_initLinear(&_WebLevel); 
+    for (size_t i = 0; i < _actorStats_Count; i++)
+      _WebActor.stats[i] = 32;
 
     auto &cors = app.get_middleware<crow::CORSHandler>();
 #ifndef DARWINWIN_LOCALHOST

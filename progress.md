@@ -123,3 +123,26 @@ Aktuelle Tasks:
 **Aktuelle Tasks:**
 - Frontend: Info Anzeige Tiles, handling von `manualAct` und `setTile`
 - Backend: `Mutator` mit Normalverteilung
+
+## 13.01.2024:
+
+**Marvin:**
+- Actor manual actions implementiert
+- setTile post request + tile info mit stats
+
+**Malin:**
+- mutator und crossbreeder verwenden Pointer
+- Tests fuer Evolution und NN
+- Neuronales Netz unterstuetzt unterschiedliche grosse Layers in einem Netz
+
+**Aktuelle Tasks:
+
+Frontend: 
+- level & actor daten korrekt anzeigen (bug fix)
+- Testen ob manuelle Aktionen richtig funktionieren (Outcome und Stats kontrollieren)
+- Darstellung: Collidable & Wasser farbig
+- (Refactoring)
+
+Backend:
+- Speichersystem NN
+- Level Generator
