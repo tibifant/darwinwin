@@ -281,7 +281,7 @@ void actor_move(actor *pActor, const level &lvl)
   constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
-  //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
+  lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   if (pActor->stats[as_Energy] >= _movementEnergyCost)
     return;
@@ -301,7 +301,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
   constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
-  //lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
+  lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   if (pActor->stats[as_Energy] < DoubleMovementEnergyCost)
     return;
@@ -382,16 +382,12 @@ struct proto_config // TODO!
 template <typename crossbreeder>
 void crossbreed(actor &val, const actor parentA, const actor parentB, const crossbreeder &c)
 {
-  for (size_t i = 0; i < LS_ARRAYSIZE(val.brain.values); i++)
-    crossbreeder_eval(c, val.brain.values[i], parentA.brain.values[i], parentB.brain.values[i]);
+  crossbreeder_eval(c, &val.brain.values, &parentA.brain.values, &parentB.brain.values);
 }
 
 template <typename mutator>
 void mutate(actor &target, const mutator &m)
 {
-  //for (size_t i = 0; i < LS_ARRAYSIZE(target.brain.data); i++)
-  //  mutator_eval(m, target.brain.data[i], lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
-
   mutator_eval(m, &target.brain.values, LS_ARRAYSIZE(target.brain.values), lsMinValue<uint8_t>(), lsMaxValue<uint8_t>());
 }
 

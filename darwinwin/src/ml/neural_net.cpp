@@ -61,3 +61,47 @@ DEFINE_TESTABLE(neural_net_bias_test)
 epilogue:
   return result;
 }
+
+DEFINE_TESTABLE(neural_net_weight_test)
+{
+  lsResult result = lsR_Success;
+
+  constexpr size_t input_layer_block_count = 1;
+  constexpr size_t output_layer_block_count = 2;
+  neural_net<input_layer_block_count, output_layer_block_count> nn;
+  decltype(nn)::io_buffer_t io;
+
+  constexpr size_t expected_out_count = output_layer_block_count * neural_net_block_size;
+  constexpr size_t actual_out_count = LS_ARRAYSIZE(io.data);
+  static_assert(actual_out_count == expected_out_count);
+
+  lsZeroMemory(&nn);
+  lsZeroMemory(&io);
+
+  // test 1: copy value
+  // test 2: multiply -1 and 1
+
+  constexpr int16_t expectedValue1 = 16;
+  nn.data.weights[0] = 127;
+  io[0] = expectedValue1;
+
+  constexpr int16_t expectedValue2 = -128;
+  nn.data.weights[input_layer_block_count * neural_net_block_size + 1] = 127;
+  io[1] = expectedValue2;
+
+  neural_net_eval(nn, io);
+
+  //constexpr int8_t max = lsMaxValue<int8_t>();
+  //constexpr int8_t min = lsMinValue<int8_t>();
+
+  // check if abs from expectedValue - outputValue <= 0
+  const int16_t diff1 = lsAbs((int16_t)(expectedValue1 - io[0]));
+  const int16_t diff2 = lsAbs((int16_t)(expectedValue2 - io[1]));
+
+  TESTABLE_ASSERT_TRUE(diff1 <= 1);
+  TESTABLE_ASSERT_TRUE(diff2 <= 1);
+
+  goto epilogue;
+epilogue:
+  return result;
+}
