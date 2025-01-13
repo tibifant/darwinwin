@@ -109,49 +109,29 @@ function updateTiles(grid){
 }
 
 function checkTileFlags(tile, tileElement){
-  const tf_Underwater = 1 << 0;
-  const tf_Protein    = 1 << 1;
-  const tf_Sugar      = 1 << 2;
-  const tf_Vitamin    = 1 << 3;
-  const tf_Fat        = 1 << 4;
-  const tf_Collidable = 1 << 5;
-  const tf_OtherActor = 1 << 6;
-  const tf_Hidden     = 1 << 7;
-
-  if(tile & tf_Hidden){ //Hidden
+  if(hasTileCondition(tile, "Hidden")){
 
   }
-  if(tile & tf_OtherActor){ //Other Actor
+  if(hasTileCondition(tile, "OtherActor")){
 
   }
-  if(tile & tf_Collidable){ //Collidable
-    tileElement.background = '#e40f0f'
+  if(hasTileCondition(tile, "Collidable")){
+    tileElement.style.backgroundColor = '#3e3a3a'
+    return;
   }
-  if(tile & tf_Fat){ //Fat
-    let newItem = document.createElement("div");
-    newItem.classList.add('food');
-    newItem.innerText = 'F'
-    tileElement.appendChild(newItem);
+  if(hasTileCondition(tile, "Fat")){
+    tileElement.appendChild(createFoodOf('F'));
   }
-  if(tile & tf_Vitamin){ //Vitamin
-    let newItem = document.createElement("div");
-    newItem.classList.add('food');
-    newItem.innerText = 'V'
-    tileElement.appendChild(newItem);
+  if(hasTileCondition(tile, "Vitamin")){
+    tileElement.appendChild(createFoodOf('V'));
   }
-  if(tile & tf_Sugar){ //Sugar
-    let newItem = document.createElement("div");
-    newItem.classList.add('food');
-    newItem.innerText = 'S'
-    tileElement.appendChild(newItem);
+  if(hasTileCondition(tile, "Sugar")){
+    tileElement.appendChild(createFoodOf('S'));
   }
-  if(tile & tf_Protein){ //Protein
-    let newItem = document.createElement("div");
-    newItem.classList.add('food');
-    newItem.innerText = 'P'
-    tileElement.appendChild(newItem);
+  if(hasTileCondition(tile, "Protein")){
+    tileElement.appendChild(createFoodOf('P'));
   }
-  if(tile & tf_Underwater){ //Underwater
+  if(hasTileCondition(tile, "Underwater")){ //Underwater
     tileElement.style.backgroundColor = '#0000ff';
   }
 }
@@ -160,12 +140,20 @@ function hasTileCondition(tile, condition){
   return !!(tile & tileFlags.get(condition));
 }
 
+function createFoodOf(type){
+  const newItem = document.createElement("div");
+  newItem.classList.add('food');
+  newItem.innerText = type;
+  return newItem;
+}
+
 function removeActorFromTile(){
   //Todo: Adjust for other information
   actorTile.innerHTML = '';
 }
 
 function updateActor(actor, mapWidth){
+  //Todo: may not be necessary to save tile
   actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
   actorTile.appendChild(actorElement);
   actorStats = actor;
