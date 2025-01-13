@@ -1,6 +1,5 @@
 const server_url = 'http://localhost:21110/';
 
-let actorTile;
 let actorElement;
 let mapGridArray;
 let tick = 1;
@@ -91,7 +90,6 @@ function updateWorld(newData){
   updateTiles(newData.level.grid);
 
   const actor = newData.actor[0];
-  removeActorFromTile();
   updateActor(actor, newData.level.width);
 
   console.log(`Updated Tick ${tick++}!`);
@@ -147,14 +145,8 @@ function createFoodOf(type){
   return newItem;
 }
 
-function removeActorFromTile(){
-  //Todo: Adjust for other information
-  actorTile.innerHTML = '';
-}
-
 function updateActor(actor, mapWidth){
-  //Todo: may not be necessary to save tile
-  actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
+  const actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
   actorTile.appendChild(actorElement);
   actorStats = actor;
 }
