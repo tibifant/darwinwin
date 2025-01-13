@@ -276,8 +276,8 @@ inline constexpr size_t LS_ARRAYSIZE(const T(&)[TCount]) { return TCount; }
 #define lsAssert(a) lsAssertInternal(a, #a)
 #else
 #define lsFail() do { } while (0)
-#define lsAssertInternal(a, expression_text) do { if (false) { if (!(a)) { } } } while (0)
-#define lsAssert(a) do { if (false) { if (!(a)) { } } } while (0)
+#define lsAssertInternal(a, expression_text) do { if constexpr (false) { if (!(a)) { } } } while (0)
+#define lsAssert(a) do { if constexpr (false) { if (!(a)) { } } } while (0)
 #endif
 
 #define LS_DEBUG_ERROR_ASSERT(a) \
@@ -1667,9 +1667,10 @@ bool lsStringEquals(const char(&a)[ASize], const char(&b)[BSize])
 }
 
 template <size_t ASize, typename T>
-std::enable_if_t<std::is_same<char *, T>::value || std::is_same<const char *, T>::value, bool> lsStringEquals(const char(&a)[ASize], T b)
+  requires (std::is_same_v<std::remove_const_t<T>, char>)
+bool lsStringEquals(const char(&a)[ASize], T *pB)
 {
-  return lsStringEquals(a, ASize, b, ASize);
+  return lsStringEquals(a, ASize, pB, ASize);
 }
 
 template <size_t ASize>

@@ -3,6 +3,9 @@
 #include "core.h"
 #include "pool.h"
 #include "small_list.h"
+#include "thread_pool.h"
+
+//////////////////////////////////////////////////////////////////////////
 
 struct mutator_naive
 {
@@ -16,11 +19,46 @@ inline void mutator_init(mutator_naive &mut, const size_t generation)
 
 template <typename T>
   requires (std::is_integral_v<T>)
-inline void mutator_eval(const mutator_naive &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>()) // probably worth using a larger integer type than provided internally, to prevent integer overflows.
+inline void mutator_eval(const mutator_naive &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
 {
   (void)m;
   val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
 }
+
+template <typename mutator, typename T>
+inline void mutator_eval(const mutator &m, T *pVal, const size_t count, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  for (size_t i = 0; i < count; i++)
+    mutator_eval(m, pVal[i], min, max);
+}
+
+template <typename config>
+struct mutator_chance
+{
+};
+
+template <typename config>
+inline void mutator_init(mutator_chance<config> &mut, const size_t generation)
+{
+  (void)mut;
+  (void)generation;
+}
+
+template <typename T, typename config>
+  requires (std::is_integral_v<T>)
+inline void mutator_eval(const mutator_chance<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  (void)m;
+
+  const uint64_t rand = lsGetRand();
+
+  if ((rand & 1024) > config::chanceOf1024)
+    return;
+
+  val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 struct crossbreeder_naive
 {
@@ -40,6 +78,16 @@ inline void crossbreeder_eval(const crossbreeder_naive &c, T &val, const T paren
   (void)c;
   val = lsGetRand() & 1 ? parentA : parentB;
 }
+
+template <typename T>
+  requires (std::is_integral_v<T>)
+inline void crossbreeder_eval(const crossbreeder_naive &c, T *pVal, const size_t count, const T *pParentA, const T *pParentB)
+{
+  for (size_t i = 0; i < count; i++)
+    crossbreeder_eval(c, pVal[i], pParentA[i], pParentB[i]);
+}
+
+//////////////////////////////////////////////////////////////////////////
 
 template <typename target, typename config>
 struct evolution
@@ -78,38 +126,11 @@ epilogue:
   return result;
 }
 
+//////////////////////////////////////////////////////////////////////////
+
 template <typename target, typename config>
-void evolution_generation(evolution<target, config> &e, typename evolution<target, config>::callback_type *pEvalFunc)
+void evolution_generation_finalize_internal(evolution<target, config> &e)
 {
-  lsAssert(e.genes.count <= config::survivingGenes);
-  lsAssert(e.genes.count > 0);
-
-  const size_t maxParentIndex = e.genes.count;
-
-  for (size_t i = 0; i < config::newGenesPerGeneration; i++)
-  {
-    // Choose parents
-    const typename evolution<target, config>::gene &mama = *pool_get(e.genes, e.bestGeneIndices[lsGetRand() % maxParentIndex]);
-    const typename evolution<target, config>::gene &papa = *pool_get(e.genes, e.bestGeneIndices[lsGetRand() % maxParentIndex]);
-
-    typename evolution<target, config>::gene baby;
-
-    typename config::crossbreeder crossbreeder;
-    crossbreeder_init(crossbreeder, mama.score, papa.score);
-    crossbreed(baby.t, mama.t, papa.t, crossbreeder);
-
-    typename config::mutator mutator;
-    mutator_init(mutator, e.generationIndex);
-    mutate(baby.t, mutator);
-
-    // Add Baby to pool and bestGeneIndices
-    baby.score = (*pEvalFunc)(baby.t);
-
-    size_t babyIndex;
-    LS_DEBUG_ERROR_ASSERT(pool_add(&e.genes, std::move(baby), &babyIndex));
-    LS_DEBUG_ERROR_ASSERT(list_add(&e.bestGeneIndices, babyIndex));
-  }
-
   // Only let the best survive.
   const std::function<int64_t(const size_t &index)> &idxToScore = [&e](const size_t &index) -> int64_t {
     return -(int64_t)pool_get(e.genes, index)->score;
@@ -132,6 +153,79 @@ void evolution_generation(evolution<target, config> &e, typename evolution<targe
   }
 
   e.generationIndex++;
+}
+
+template <typename target, typename config, typename func>
+void evolution_generation_make_and_eval_baby_internal(evolution<target, config> &e, func evalFunc, typename evolution<target, config>::gene &baby, const size_t maxParentIndex)
+{
+  // Choose parents
+  const typename evolution<target, config>::gene &mama = *pool_get(e.genes, e.bestGeneIndices[lsGetRand() % maxParentIndex]);
+  const typename evolution<target, config>::gene &papa = *pool_get(e.genes, e.bestGeneIndices[lsGetRand() % maxParentIndex]);
+
+  typename config::crossbreeder crossbreeder;
+  crossbreeder_init(crossbreeder, mama.score, papa.score);
+  crossbreed(baby.t, mama.t, papa.t, crossbreeder);
+
+  typename config::mutator mutator;
+  mutator_init(mutator, e.generationIndex);
+  mutate(baby.t, mutator);
+
+  baby.score = evalFunc(baby.t);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+template <typename target, typename config, typename func>
+void evolution_generation(evolution<target, config> &e, func evalFunc)
+{
+  lsAssert(e.genes.count <= config::survivingGenes);
+  lsAssert(e.genes.count > 0);
+
+  const size_t maxParentIndex = e.genes.count;
+
+  for (size_t i = 0; i < config::newGenesPerGeneration; i++)
+  {
+    typename evolution<target, config>::gene baby;
+    evolution_generation_make_and_eval_baby_internal(e, evalFunc, baby, maxParentIndex);
+
+    // Add Baby to pool and bestGeneIndices
+    size_t babyIndex;
+    LS_DEBUG_ERROR_ASSERT(pool_add(&e.genes, std::move(baby), &babyIndex));
+    LS_DEBUG_ERROR_ASSERT(list_add(&e.bestGeneIndices, babyIndex));
+  }
+
+  evolution_generation_finalize_internal(e);
+}
+
+template <typename target, typename config, typename func>
+void evolution_generation(evolution<target, config> &e, func evalFunc, thread_pool *pThreads)
+{
+  lsAssert(e.genes.count <= config::survivingGenes);
+  lsAssert(e.genes.count > 0);
+
+  const size_t maxParentIndex = e.genes.count;
+
+  for (size_t i = 0; i < config::newGenesPerGeneration; i++)
+  {
+    typename evolution<target, config>::gene uninitialized_baby;
+    size_t babyIndex;
+    LS_DEBUG_ERROR_ASSERT(pool_add(&e.genes, std::move(uninitialized_baby), &babyIndex));
+    LS_DEBUG_ERROR_ASSERT(list_add(&e.bestGeneIndices, babyIndex));
+
+    const auto &eval = [=, &e]()
+      {
+        typename evolution<target, config>::gene &baby = *pool_get(e.genes, babyIndex);
+
+        // Should be fine to be used without mutexes in a multithreaded context, as the pool should never realloc anyways, as we've reserved the amount that will *EVER* be needed in advance.
+        evolution_generation_make_and_eval_baby_internal(e, evalFunc, baby, maxParentIndex);
+      };
+
+    thread_pool_add(pThreads, eval);
+  }
+
+  thread_pool_await(pThreads);
+
+  evolution_generation_finalize_internal(e);
 }
 
 template <typename target, typename config>
