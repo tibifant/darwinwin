@@ -79,6 +79,14 @@ inline void crossbreeder_eval(const crossbreeder_naive &c, T &val, const T paren
   val = lsGetRand() & 1 ? parentA : parentB;
 }
 
+template <typename T>
+  requires (std::is_integral_v<T>)
+inline void crossbreeder_eval(const crossbreeder_naive &c, T *pVal, const size_t count, const T *pParentA, const T *pParentB)
+{
+  for (size_t i = 0; i < count; i++)
+    crossbreeder_eval(c, pVal[i], pParentA[i], pParentB[i]);
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 template <typename target, typename config>
