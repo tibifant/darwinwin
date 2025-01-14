@@ -4,6 +4,7 @@ let actorElement;
 let mapGridArray;
 let tick = 1;
 let actorStats;
+let updateInfo = false;
 
 const tileFlags = new Map([
   ['Underwater', 1 << 0],
@@ -64,7 +65,7 @@ function setupTileElements(levelContainer, grid){
     const newTile = document.createElement("div");
     newTile.classList.add("level-tile");
     newTile.id = "tile-"+i;
-    newTile.addEventListener("click", showStatsOfElement)
+    newTile.addEventListener("click", infoClick)
     levelContainer.appendChild(newTile);
   })
 }
@@ -73,7 +74,7 @@ function setupActor(actor, mapWidth){
   actorElement = document.createElement("div");
   actorElement.classList.add("actor");
   actorElement.id = "actor";
-  actorElement.addEventListener("click", showStatsOfElement)
+  actorElement.addEventListener("click", infoClick)
 
   updateActor(actor, mapWidth);
 }
@@ -91,7 +92,10 @@ function updateWorld(newData){
 
   const actor = newData.actor[0];
   updateActor(actor, newData.level.width);
-
+  if(updateInfo){
+    showStatsOfElement(updateInfo);
+    updateInfo = false;
+  }
   console.log(`Updated Tick ${tick++}!`);
 }
 
@@ -152,9 +156,11 @@ function updateActor(actor, mapWidth){
 }
 
 //Stats view functions
-function showStatsOfElement(event){
-  const targetElement = event.target;
+function infoClick(event){
+  showStatsOfElement(event.target.id);
+}
 
+function showStatsOfElement(targetElementId){
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -162,13 +168,13 @@ function showStatsOfElement(event){
   infoValuesElement.innerHTML = '';
   optionsElement.innerHTML = '';
 
-  const idBody = targetElement.id.split('-')[0];
+  const idBody = targetElementId.split('-')[0];
   switch (idBody) {
     case 'actor':
-      showActorStats(targetElement.id, infoLabelsElement, infoValuesElement, optionsElement);
+      showActorStats(targetElementId, infoLabelsElement, infoValuesElement, optionsElement);
       break;
     case 'tile':
-      showTileStats(targetElement.id, infoLabelsElement, infoValuesElement, optionsElement);
+      showTileStats(targetElementId, infoLabelsElement, infoValuesElement, optionsElement);
       break;
     default:
       console.error("Error: targetElementId not recognized");
@@ -261,7 +267,7 @@ function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement)
 function initiateActorActionRequest(event){
   const actionId = event.target.id.slice(-1);
   postActorAction(actionId);
-  //Todo: Update Infos after
+  updateInfo = "actor";
 }
 
 function initiateSetTileRequest(event){
@@ -271,7 +277,6 @@ function initiateSetTileRequest(event){
 
   const input = document.getElementById("option-input")
   const stats = input.value;
-  console.log(stats);
 
   const payload = {
     x: x,
@@ -280,8 +285,7 @@ function initiateSetTileRequest(event){
   }
 
   postTileSetRequest(payload);
-
-  //Todo: Update Infos after
+  updateInfo = "tile-"+index;
 }
 
 //Net functions
@@ -334,7 +338,7 @@ function load_backend_url(url, callback, payload, failure_callback) {
 }
 
 function fetchLevel(callback){
-  load_backend_url('getLevel', callback,
+   load_backend_url('getLevel', callback,
     {}, handleError);
 }
 
