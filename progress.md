@@ -124,7 +124,7 @@ Aktuelle Tasks:
 - Frontend: Info Anzeige Tiles, handling von `manualAct` und `setTile`
 - Backend: `Mutator` mit Normalverteilung
 
-## 13.01.2024:
+## 13.01.2025:
 
 **Marvin:**
 - Actor manual actions implementiert
@@ -135,7 +135,7 @@ Aktuelle Tasks:
 - Tests fuer Evolution und NN
 - Neuronales Netz unterstuetzt unterschiedliche grosse Layers in einem Netz
 
-**Aktuelle Tasks:
+**Aktuelle Tasks:**
 
 Frontend: 
 - level & actor daten korrekt anzeigen (bug fix)
@@ -145,4 +145,30 @@ Frontend:
 
 Backend:
 - Speichersystem NN
+- Level Generator
+
+# 14.01.2025
+
+**Marvin:**
+- Refactoring, collidables werden korrekt angezeigt
+
+**Jan:**
+- Einarbeitung in Code
+
+**Malin:**
+- NN in Dateien schreiben vorbereitet
+
+**Aktuelle Tasks:**
+
+Frontend:
+- Testen ob manuelle Aktionen richtig funktionieren (Outcome und Stats kontrollieren)
+- Viewcone anzeigen
+- im Debugger durchsteppen was bei move passiert (im Backend)
+- Set Tile mit besserer UI
+- Info automatisch updaten
+- Clean-Up und Refactoring
+
+Backend:
+- getLevel viewcone hinzufuegen
+- NN in Datei schreiben
 - Level Generator
