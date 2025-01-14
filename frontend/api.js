@@ -196,7 +196,9 @@ function updateActor(actor, mapWidth){
 
 //Stats view general functions
 function infoClick(event){
+  //TODO: Pass the Actor object instead of the id?
   showStatsOfElement(event.target.id);
+  showViewCone(event.target.id);
 }
 
 function showStatsOfElement(targetElementId){
@@ -230,6 +232,27 @@ function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement
   infoLabelsElement.appendChild(labelsElement);
   infoValuesElement.appendChild(valuesElement);
   optionsElement.appendChild(createActorOptionsButtonsElement());
+}
+
+function showViewCone(eventElementId){
+  //TODO: Change for multiple actors
+  //let actor = document.getElementById(eventElementId);
+  //let actorStats = actor.actorStats;
+  let viewCone = actorStats.viewcone;
+  console.log(viewCone);
+  for(let i=0; i<actorStats.viewcone.length; i++){
+    const tile = document.getElementById('view-cone-tile-'+i);
+    tile.innerHTML = ''; // Leeren Sie zuerst den Inhalt
+    tile.style.backgroundColor = '#567345'; // Setzen Sie die Standard-Hintergrundfarbe
+    checkTileFlags(viewCone[i], tile);
+
+    console.log(`Checking tile ${i}:`);
+    console.log("Underwater?", hasTileCondition(viewCone[i], "Underwater"));
+    console.log("Protein?", hasTileCondition(viewCone[i], "Protein"));
+    console.log("Sugar?", hasTileCondition(viewCone[i], "Sugar"));
+    console.log("Vitamin?", hasTileCondition(viewCone[i], "Vitamin"));
+    console.log("Fat?", hasTileCondition(viewCone[i], "Fat"));
+  }
 }
 
 function fillActorLabelsAndValuesElements(labels, values){
