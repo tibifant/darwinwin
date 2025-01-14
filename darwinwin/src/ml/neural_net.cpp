@@ -1,5 +1,6 @@
 #include "neural_net.h"
 #include "testable.h"
+#include "io.h"
 
 REGISTER_TESTABLE_FILE(0)
 
@@ -107,6 +108,10 @@ DEFINE_TESTABLE(neural_net_io_test)
   constexpr size_t output_layer_block_count = 2;
   neural_net<input_layer_block_count, output_layer_block_count> nn;
   (void)nn;
+
+  //for (size_t i = 0; i < nn.total_value_count; i++)
+
+  lsCreateDirectory("/io_test");
 
   goto epilogue;
 epilogue:
