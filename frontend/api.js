@@ -23,6 +23,7 @@ function setup(){
   console.log("Initiating Setup...");
   fetchLevel(setupMap);
   setupStatsWindow();
+  setupViewCone();
   setInterval(fetchAllData, 1000);
   console.log("Setup Complete!");
 }
@@ -78,7 +79,43 @@ function setupActor(actor, mapWidth){
   updateActor(actor, mapWidth);
 }
 
-//Periodic Update Functions
+
+
+function setupViewCone(){
+  //TODO: Possible to make this more dynamic?
+  const viewConeSize = 8;
+  const positions = [
+    { row: 1, col: 2 },
+    { row: 2, col: 1 },
+    { row: 2, col: 2 },
+    { row: 2, col: 3 },
+    { row: 3, col: 1 },
+    { row: 3, col: 2 },
+    { row: 3, col: 3 },
+    { row: 4, col: 2 },
+  ];
+
+  const grid = document.getElementById('view-cone-grid') || {}
+
+  if(grid.length === 0){
+    console.error("Error: Could not find view-cone-grid element");
+  } else {
+    for (let i = 0; i < viewConeSize; i++) {
+      const tile = document.createElement('div');
+      tile.classList.add('view-cone-tile');
+      tile.style.gridRow = positions[i].row;
+      tile.style.gridColumn = positions[i].col;
+      tile.id = 'view-cone-tile-' + i;
+      grid.appendChild(tile);
+    }
+  }
+}
+
+
+//###################################################################
+//##################Periodic Update Functions########################
+//###################################################################
+
 function fetchAllData() {
   console.log("Updating World...");
   fetchLevel(updateWorld)
@@ -149,6 +186,8 @@ function updateActor(actor, mapWidth){
   const actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
   actorTile.appendChild(actorElement);
   actorStats = actor;
+  console.log("actorStats updated:");
+  console.log(actorStats)
 }
 
 //Stats view functions
