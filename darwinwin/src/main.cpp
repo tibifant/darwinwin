@@ -158,6 +158,14 @@ crow::response handle_getLevel(const crow::request &req)
     item = _WebActor.stats[i];
   }
 
+  viewCone cone = viewCone_get(_WebLevel, _WebActor);
+
+  for (size_t i = 0; i < _viewConePosition_Count; i++)
+  {
+    auto &item = ret["actor"][0]["viewcone"][(uint32_t)i];
+    item = cone[(viewConePosition)i];
+  }
+
   return ret;
 }
 
