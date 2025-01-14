@@ -76,8 +76,7 @@ static struct {
 
 int32_t main(const int32_t argc, const char **pArgv)
 {
-  if (!parse_args(pArgv + 1, argc - 1))
-    return EXIT_FAILURE;
+  sformatState_ResetCulture();
 
   cpu_info::DetectCpuFeatures();
 
@@ -87,7 +86,35 @@ int32_t main(const int32_t argc, const char **pArgv)
     return EXIT_FAILURE;
   }
 
-  sformatState_ResetCulture();
+  if (!parse_args(pArgv + 1, argc - 1))
+    return EXIT_FAILURE;
+
+  // Set Working Directory.
+  do
+  {
+    wchar_t filePath[MAX_PATH];
+    GetModuleFileNameW(nullptr, filePath, sizeof(filePath) / sizeof(wchar_t));
+
+    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+    {
+      print_error_line("Insufficient Buffer for Module File Name Retrieval.");
+      break;
+    }
+
+    wchar_t *lastSlash = nullptr;
+
+    for (size_t i = 0; i < sizeof(filePath) / sizeof(wchar_t) && filePath[i] != L'\0'; i++)
+      if (filePath[i] == L'\\')
+        lastSlash = filePath + i;
+
+    if (lastSlash != nullptr)
+      *lastSlash = L'\0';
+
+    if (0 == SetCurrentDirectoryW(filePath))
+      print_error_line("Failed to set working directory.");
+
+  } while (false);
+
   print("DarWinWin (built " __DATE__ " " __TIME__ ") running on ", cpu_info::GetCpuName(), ".\n");
   print("\nConfiguration:\n");
   print("Level size: ", FF(Group, Frac(3), AllFrac)(sizeof(level) / 1024.0), " KiB\n");
@@ -105,7 +132,7 @@ int32_t main(const int32_t argc, const char **pArgv)
   {
     crow::App<crow::CORSHandler> app;
 
-    level_initLinear(&_WebLevel); 
+    level_initLinear(&_WebLevel);
     for (size_t i = 0; i < _actorStats_Count; i++)
       _WebActor.stats[i] = 32;
 
