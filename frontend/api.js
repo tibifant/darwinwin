@@ -4,6 +4,7 @@ let actorElement;
 let mapGridArray;
 let tick = 1;
 let actorStats;
+let updateInfo = false;
 
 const tileFlags = new Map([
   ['Underwater', 1 << 0],
@@ -65,7 +66,7 @@ function setupTileElements(levelContainer, grid){
     const newTile = document.createElement("div");
     newTile.classList.add("level-tile");
     newTile.id = "tile-"+i;
-    newTile.addEventListener("click", showStatsOfElement)
+    newTile.addEventListener("click", infoClick)
     levelContainer.appendChild(newTile);
   })
 }
@@ -74,7 +75,7 @@ function setupActor(actor, mapWidth){
   actorElement = document.createElement("div");
   actorElement.classList.add("actor");
   actorElement.id = "actor";
-  actorElement.addEventListener("click", showStatsOfElement)
+  actorElement.addEventListener("click", infoClick)
 
   updateActor(actor, mapWidth);
 }
@@ -128,7 +129,10 @@ function updateWorld(newData){
 
   const actor = newData.actor[0];
   updateActor(actor, newData.level.width);
-
+  if(updateInfo){
+    showStatsOfElement(updateInfo);
+    updateInfo = false;
+  }
   console.log(`Updated Tick ${tick++}!`);
 }
 
@@ -190,10 +194,12 @@ function updateActor(actor, mapWidth){
   console.log(actorStats)
 }
 
-//Stats view functions
-function showStatsOfElement(event){
-  const targetElement = event.target;
+//Stats view general functions
+function infoClick(event){
+  showStatsOfElement(event.target.id);
+}
 
+function showStatsOfElement(targetElementId){
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -201,21 +207,69 @@ function showStatsOfElement(event){
   infoValuesElement.innerHTML = '';
   optionsElement.innerHTML = '';
 
-  const idBody = targetElement.id.split('-')[0];
+  const idBody = targetElementId.split('-')[0];
   switch (idBody) {
     case 'actor':
-      showActorStats(targetElement.id, infoLabelsElement, infoValuesElement, optionsElement);
+      showActorStats(targetElementId, infoLabelsElement, infoValuesElement, optionsElement);
       break;
     case 'tile':
-      showTileStats(targetElement.id, infoLabelsElement, infoValuesElement, optionsElement);
+      showTileStats(targetElementId, infoLabelsElement, infoValuesElement, optionsElement);
       break;
     default:
       console.error("Error: targetElementId not recognized");
   }
 }
 
-//Todo: Clean, optimize
+//Stats view for Actor functions
 function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement){ //id for when multiple actors exist
+  const labelsElement = document.createElement('label')
+  const valuesElement = document.createElement('label');
+
+  fillActorLabelsAndValuesElements(labelsElement, valuesElement);
+
+  infoLabelsElement.appendChild(labelsElement);
+  infoValuesElement.appendChild(valuesElement);
+  optionsElement.appendChild(createActorOptionsButtonsElement());
+}
+
+function fillActorLabelsAndValuesElements(labels, values){
+  const lookDirections = [
+    "left",
+    "up",
+    "right",
+    "down",
+  ]
+  const statDescriptions = [
+    "Air",
+    "Protein",
+    "Sugar",
+    "Vitamin",
+    "Fat",
+    "Energy"
+  ]
+
+  for(const key in actorStats ){
+    switch (key) {
+      case "stats":
+        labels.innerHTML += "<br>";
+        values.innerHTML += "<br>";
+        for (const stat in actorStats.stats ){
+          labels.innerHTML += statDescriptions[stat] + "<br>";
+          values.innerHTML += actorStats.stats[stat] + "<br>";
+        }
+        break;
+      case "lookDir":
+        labels.innerHTML += key + '<br>';
+        values.innerHTML += lookDirections[actorStats[key]] + '<br>';
+        break;
+      default:
+        labels.innerHTML += key + '<br>';
+        values.innerHTML += actorStats[key] + '<br>';
+    }
+  }
+}
+
+function createActorOptionsButtonsElement(){
   const actorActions = [
     "move",
     "move 2",
@@ -223,104 +277,93 @@ function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement
     "turn right",
     "eat"
   ]
-  const lookDirections = [
-    "left",
-    "up",
-    "right",
-    "down",
-  ]
-
-  const labels = document.createElement('label')
-  labels.innerText = "Actor ID:\nPosX:\nPosY:\nLookDir:\n\n" +
-    "Energy:\nAir:\nProtein\nSugar:\nVitamin:\nFat:";
-  infoLabelsElement.appendChild(labels);
-  const values = document.createElement('label');
-  values.innerText = `${id}\n${actorStats.posX}\n${actorStats.posY}\n${lookDirections[actorStats.lookDir]}\n
-  ${actorStats.stats[0]}\n${actorStats.stats[1]}\n${actorStats.stats[2]}
-  ${actorStats.stats[3]}\n${actorStats.stats[4]}\n${actorStats.stats[5]}\n`;
-  infoValuesElement.appendChild(values);
 
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
   actorActions.forEach((action, i) => {
-    const button = document.createElement('button');
-    button.id = "option-button-"+i;
-    button.innerText = action;
-    button.addEventListener('click', initiateActorActionRequest)
+    const button = createActorButton(action, i);
     optionsButtonsElement.appendChild(button);
   })
+  return optionsButtonsElement;
+}
+
+function createActorButton(action, i){
+  const button = document.createElement('button');
+  button.id = "option-button-"+i;
+  button.innerText = action;
+  button.addEventListener('click', initiateActorActionRequest)
+  return button;
+}
+
+//Stats view for Tile functions
+function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement){
+  const optionsButtonsElement = document.createElement('div');
+  optionsButtonsElement.classList.add('stats-subsection-column');
+  const labels = document.createElement('label');
+  const values = document.createElement('label');
+
+  fillTileStatsElements(id, labels, values, optionsButtonsElement);
+
+  infoLabelsElement.appendChild(labels);
+  infoValuesElement.appendChild(values);
   optionsElement.appendChild(optionsButtonsElement);
 }
 
-//Todo: Clean, optimize
-function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement){
-  const index = id.split('-')[1];
-  const x = index % 32;
-  const y = Math.floor(index / 32);
+function fillTileStatsElements(id, labels, values, optionsButtonsElement){
+  const tileIndex = id.split('-')[1];
+  const x = tileIndex % 32;
+  const y = Math.floor(tileIndex / 32);
 
-  const labels = document.createElement('label')
-  labels.innerText = "Tile ID:\nX:\nY:\n\n" +
-    "Underwater:\nProtein:\nSugar:\nVitamin\nFat\n" +
-    "Collidable:\nOther Actor:\nHidden:";
-  infoLabelsElement.appendChild(labels);
-  const values = document.createElement('label');
-  values.innerText = `${id}\n${x}\n${y}\n
-  ${hasTileCondition(mapGridArray[index],"Underwater")}\n${hasTileCondition(mapGridArray[index], "Protein")}
-  ${hasTileCondition(mapGridArray[index], "Sugar")}\n${hasTileCondition(mapGridArray[index], "Vitamin")}
-  ${hasTileCondition(mapGridArray[index], "Fat")}\n${hasTileCondition(mapGridArray[index], "Collidable")}
-  ${hasTileCondition(mapGridArray[index], "OtherActor")}\n${hasTileCondition(mapGridArray[index], "Hidden")}`;
-  infoValuesElement.appendChild(values);
+  labels.innerHTML = "Tile ID:<br>X:<br>Y:<br><br>";
+  values.innerHTML = `${id}<br>${x}<br>${y}<br><br>`;
 
-  //Todo: Replace with buttons for each condition
-  const optionsLabelsElement = document.createElement('div');
-  const optionsInputsElement = document.createElement('div');
-  const optionsButtonsElement = document.createElement('div');
-  optionsLabelsElement.classList.add('stats-subsection-column');
-  optionsInputsElement.classList.add('stats-subsection-column');
-  optionsButtonsElement.classList.add('stats-subsection-column');
+  tileFlags.forEach((value, key) => {
+    labels.innerHTML += key+"<br>";
+    values.innerHTML += hasTileCondition(mapGridArray[tileIndex], key)+"<br>";
 
-  optionsLabelsElement.innerText = "Set Stats:"
+    const button = createTileButton(tileIndex, key);
+    optionsButtonsElement.appendChild(button);
+  })
+}
 
+function createTileButton(tileIndex, key){
   const button = document.createElement('button');
-  button.id = "option-button-tile-"+index;
-  button.innerText = "Confirm";
+  button.id = "option-button-tile-"+tileIndex+"-"+key;
+  button.innerText = "Toggle "+key;
   button.addEventListener('click', initiateSetTileRequest);
-  optionsButtonsElement.appendChild(button);
-
-  const input = document.createElement('input');
-  input.id = "option-input";
-  optionsInputsElement.appendChild(input);
-
-  optionsElement.appendChild(optionsLabelsElement);
-  optionsElement.appendChild(optionsInputsElement);
-  optionsElement.appendChild(optionsButtonsElement);
+  return button;
 }
 
 //Set functions
 function initiateActorActionRequest(event){
   const actionId = event.target.id.slice(-1);
   postActorAction(actionId);
-  //Todo: Update Infos after
+  updateInfo = "actor";
 }
 
 function initiateSetTileRequest(event){
-  const index = event.target.id.split('-')[3]
-  const x = index % 32;
-  const y = Math.floor(index / 32);
+  const tileIndex = event.target.id.split('-')[3];
+  const tile = mapGridArray[tileIndex];
+  const condition = event.target.id.split('-')[4];
+  const x = tileIndex % 32;
+  const y = Math.floor(tileIndex / 32);
 
-  const input = document.getElementById("option-input")
-  const stats = input.value;
-  console.log(stats);
+  let newTile;
+  if(hasTileCondition(tile, condition)){
+    newTile = tile - tileFlags.get(condition);
+  }
+  else {
+    newTile = tile + tileFlags.get(condition);
+  }
 
   const payload = {
     x: x,
     y: y,
-    value: stats
+    value: newTile
   }
 
   postTileSetRequest(payload);
-
-  //Todo: Update Infos after
+  updateInfo = "tile-"+tileIndex;
 }
 
 //Net functions
@@ -373,7 +416,7 @@ function load_backend_url(url, callback, payload, failure_callback) {
 }
 
 function fetchLevel(callback){
-  load_backend_url('getLevel', callback,
+   load_backend_url('getLevel', callback,
     {}, handleError);
 }
 
