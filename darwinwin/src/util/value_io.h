@@ -23,24 +23,26 @@ epilogue:
 }
 
 template <typename T, byte_stream_writer writer>
+  requires (!std::is_array_v<T>)
 lsResult value_writer_write(value_writer<writer> &vw, const T &v)
 {
   lsResult result = lsR_Success;
 
   lsAssert(vw.pWriter);
-  LS_ERROR_CHECK(write_byte_stream_append(vw.pWriter, reinterpret_cast<const uint8_t *>(&v), sizeof(T)));
+  LS_ERROR_CHECK(write_byte_stream_append(*vw.pWriter, reinterpret_cast<const uint8_t *>(&v), sizeof(T)));
 
 epilogue:
   return result;
 }
 
 template <typename T, byte_stream_writer writer>
+  requires (!std::is_array_v<T>)
 lsResult value_writer_write(value_writer<writer> &vw, const T *pV, const size_t count)
 {
   lsResult result = lsR_Success;
 
-  lsAssert(vw.pWriter);  
-  LS_ERROR_CHECK(write_byte_stream_append(vw.pWriter, reinterpret_cast<const uint8_t *>(pV), sizeof(T) * count));
+  lsAssert(vw.pWriter);
+  LS_ERROR_CHECK(write_byte_stream_append(*vw.pWriter, reinterpret_cast<const uint8_t *>(pV), sizeof(T) * count));
 
 epilogue:
   return result;
@@ -67,24 +69,26 @@ epilogue:
 }
 
 template <typename T, byte_stream_reader reader>
+  requires (!std::is_const_v<T> && !std::is_array_v<T>)
 lsResult value_reader_read(value_reader<reader> &vr, T &v)
 {
   lsResult result = lsR_Success;
 
   lsAssert(vr.pReader);
-  LS_ERROR_CHECK(read_byte_stream_read(vr.pReader, reinterpret_cast<uint8_t *>(&v), sizeof(T)));
+  LS_ERROR_CHECK(read_byte_stream_read(*vr.pReader, reinterpret_cast<uint8_t *>(&v), sizeof(T)));
 
 epilogue:
   return result;
 }
 
 template <typename T, byte_stream_reader reader>
+  requires (!std::is_const_v<T> && !std::is_array_v<T>)
 lsResult value_reader_read(value_reader<reader> &vr, T *pV, const size_t count)
 {
   lsResult result = lsR_Success;
 
   lsAssert(vr.pReader);
-  LS_ERROR_CHECK(read_byte_stream_read(vr.pReader, reinterpret_cast<uint8_t *>(pV), sizeof(T) * count));
+  LS_ERROR_CHECK(read_byte_stream_read(*vr.pReader, reinterpret_cast<uint8_t *>(pV), sizeof(T) * count));
 
 epilogue:
   return result;

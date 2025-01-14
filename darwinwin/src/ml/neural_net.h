@@ -267,7 +267,7 @@ inline lsResult neural_net_read(neural_net<layer_blocks_per_layer...> &nn, value
   {
     const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
     uint64_t read_per_layer_blocks[LS_ARRAYSIZE(per_layer_blocks)];
-    LS_ERROR_CHECK(value_reader_read(vr, &per_layer_blocks, LS_ARRAYSIZE(read_per_layer_blocks)));
+    LS_ERROR_CHECK(value_reader_read(vr, read_per_layer_blocks, LS_ARRAYSIZE(read_per_layer_blocks)));
 
     for (size_t i = 0; i < LS_ARRAYSIZE(read_per_layer_blocks); i++)
       LS_ERROR_IF(per_layer_blocks[i] != read_per_layer_blocks[i], lsR_IOFailure);
