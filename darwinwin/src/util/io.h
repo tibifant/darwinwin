@@ -2,6 +2,10 @@
 
 #include "core.h"
 
+#ifdef LS_PLATFORM_WINDOWS
+lsResult lsWriteFileBytes(const wchar_t *filename, const uint8_t *pData, const size_t size);
+#endif
+
 lsResult lsReadFileBytes(const char *filename, _Out_ uint8_t **ppData, const size_t elementSize, _Out_ size_t *pCount);
 lsResult lsReadFileBytesSized(const char *filename, _Out_ uint8_t *pData, const size_t elementSize, const size_t count);
 
@@ -24,3 +28,8 @@ lsResult lsWriteFile(const char *filename, const T *pData, const size_t count)
 {
   return lsWriteFileBytes(filename, reinterpret_cast<const uint8_t *>(pData), count * sizeof(T));
 }
+
+bool lsFileExists(const char *filename);
+
+lsResult lsCreateDirectory(const wchar_t *directory);
+lsResult lsCreateDirectory(const char *directory);

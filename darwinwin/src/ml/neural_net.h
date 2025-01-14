@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core.h"
+#include "value_io.h"
 
 constexpr size_t neural_net_block_size = sizeof(__m256) / sizeof(int16_t);
 
@@ -105,6 +106,7 @@ struct neural_net
   using io_buffer_t = neural_net_buffer<nn_internal::unwrap_layers<layer_blocks_per_layer...>::max_child_neurons / neural_net_block_size>;
 
   constexpr static size_t total_value_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::size;
+  constexpr static uint8_t io_version = 0;
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -112,8 +114,8 @@ struct neural_net
 #endif
   union
   {
-    nn_internal::layer_data<layer_blocks_per_layer...> data;
-    int16_t values[total_value_count];
+    LS_ALIGN(32) nn_internal::layer_data<layer_blocks_per_layer...> data;
+    LS_ALIGN(32) int16_t values[total_value_count];
   };
 #ifdef _MSC_VER
 #pragma warning(pop)
@@ -218,4 +220,66 @@ inline void neural_net_eval(const neural_net<layer_blocks_per_layer...> &nn, typ
   LS_ALIGN(32) int16_t tmp[nn_internal::unwrap_layers<layer_blocks_per_layer...>::max_child_neurons_excl_first] = {};
 
   neural_net_eval_layer_recursive_internal(nn.data, reinterpret_cast<__m256i *>(io.data), tmp);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+template <byte_stream_writer writer, size_t ...layer_blocks_per_layer>
+inline lsResult neural_net_write(neural_net<layer_blocks_per_layer...> &nn, value_writer<writer> &vw)
+{
+  lsResult result = lsR_Success;
+
+  LS_ERROR_CHECK(value_writer_write(vw, nn.io_version));
+  LS_ERROR_CHECK(value_writer_write(vw, (uint64_t)neural_net_block_size));
+  LS_ERROR_CHECK(value_writer_write(vw, (uint64_t)sizeof...(layer_blocks_per_layer)));
+
+  {
+    const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
+    LS_ERROR_CHECK(value_writer_write(vw, per_layer_blocks, LS_ARRAYSIZE(per_layer_blocks)));
+  }
+
+  for (size_t i = 0; i < LS_ARRAYSIZE(nn.values); i++)
+  {
+    lsAssert(nn.values[i] <= lsMaxValue<int8_t>() && nn.values[i] >= lsMinValue<int8_t>());
+    LS_ERROR_CHECK(value_writer_write(vw, (int8_t)nn.values[i]));
+  }
+
+epilogue:
+  return result;
+}
+
+template <byte_stream_reader reader, size_t ...layer_blocks_per_layer>
+inline lsResult neural_net_read(neural_net<layer_blocks_per_layer...> &nn, value_reader<reader> &vr)
+{
+  lsResult result = lsR_Success;
+
+  uint8_t version;
+  LS_ERROR_CHECK(value_reader_read(vr, version));
+  LS_ERROR_IF(version != nn.io_version, lsR_IOFailure);
+
+  uint64_t block_size;
+  LS_ERROR_CHECK(value_reader_read(vr, block_size));
+  LS_ERROR_IF(block_size != neural_net_block_size, lsR_IOFailure);
+
+  uint64_t layer_blocks_per_layer_count;
+  LS_ERROR_CHECK(value_reader_read(vr, layer_blocks_per_layer_count));
+
+  {
+    const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
+    uint64_t read_per_layer_blocks[LS_ARRAYSIZE(per_layer_blocks)];
+    LS_ERROR_CHECK(value_reader_read(vr, read_per_layer_blocks, LS_ARRAYSIZE(read_per_layer_blocks)));
+
+    for (size_t i = 0; i < LS_ARRAYSIZE(read_per_layer_blocks); i++)
+      LS_ERROR_IF(per_layer_blocks[i] != read_per_layer_blocks[i], lsR_IOFailure);
+  }
+
+  for (size_t i = 0; i < nn.total_value_count; i++)
+  {
+    int8_t val;
+    LS_ERROR_CHECK(value_reader_read(vr, val));
+    nn.values[i] = val;
+  }
+
+epilogue:
+  return result;
 }

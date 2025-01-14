@@ -46,6 +46,7 @@ project(ProjectName)
 
   filter { "system:windows" }
     --links { "3rdParty/asio/.lib" }
+    links { "Shlwapi.lib" }
   filter { "system:linux", "architecture:not ARM64" }
     links { "tinfo" }
     libdirs { "/usr/lib/x86_64-linux-gnu" }
