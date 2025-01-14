@@ -243,4 +243,25 @@ epilogue:
 }
 
 template <byte_stream_reader reader, size_t ...layer_blocks_per_layer>
-inline lsResult neural_net_read(neural_net<layer_blocks_per_layer...> &nn, value_reader<reader> &vr);
+inline lsResult neural_net_read(neural_net<layer_blocks_per_layer...> &nn, value_reader<reader> &vr)
+{
+  lsResult result = lsR_Success;
+
+  uint8_t version;
+  LS_ERROR_CHECK(value_reader_read(vr, version));
+  lsAssert(version == nn.io_version);
+
+  uint64_t neural_net_block_size;
+  LS_ERROR_CHECK(value_reader_read(vr, neural_net_block_size));
+
+  uint64_t layer_blocks_per_layer_count;
+  LS_ERROR_CHECK(value_reader_read(vr, layer_blocks_per_layer_count));
+
+  const uint64_t per_layer_blocks[];
+  LS_ERROR_CHECK(value_reader_read(vr, &per_layer_blocks, layer_blocks_per_layer_count)); // I don't believe that's right
+
+  LS_ERROR_CHECK(value_reader_read(vr, &nn.values, LS_ARRAYSIZE(nn.values)));
+
+epilogue:
+  return result;
+}

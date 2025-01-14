@@ -78,9 +78,6 @@ DEFINE_TESTABLE(neural_net_weight_test)
   lsZeroMemory(&nn);
   lsZeroMemory(&io);
 
-  // test 1: copy value
-  // test 2: multiply -1 and 1
-
   constexpr int16_t expectedValue1 = 16;
   nn.data.weights[0] = 127;
   io[0] = expectedValue1;
@@ -91,10 +88,6 @@ DEFINE_TESTABLE(neural_net_weight_test)
 
   neural_net_eval(nn, io);
 
-  //constexpr int8_t max = lsMaxValue<int8_t>();
-  //constexpr int8_t min = lsMinValue<int8_t>();
-
-  // check if abs from expectedValue - outputValue <= 0
   const int16_t diff1 = lsAbs((int16_t)(expectedValue1 - io[0]));
   const int16_t diff2 = lsAbs((int16_t)(expectedValue2 - io[1]));
 
