@@ -221,9 +221,9 @@ function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement
 
 //Todo: Clean, optimize
 function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement){
-  const index = id.split('-')[1];
-  const x = index % 32;
-  const y = Math.floor(index / 32);
+  const tileIndex = id.split('-')[1];
+  const x = tileIndex % 32;
+  const y = Math.floor(tileIndex / 32);
 
   const labels = document.createElement('label')
   labels.innerText = "Tile ID:\nX:\nY:\n\n" +
@@ -232,34 +232,22 @@ function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement)
   infoLabelsElement.appendChild(labels);
   const values = document.createElement('label');
   values.innerText = `${id}\n${x}\n${y}\n
-  ${hasTileCondition(mapGridArray[index],"Underwater")}\n${hasTileCondition(mapGridArray[index], "Protein")}
-  ${hasTileCondition(mapGridArray[index], "Sugar")}\n${hasTileCondition(mapGridArray[index], "Vitamin")}
-  ${hasTileCondition(mapGridArray[index], "Fat")}\n${hasTileCondition(mapGridArray[index], "Collidable")}
-  ${hasTileCondition(mapGridArray[index], "OtherActor")}\n${hasTileCondition(mapGridArray[index], "Hidden")}`;
+  ${hasTileCondition(mapGridArray[tileIndex],"Underwater")}\n${hasTileCondition(mapGridArray[tileIndex], "Protein")}
+  ${hasTileCondition(mapGridArray[tileIndex], "Sugar")}\n${hasTileCondition(mapGridArray[tileIndex], "Vitamin")}
+  ${hasTileCondition(mapGridArray[tileIndex], "Fat")}\n${hasTileCondition(mapGridArray[tileIndex], "Collidable")}
+  ${hasTileCondition(mapGridArray[tileIndex], "OtherActor")}\n${hasTileCondition(mapGridArray[tileIndex], "Hidden")}`;
   infoValuesElement.appendChild(values);
 
-  //Todo: Replace with buttons for each condition
-  const optionsLabelsElement = document.createElement('div');
-  const optionsInputsElement = document.createElement('div');
   const optionsButtonsElement = document.createElement('div');
-  optionsLabelsElement.classList.add('stats-subsection-column');
-  optionsInputsElement.classList.add('stats-subsection-column');
   optionsButtonsElement.classList.add('stats-subsection-column');
 
-  optionsLabelsElement.innerText = "Set Stats:"
-
-  const button = document.createElement('button');
-  button.id = "option-button-tile-"+index;
-  button.innerText = "Confirm";
-  button.addEventListener('click', initiateSetTileRequest);
-  optionsButtonsElement.appendChild(button);
-
-  const input = document.createElement('input');
-  input.id = "option-input";
-  optionsInputsElement.appendChild(input);
-
-  optionsElement.appendChild(optionsLabelsElement);
-  optionsElement.appendChild(optionsInputsElement);
+  tileFlags.forEach((value, key) => {
+    const button = document.createElement('button');
+    button.id = "option-button-tile-"+tileIndex+"-"+key;
+    button.innerText = "Toggle "+key;
+    button.addEventListener('click', initiateSetTileRequest);
+    optionsButtonsElement.appendChild(button);
+  })
   optionsElement.appendChild(optionsButtonsElement);
 }
 
@@ -271,21 +259,28 @@ function initiateActorActionRequest(event){
 }
 
 function initiateSetTileRequest(event){
-  const index = event.target.id.split('-')[3]
-  const x = index % 32;
-  const y = Math.floor(index / 32);
+  const tileIndex = event.target.id.split('-')[3];
+  const tile = mapGridArray[tileIndex];
+  const condition = event.target.id.split('-')[4];
+  const x = tileIndex % 32;
+  const y = Math.floor(tileIndex / 32);
 
-  const input = document.getElementById("option-input")
-  const stats = input.value;
+  let newTile;
+  if(hasTileCondition(tile, condition)){
+    newTile = tile - tileFlags.get(condition);
+  }
+  else {
+    newTile = tile + tileFlags.get(condition);
+  }
 
   const payload = {
     x: x,
     y: y,
-    value: stats
+    value: newTile
   }
 
   postTileSetRequest(payload);
-  updateInfo = "tile-"+index;
+  updateInfo = "tile-"+tileIndex;
 }
 
 //Net functions
