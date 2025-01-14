@@ -41,6 +41,7 @@ struct level
 {
   static constexpr size_t width = 32;
   static constexpr size_t height = 32;
+  static constexpr size_t total = width * height;
 
   static constexpr uint8_t wallThickness = 3; // this needs a shorter name
 
