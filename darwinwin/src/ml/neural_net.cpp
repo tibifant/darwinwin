@@ -106,7 +106,7 @@ DEFINE_TESTABLE(neural_net_io_test)
   constexpr size_t input_layer_block_count = 1;
   constexpr size_t output_layer_block_count = 2;
   neural_net<input_layer_block_count, output_layer_block_count> nn;
-  
+  (void)nn;
 
   goto epilogue;
 epilogue:
