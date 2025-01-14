@@ -10,7 +10,7 @@ struct value_writer
 };
 
 template <byte_stream_writer writer>
-lsResult value_writer_init(value_writer<writer> &vw, writer *pWriter);
+lsResult value_writer_init(value_writer<writer> &vw, writer *pWriter); // TODO: init byte_stream
 
 template <typename T, byte_stream_writer writer>
 lsResult value_writer_write(value_writer<writer> &vw, const T &v)
@@ -20,6 +20,7 @@ lsResult value_writer_write(value_writer<writer> &vw, const T &v)
   lsAssert(vw.pWriter);
 
   // TODO: ...
+  // append write_byte_stream_append(vw.pWriter, ) cast to uint8_t
 
 epilogue:
   return result;
