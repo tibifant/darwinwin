@@ -98,3 +98,17 @@ DEFINE_TESTABLE(neural_net_weight_test)
 epilogue:
   return result;
 }
+
+DEFINE_TESTABLE(neural_net_io_test)
+{
+  lsResult result = lsR_Success;
+
+  constexpr size_t input_layer_block_count = 1;
+  constexpr size_t output_layer_block_count = 2;
+  neural_net<input_layer_block_count, output_layer_block_count> nn;
+  
+
+  goto epilogue;
+epilogue:
+  return result;
+}

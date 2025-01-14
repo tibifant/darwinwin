@@ -236,7 +236,11 @@ inline lsResult neural_net_write(neural_net<layer_blocks_per_layer...> &nn, valu
   const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
   LS_ERROR_CHECK(value_writer_write(vw, per_layer_blocks, LS_ARRAYSIZE(per_layer_blocks)));
 
-  LS_ERROR_CHECK(value_writer_write(vw, nn.values, LS_ARRAYSIZE(nn.values)));
+  for (size_t i = 0; i < LS_ARRAYSIZE(nn.values); i++)
+  {
+    lsAssert(nn.values[i] <= lsMaxValue<int8_t>() && nn.values[i] >= lsMinValue<int8_t>());
+    LS_ERROR_CHECK(value_writer_write(vw, (int8_t)nn.values[i]));
+  }
 
 epilogue:
   return result;
@@ -249,19 +253,28 @@ inline lsResult neural_net_read(neural_net<layer_blocks_per_layer...> &nn, value
 
   uint8_t version;
   LS_ERROR_CHECK(value_reader_read(vr, version));
-  lsAssert(version == nn.io_version);
+  LS_ERROR_IF(version != nn.io_version, lsR_IOFailure);
 
   uint64_t block_size;
   LS_ERROR_CHECK(value_reader_read(vr, block_size));
-  lsAssert(block_size == neural_net_block_size);
+  LS_ERROR_IF(block_size != neural_net_block_size, lsR_IOFailure);
 
   uint64_t layer_blocks_per_layer_count;
   LS_ERROR_CHECK(value_reader_read(vr, layer_blocks_per_layer_count));
 
-  const uint64_t per_layer_blocks[];
-  LS_ERROR_CHECK(value_reader_read(vr, &per_layer_blocks, layer_blocks_per_layer_count));
+  const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
+  uint64_t read_per_layer_blocks[LS_ARRAYSIZE(per_layer_blocks)];
+  LS_ERROR_CHECK(value_reader_read(vr, &per_layer_blocks, LS_ARRAYSIZE(read_per_layer_blocks)));
 
-  LS_ERROR_CHECK(value_reader_read(vr, &nn.values, nn.total_value_count));
+  for (size_t i = 0; i < LS_ARRAYSIZE(read_per_layer_blocks); i++)
+    LS_ERROR_IF(per_layer_blocks[i] != read_per_layer_blocks[i], lsR_IOFailure);
+
+  for (size_t i = 0; i < nn.total_value_count; i++)
+  {
+    int8_t val;
+    LS_ERROR_CHECK(value_reader_read(vr, val));
+    nn.values[i] = val;
+  }
 
 epilogue:
   return result;
