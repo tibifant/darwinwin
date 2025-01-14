@@ -54,3 +54,19 @@ void level_gen_grow(level *pLvl, const tileFlag grownValue)
       for (size_t j = 0; j < LS_ARRAYSIZE(dir); j++)
         pLvl->grid[lsClamp(i + dir[j], (size_t)0, level::total)] = grownValue;
 }
+
+void level_gen_grow_into_mask(level *pLvl, const tileFlag grownValue, const tileFlag replacableMask)
+{
+  for (size_t i = 0; i < level::total; i++)
+  {
+    if (pLvl->grid[i] & grownValue)
+    {
+      for (size_t j = 0; j < LS_ARRAYSIZE(dir); j++)
+      {
+        size_t pos = lsClamp(i + dir[j], (size_t)0, level::total);
+        if (pLvl->grid[pos] & replacableMask) // & or == ? (hwo do we template this to if constexpr?)
+          pLvl->grid[pos] = grownValue;
+      }
+    }
+  }
+}
