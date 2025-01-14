@@ -233,8 +233,10 @@ inline lsResult neural_net_write(neural_net<layer_blocks_per_layer...> &nn, valu
   LS_ERROR_CHECK(value_writer_write(vw, (uint64_t)neural_net_block_size));
   LS_ERROR_CHECK(value_writer_write(vw, (uint64_t)sizeof...(layer_blocks_per_layer)));
 
-  const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
-  LS_ERROR_CHECK(value_writer_write(vw, per_layer_blocks, LS_ARRAYSIZE(per_layer_blocks)));
+  {
+    const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
+    LS_ERROR_CHECK(value_writer_write(vw, per_layer_blocks, LS_ARRAYSIZE(per_layer_blocks)));
+  }
 
   for (size_t i = 0; i < LS_ARRAYSIZE(nn.values); i++)
   {
@@ -262,12 +264,14 @@ inline lsResult neural_net_read(neural_net<layer_blocks_per_layer...> &nn, value
   uint64_t layer_blocks_per_layer_count;
   LS_ERROR_CHECK(value_reader_read(vr, layer_blocks_per_layer_count));
 
-  const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
-  uint64_t read_per_layer_blocks[LS_ARRAYSIZE(per_layer_blocks)];
-  LS_ERROR_CHECK(value_reader_read(vr, &per_layer_blocks, LS_ARRAYSIZE(read_per_layer_blocks)));
+  {
+    const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
+    uint64_t read_per_layer_blocks[LS_ARRAYSIZE(per_layer_blocks)];
+    LS_ERROR_CHECK(value_reader_read(vr, &per_layer_blocks, LS_ARRAYSIZE(read_per_layer_blocks)));
 
-  for (size_t i = 0; i < LS_ARRAYSIZE(read_per_layer_blocks); i++)
-    LS_ERROR_IF(per_layer_blocks[i] != read_per_layer_blocks[i], lsR_IOFailure);
+    for (size_t i = 0; i < LS_ARRAYSIZE(read_per_layer_blocks); i++)
+      LS_ERROR_IF(per_layer_blocks[i] != read_per_layer_blocks[i], lsR_IOFailure);
+  }
 
   for (size_t i = 0; i < nn.total_value_count; i++)
   {

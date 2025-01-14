@@ -17,6 +17,7 @@ lsResult value_writer_init(value_writer<writer> &vw, writer *pWriter)
   lsAssert(vw.pWriter == nullptr);
   vw.pWriter = pWriter;
 
+  goto epilogue;
 epilogue:
   return result;
 }
@@ -59,6 +60,7 @@ lsResult value_reader_init(value_reader<reader> &vr, reader *pReader)
   lsAssert(vr.pReader == nullptr);
   vr.pReader = pReader;
 
+  goto epilogue;
 epilogue:
   return result;
 

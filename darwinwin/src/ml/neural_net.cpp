@@ -107,9 +107,33 @@ DEFINE_TESTABLE(neural_net_io_test)
   constexpr size_t input_layer_block_count = 1;
   constexpr size_t output_layer_block_count = 2;
   neural_net<input_layer_block_count, output_layer_block_count> nn;
-  (void)nn;
+  const char file_name[] = "nn_io_test";
 
-  //for (size_t i = 0; i < nn.total_value_count; i++)
+  for (size_t i = 0; i < nn.total_value_count; i++)
+    nn.values[i] = (int8_t)i;
+
+  cached_file_byte_stream_writer<> write_stream;
+  write_byte_stream_init(write_stream, file_name);
+
+  value_writer<cached_file_byte_stream_writer> writer;
+  value_writer_init(writer, &write_stream);
+
+  neural_net_write<raw_file_byte_stream_writer, input_layer_block_count, output_layer_block_count>(nn, writer);
+  write_byte_stream_flush(write_stream);
+
+  neural_net<input_layer_block_count, output_layer_block_count> read_nn;
+  lsZeroMemory(&read_nn);
+
+  cached_file_byte_stream_reader<> read_stream;
+  read_byte_stream_init(read_stream, file_name);
+  value_reader<raw_file_byte_stream_reader> reader;
+  value_reader_init(reader, &read_stream.raw);
+
+  neural_net_read<raw_file_byte_stream_reader, input_layer_block_count, output_layer_block_count>(read_nn, reader);
+  read_byte_stream_destroy(read_stream);
+  
+  for (size_t i = 0; i < nn.total_value_count; i++)
+    TESTABLE_ASSERT_EQUAL(nn.values[i], read_nn.values[i]);
 
   lsCreateDirectory("/io_test");
 
