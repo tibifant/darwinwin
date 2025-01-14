@@ -57,3 +57,32 @@ inline void level_gen_water_level(level *pLvl)
   level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
   level_gen_finalize(pLvl);
 }
+
+void level_gen_fill(level *pLvl, const tileFlag defaultTile)
+{
+  for (size_t i = 0; i < level::total; i++)
+    pLvl->grid[i] = defaultTile;
+}
+
+void level_gen_random_sprinkle_replace_mask(level *pLvl, const tileFlag srcMask, const tileFlag target, const size_t count)
+{
+  const size_t maxTries = count * 4;
+  
+  size_t tries = 0;
+  size_t addedCount = 0;
+
+  while (addedCount < count)
+  {
+    uint8_t rand = lsGetRand() % level::total;
+    if (pLvl->grid[rand] & srcMask)
+    {
+      pLvl->grid[rand] = target;
+      addedCount++;
+    }
+
+    tries++;
+
+    if (tries > maxTries)
+      return;
+  }
+}
