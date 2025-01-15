@@ -73,6 +73,7 @@ static struct {
 } _Args;
 
 //////////////////////////////////////////////////////////////////////////
+#include "level_generator.h"
 
 int32_t main(const int32_t argc, const char **pArgv)
 {
@@ -120,6 +121,10 @@ int32_t main(const int32_t argc, const char **pArgv)
   print("Level size: ", FF(Group, Frac(3), AllFrac)(sizeof(level) / 1024.0), " KiB\n");
   print("Actor size: ", FF(Group, Frac(3), AllFrac)(sizeof(actor) / 1024.0), " KiB\n");
   print("\n");
+
+  level water;
+  level_gen_water_food_level(&water);
+  level_print(water);
 
   if (_Args.runTests)
   {

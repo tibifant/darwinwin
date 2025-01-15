@@ -20,7 +20,7 @@ enum actorStats
   _actorStats_Count
 };
 
-enum tileFlag : uint8_t
+enum tileFlag_ : uint8_t
 {
   tf_Underwater = 1ULL << as_Air,
   tf_Protein = 1ULL << as_Protein,
@@ -31,6 +31,8 @@ enum tileFlag : uint8_t
   tf_OtherActor = 1ULL << 6, // not on the map
   tf_Hidden = 1ULL << 7, // not on the map
 };
+
+using tileFlag = uint8_t;
 
 void tileFlag_toTempString(const uint8_t flag, char(&out)[9]);
 void tileFlag_print(const uint8_t flag);
