@@ -1,4 +1,7 @@
 #include "darwinwin.h"
+#include "io.h"
+
+#include <filesystem>
 
 void actor_move(actor *pActor, const level &lvl);
 void actor_moveTwo(actor *pActor, const level &lvl);
@@ -417,3 +420,75 @@ void mutate(actor &target, const mutator &m)
 }
 
 // TODO: Eval Funcs... -> Give scores
+
+//////////////////////////////////////////////////////////////////////////
+
+#include <time.h>
+
+lsResult save_brain(const char *dir, const actor &actr)
+{
+  lsResult result = lsR_Success;
+
+  const uint64_t now = (uint64_t)time(nullptr);
+  char filename[256];
+  sformat_to(filename, LS_ARRAYSIZE(filename), dir, "/", now, ".brain");
+
+  print("Saving brain to file: '", filename, '\n');
+
+  {
+    cached_file_byte_stream_writer<> write_stream;
+    LS_ERROR_CHECK(write_byte_stream_init(write_stream, filename));
+    value_writer<decltype(write_stream)> writer;
+    LS_ERROR_CHECK(value_writer_init(writer, &write_stream));
+
+    LS_ERROR_CHECK(neural_net_write(actr.brain, writer));
+    LS_ERROR_CHECK(write_byte_stream_flush(write_stream));
+  }
+
+epilogue:
+  return result;
+}
+
+lsResult load_newest_brain(const char *dir, actor &actr)
+{
+  lsResult result = lsR_Success;
+
+  const std::filesystem::path path(dir);
+
+  int64_t bestTime = -1;
+  std::string best;
+
+  for (const std::filesystem::directory_entry &dir_entry : std::filesystem::directory_iterator(dir))
+  {
+    if (dir_entry.is_regular_file())
+    {
+      const std::filesystem::file_time_type &timestamp = dir_entry.last_write_time();
+      const int64_t timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()).count();
+
+      if (bestTime < timeMs)
+      {
+        bestTime = timeMs;
+        best = dir_entry.path().filename().string();
+      }
+    }
+  }
+
+  lsAssert(bestTime >= 0);
+
+  print("Loading brain from file: ", best.c_str(), '\n');
+  
+  {
+    cached_file_byte_stream_reader<> read_stream;
+    LS_ERROR_CHECK(read_byte_stream_init(read_stream, best.c_str()));
+    value_reader<cached_file_byte_stream_reader<>> reader;
+    LS_ERROR_CHECK(value_reader_init(reader, &read_stream));
+
+    LS_ERROR_CHECK(neural_net_read(actr.brain, reader));
+    read_byte_stream_destroy(read_stream);
+  }
+
+epilogue:
+  return result;
+}
+
+// load specific brain: list and then select in console
