@@ -499,3 +499,15 @@ epilogue:
 }
 
 // load specific brain: list and then select in console
+
+// train: load actor, start training, save actor whilst training, reevaluate scores... save
+
+void train_actor(actor *pActor, level *pLvl)
+{
+  // start training
+
+  // save
+  
+  // reevaluate after xxx time
+
+}

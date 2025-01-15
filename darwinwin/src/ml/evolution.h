@@ -238,3 +238,16 @@ void evolution_get_best(const evolution<target, config> &e, const target **ppTar
   *ppTarget = &pBestGene->t;
   best_score = pBestGene->score;
 }
+
+template <typename target, typename config, typename func>
+void evolution_reevaluate(evolution<target, config> &e, func evalFunc)
+{
+  for (auto &g : e.genes)
+    g.score = evalFunc(g.t);
+
+  const std::function<int64_t(const size_t &index)> &idxToScore = [&e](const size_t &index) -> int64_t {
+    return -(int64_t)pool_get(e.genes, index)->score;
+    };
+
+  list_sort<int64_t>(e.bestGeneIndices, idxToScore);
+}
