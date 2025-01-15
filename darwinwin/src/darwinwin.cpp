@@ -449,6 +449,24 @@ epilogue:
   return result;
 }
 
+lsResult load_brain_from_file(const char *filename, actor &actr)
+{
+  lsResult result = lsR_Success;
+
+  print("Loading brain from file: ", filename, '\n');
+
+  cached_file_byte_stream_reader<> read_stream;
+  value_reader<cached_file_byte_stream_reader<>> reader;
+  LS_ERROR_CHECK(read_byte_stream_init(read_stream, filename));
+  LS_ERROR_CHECK(value_reader_init(reader, &read_stream));
+
+  LS_ERROR_CHECK(neural_net_read(actr.brain, reader));
+  read_byte_stream_destroy(read_stream);
+
+epilogue:
+  return result;
+}
+
 lsResult load_newest_brain(const char *dir, actor &actr)
 {
   lsResult result = lsR_Success;
@@ -474,18 +492,7 @@ lsResult load_newest_brain(const char *dir, actor &actr)
   }
 
   lsAssert(bestTime >= 0);
-
-  print("Loading brain from file: ", best.c_str(), '\n');
-  
-  {
-    cached_file_byte_stream_reader<> read_stream;
-    LS_ERROR_CHECK(read_byte_stream_init(read_stream, best.c_str()));
-    value_reader<cached_file_byte_stream_reader<>> reader;
-    LS_ERROR_CHECK(value_reader_init(reader, &read_stream));
-
-    LS_ERROR_CHECK(neural_net_read(actr.brain, reader));
-    read_byte_stream_destroy(read_stream);
-  }
+  LS_ERROR_CHECK(load_brain_from_file(best.c_str(), actr));
 
 epilogue:
   return result;
