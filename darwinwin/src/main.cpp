@@ -73,6 +73,7 @@ static struct {
 } _Args;
 
 //////////////////////////////////////////////////////////////////////////
+#include "level_generator.h"
 
 int32_t main(const int32_t argc, const char **pArgv)
 {

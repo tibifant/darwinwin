@@ -44,16 +44,15 @@ void level_initLinear(level *pLevel)
   for (size_t i = 0; i < level::width * level::height; i++)
     pLevel->grid[i] = (uint8_t)(i);
 
-  // Making the Borders collidable
   for (size_t i = 0; i < level::width; i++)
   {
     pLevel->grid[i] = tf_Collidable;
     pLevel->grid[i + level::width] = tf_Collidable;
     pLevel->grid[i + level::width * 2] = tf_Collidable;
 
-    pLevel->grid[i + level::width * level::height - 4 * level::width + 1] = tf_Collidable;
-    pLevel->grid[i + level::width * level::height - 3 * level::width + 1] = tf_Collidable;
-    pLevel->grid[i + level::width * level::height - 2 * level::width + 1] = tf_Collidable;
+    pLevel->grid[i + level::width * level::height - 3 * level::width] = tf_Collidable;
+    pLevel->grid[i + level::width * level::height - 2 * level::width] = tf_Collidable;
+    pLevel->grid[i + level::width * level::height - 1 * level::width] = tf_Collidable;
   }
 
   for (size_t i = 0; i < level::height; i++)
@@ -62,23 +61,62 @@ void level_initLinear(level *pLevel)
     pLevel->grid[i * level::width + 1] = tf_Collidable;
     pLevel->grid[i * level::width + 2] = tf_Collidable;
 
-    pLevel->grid[i * level::width + level::width] = tf_Collidable;
     pLevel->grid[i * level::width + level::width - 1] = tf_Collidable;
     pLevel->grid[i * level::width + level::width - 2] = tf_Collidable;
+    pLevel->grid[i * level::width + level::width - 3] = tf_Collidable;
   }
+}
+
+void printEmptyTile()
+{
+  lsSetConsoleColor(lsCC_DarkGray, lsCC_Black);
+  print("        |");
+  lsResetConsoleColor();
+}
+
+void printTile(const tileFlag val)
+{
+  const char lut[9] = "UPSVFCOH";
+  const lsConsoleColor fg[8] = { lsCC_BrightBlue, lsCC_BrightMagenta, lsCC_White, lsCC_BrightGreen, lsCC_BrightYellow, lsCC_BrightGray, lsCC_BrightCyan, lsCC_BrightRed };
+
+  for (size_t i = 0, mask = 1; i < 8; mask <<= 1, i++)
+  {
+    lsSetConsoleColor(fg[i], lsCC_Black);
+    print((val & mask) ? lut[i] : ' ');
+  }
+
+  lsSetConsoleColor(lsCC_DarkGray, lsCC_Black);
+  print('|');
+  lsResetConsoleColor();
 }
 
 void level_print(const level &level)
 {
   print("Level \n");
 
+  lsSetConsoleColor(lsCC_DarkGray, lsCC_Black);
+  for (size_t x = 0; x < level::width; x++)
+    print("        |");
+
+  print('\n');
+  lsResetConsoleColor();
+
   for (size_t y = 0; y < level::height; y++)
   {
     for (size_t x = 0; x < level::width; x++)
-      print(FU(Min(4))(level.grid[y * level::width + x]));
+      printTile(level.grid[y * level::width + x]);
 
     print('\n');
+
+    lsSetConsoleColor(lsCC_DarkGray, lsCC_Black);
+    for (size_t x = 0; x < level::width; x++)
+      print("--------|");
+
+    print('\n');
+    lsResetConsoleColor();
   }
+
+  print('\n');
 }
 
 bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
@@ -173,26 +211,13 @@ viewCone viewCone_get(const level &lvl, const actor &a)
   return ret;
 }
 
-void printEmpty()
-{
-  print("         ");
-}
-
-void printValue(const uint8_t val)
-{
-  tileFlag_print(val);
-  print(' ');
-  //print(FU(Bin, Min(8), Fill0)(val), ' ');
-  //print(FU(Min(8))(val), ' ');
-}
-
 void viewCone_print(const viewCone &v, const actor &actor)
 {
   print("VIEWCONE from pos ", actor.pos, " with look direction: ", lookDirection_name(actor.look_at_dir), '\n');
 
-  printEmpty();             printValue(v[vcp_nearLeft]);    printValue(v[vcp_midLeft]);    print('\n');
-  printValue(v[vcp_self]);  printValue(v[vcp_nearCenter]);  printValue(v[vcp_midCenter]);  printValue(v[vcp_farCenter]);  print('\n');
-  printEmpty();             printValue(v[vcp_nearRight]);   printValue(v[vcp_midRight]);   print('\n');
+  printEmptyTile();        printTile(v[vcp_nearLeft]);    printTile(v[vcp_midLeft]);    print('\n');
+  printTile(v[vcp_self]);  printTile(v[vcp_nearCenter]);  printTile(v[vcp_midCenter]);  printTile(v[vcp_farCenter]);  print('\n');
+  printEmptyTile();        printTile(v[vcp_nearRight]);   printTile(v[vcp_midRight]);   print('\n');
 }
 
 //////////////////////////////////////////////////////////////////////////
