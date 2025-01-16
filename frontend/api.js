@@ -5,6 +5,7 @@ let mapGridArray;
 let tick = 1;
 let actorStats;
 let updateInfo = false;
+let mapWidth;
 
 const tileFlags = {
       Underwater: 1 << 0,
@@ -43,16 +44,16 @@ function setupStatsWindow(){
 
 function setupMap(data){
   const mapHeight = data.level.height;
-  const mapWidth = data.level.width;
+  mapWidth = data.level.width;
 
   const levelContainer = document.getElementById("level-container");
-  setLevelContainerSize(levelContainer ,mapWidth, mapHeight);
+  setLevelContainerSize(levelContainer, mapHeight);
   setupTileElements(levelContainer, data.level.grid);
 
-  setupActor(data.actor[0], data.level.width);
+  setupActor(data.actor[0]);
 }
 
-function setLevelContainerSize(levelContainer ,mapWidth, mapHeight){
+function setLevelContainerSize(levelContainer, mapHeight){
   //Adjust according to level-tile css class
   const tileSize = 20;
   const tileMargin = 1;
@@ -76,13 +77,13 @@ function setupTileElements(levelContainer, grid){
   })
 }
 
-function setupActor(actor, mapWidth){
+function setupActor(actor){
   actorElement = document.createElement("div");
   actorElement.classList.add("actor");
   actorElement.id = "actor";
   actorElement.addEventListener("click", showActorStats)
 
-  updateActor(actor, mapWidth);
+  updateActor(actor);
 }
 
 function setupViewCone(){
@@ -132,7 +133,7 @@ function updateWorld(newData){
   updateTiles(newData.level.grid);
 
   const actor = newData.actor[0];
-  updateActor(actor, newData.level.width);
+  updateActor(actor);
   if(updateInfo){ //TODO: Temporary solution
     switch (updateInfo.split("-")[0]) {
       case "actor":
@@ -205,7 +206,7 @@ function createFoodOf(type){
   return newItem;
 }
 
-function updateActor(actor, mapWidth){
+function updateActor(actor){
   const actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
   actorTile.appendChild(actorElement);
   actorStats = actor;
@@ -338,8 +339,8 @@ function fillTileStatsElements(id, labels, values, optionsButtonsElement){
   console.log(1);
 
   const tileIndex = id.split('-')[1];
-  const x = tileIndex % 32;
-  const y = Math.floor(tileIndex / 32);
+  const x = tileIndex % mapWidth;
+  const y = Math.floor(tileIndex / mapWidth);
 
   labels.innerHTML = "Tile ID:<br>X:<br>Y:<br><br>";
   values.innerHTML = `${id}<br>${x}<br>${y}<br><br>`;
