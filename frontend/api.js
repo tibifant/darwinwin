@@ -71,7 +71,7 @@ function setupTileElements(levelContainer, grid){
     const newTile = document.createElement("div");
     newTile.classList.add("level-tile");
     newTile.id = "tile-"+i;
-    newTile.addEventListener("click", infoClick)
+    newTile.addEventListener("click", event => {showTileStats(event.target.id)})
     levelContainer.appendChild(newTile);
   })
 }
@@ -80,7 +80,7 @@ function setupActor(actor, mapWidth){
   actorElement = document.createElement("div");
   actorElement.classList.add("actor");
   actorElement.id = "actor";
-  actorElement.addEventListener("click", infoClick)
+  actorElement.addEventListener("click", showActorStats)
 
   updateActor(actor, mapWidth);
 }
@@ -133,8 +133,19 @@ function updateWorld(newData){
 
   const actor = newData.actor[0];
   updateActor(actor, newData.level.width);
-  if(updateInfo){
-    showStatsOfElement(updateInfo);
+  if(updateInfo){ //TODO: Temporary solution
+    switch (updateInfo.split("-")[0]) {
+      case "actor":
+        showActorStats(new CustomEvent("", {
+          detail: {
+            id: updateInfo
+          }
+        }));
+        break;
+      case "tile":
+        showTileStats(updateInfo);
+        break;
+    }
     updateInfo = false;
   }
   console.log(`Updated Tick ${tick++}!`);
@@ -202,14 +213,9 @@ function updateActor(actor, mapWidth){
   console.log(actorStats)
 }
 
-//Stats view general functions
-function infoClick(event){
-  //TODO: Pass the Actor object instead of the id?
-  showStatsOfElement(event.target.id);
-  showViewCone(event.target.id);
-}
-
-function showStatsOfElement(targetElementId){
+//Stats view for Actor functions
+function showActorStats(event){
+  console.log("Showing Actor Stats");
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -217,21 +223,6 @@ function showStatsOfElement(targetElementId){
   infoValuesElement.innerHTML = '';
   optionsElement.innerHTML = '';
 
-  const idBody = targetElementId.split('-')[0];
-  switch (idBody) {
-    case 'actor':
-      showActorStats(targetElementId, infoLabelsElement, infoValuesElement, optionsElement);
-      break;
-    case 'tile':
-      showTileStats(targetElementId, infoLabelsElement, infoValuesElement, optionsElement);
-      break;
-    default:
-      console.error("Error: targetElementId not recognized");
-  }
-}
-
-//Stats view for Actor functions
-function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement){ //id for when multiple actors exist
   const labelsElement = document.createElement('label')
   const valuesElement = document.createElement('label');
 
@@ -240,6 +231,10 @@ function showActorStats(id, infoLabelsElement, infoValuesElement, optionsElement
   infoLabelsElement.appendChild(labelsElement);
   infoValuesElement.appendChild(valuesElement);
   optionsElement.appendChild(createActorOptionsButtonsElement());
+
+  showViewCone(event.detail.id);
+
+  event.stopPropagation();
 }
 
 function showViewCone(eventElementId){
@@ -319,7 +314,14 @@ function createActorButton(action, i){
 }
 
 //Stats view for Tile functions
-function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement){
+function showTileStats(id){
+  const infoLabelsElement = document.getElementById("stats-info-labels");
+  const infoValuesElement = document.getElementById("stats-info-values");
+  const optionsElement = document.getElementById("stats-options");
+  infoLabelsElement.innerHTML = '';
+  infoValuesElement.innerHTML = '';
+  optionsElement.innerHTML = '';
+
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
   const labels = document.createElement('label');
@@ -333,6 +335,8 @@ function showTileStats(id, infoLabelsElement, infoValuesElement, optionsElement)
 }
 
 function fillTileStatsElements(id, labels, values, optionsButtonsElement){
+  console.log(1);
+
   const tileIndex = id.split('-')[1];
   const x = tileIndex % 32;
   const y = Math.floor(tileIndex / 32);
