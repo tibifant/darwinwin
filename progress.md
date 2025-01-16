@@ -140,7 +140,7 @@ Backend:
 - Speichersystem NN
 - Level Generator
 
-# 14.01.2025
+## 14.01.2025
 
 **Marvin:**
 - Refactoring, collidables werden korrekt angezeigt
@@ -156,7 +156,7 @@ Backend:
 Frontend:
 - Testen ob manuelle Aktionen richtig funktionieren (Outcome und Stats kontrollieren)
 - Viewcone anzeigen
-- im Debugger durchsteppen was bei move passiert (im Backend)
+- ~~im Debugger durchsteppen was bei move passiert (im Backend)~~
 - Set Tile mit besserer UI
 - Info automatisch updaten
 - Clean-Up und Refactoring
@@ -165,3 +165,24 @@ Backend:
 - getLevel viewcone hinzufuegen
 - NN in Datei schreiben
 - Level Generator
+
+## 16.01.2025
+
+**Jan:**
+- Anfang view cone Implementierung
+
+**Malin:**
+- viewcone zu getlevel hinzugefuegt
+- Load and Save fuer neuestes Brain
+- Level Generator
+
+Aktuelle Tasks:
+
+Frintend:
+- Branch fertig zum mergen machen!
+- Viewcone fertig machen
+- Testen!
+
+Backend:
+- test fuer file system
+- Vrobereitung fuer Training
