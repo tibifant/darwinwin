@@ -225,7 +225,7 @@ inline void neural_net_eval(const neural_net<layer_blocks_per_layer...> &nn, typ
 //////////////////////////////////////////////////////////////////////////
 
 template <byte_stream_writer writer, size_t ...layer_blocks_per_layer>
-inline lsResult neural_net_write(neural_net<layer_blocks_per_layer...> &nn, value_writer<writer> &vw)
+inline lsResult neural_net_write(const neural_net<layer_blocks_per_layer...> &nn, value_writer<writer> &vw)
 {
   lsResult result = lsR_Success;
 
