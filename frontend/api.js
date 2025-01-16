@@ -6,16 +6,16 @@ let tick = 1;
 let actorStats;
 let updateInfo = false;
 
-const tileFlags = new Map([
-  ['Underwater', 1 << 0],
-  ['Protein', 1 << 1],
-  ['Sugar', 1 << 2],
-  ['Vitamin', 1 << 3],
-  ['Fat', 1 << 4],
-  ['Collidable', 1 << 5],
-  ['OtherActor', 1 << 6],
-  ['Hidden', 1 << 7],
-])
+const tileFlags = {
+      Underwater: 1 << 0,
+      Protein: 1 << 1,
+      Sugar: 1 << 2,
+      Vitamin: 1 << 3,
+      Fat: 1 << 4,
+      Collidable: 1 << 5,
+      OtherActor: 1 << 6,
+      Hidden: 1 << 7,
+    }
 
 document.addEventListener('DOMContentLoaded', setup);
 
@@ -186,7 +186,7 @@ function checkTileFlags(tile, tileElement){
 }
 
 function hasTileCondition(tile, condition){
-  return !!(tile & tileFlags.get(condition));
+  return !!(tile & tileFlags[condition]);
 }
 
 function createFoodOf(type){
@@ -343,13 +343,13 @@ function fillTileStatsElements(id, labels, values, optionsButtonsElement){
   labels.innerHTML = "Tile ID:<br>X:<br>Y:<br><br>";
   values.innerHTML = `${id}<br>${x}<br>${y}<br><br>`;
 
-  tileFlags.forEach((value, key) => {
-    labels.innerHTML += key+"<br>";
-    values.innerHTML += hasTileCondition(mapGridArray[tileIndex], key)+"<br>";
+  for(const flag in tileFlags){
+    labels.innerHTML += flag+"<br>";
+    values.innerHTML += hasTileCondition(mapGridArray[tileIndex], flag)+"<br>";
 
-    const button = createTileButton(tileIndex, key);
+    const button = createTileButton(tileIndex, flag);
     optionsButtonsElement.appendChild(button);
-  })
+  }
 }
 
 function createTileButton(tileIndex, key){
@@ -376,10 +376,10 @@ function initiateSetTileRequest(event){
 
   let newTile;
   if(hasTileCondition(tile, condition)){
-    newTile = tile - tileFlags.get(condition);
+    newTile = tile - tileFlags[condition];
   }
   else {
-    newTile = tile + tileFlags.get(condition);
+    newTile = tile + tileFlags[condition];
   }
 
   const payload = {
