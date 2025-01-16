@@ -85,8 +85,6 @@ function setupActor(actor, mapWidth){
   updateActor(actor, mapWidth);
 }
 
-
-
 function setupViewCone(){
   //TODO: Possible to make this more dynamic?
   const viewConeSize = 8;
@@ -248,11 +246,10 @@ function showViewCone(eventElementId){
   //TODO: Change for multiple actors
   //let actor = document.getElementById(eventElementId);
   //let actorStats = actor.actorStats;
-  let viewCone = actorStats.viewcone;
-  console.log(viewCone);
-  for(let i=0; i<actorStats.viewcone.length; i++){
+  const viewCone = actorStats.viewcone;
+  for(let i=0; i<viewCone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
-    tile.innerHTML = actorStats.viewcone[i];
+    tile.innerHTML = viewCone[i];
     tile.style.backgroundColor = '#567345';
     checkTileFlags(viewCone[i], tile);
   }
