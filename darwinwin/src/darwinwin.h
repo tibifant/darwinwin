@@ -20,7 +20,7 @@ enum actorStats
   _actorStats_Count
 };
 
-enum tileFlag : uint8_t
+enum tileFlag_ : uint8_t
 {
   tf_Underwater = 1ULL << as_Air,
   tf_Protein = 1ULL << as_Protein,
@@ -32,6 +32,8 @@ enum tileFlag : uint8_t
   tf_Hidden = 1ULL << 7, // not on the map
 };
 
+using tileFlag = uint8_t;
+
 void tileFlag_toTempString(const uint8_t flag, char(&out)[9]);
 void tileFlag_print(const uint8_t flag);
 
@@ -41,6 +43,7 @@ struct level
 {
   static constexpr size_t width = 32;
   static constexpr size_t height = 32;
+  static constexpr size_t total = width * height;
 
   static constexpr uint8_t wallThickness = 3; // this needs a shorter name
 
@@ -106,7 +109,7 @@ struct actor
   lookDirection look_at_dir;
   uint8_t stats[_actorStats_Count];
   uint8_t stomach_remaining_capacity;
-  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 2, 2, 1> brain;
+  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 2, 1> brain;
 
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };
