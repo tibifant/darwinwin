@@ -267,7 +267,7 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
 
 void actor_updateStats(actor *pActor, const viewCone &cone)
 {
-  constexpr int64_t IdleEnergyCost = 3;
+  constexpr int64_t IdleEnergyCost = 2;
 
   // Remove Idle Energy
   modify_with_clamp(pActor->stats[as_Energy], -IdleEnergyCost);
@@ -286,7 +286,7 @@ void actor_updateStats(actor *pActor, const viewCone &cone)
     modify_with_clamp(pActor->stats[as_Energy], -NoAirEnergyCost);
 
   // Digest
-  constexpr int64_t FoodEnergyAmount = 2;
+  constexpr int64_t FoodEnergyAmount = 5;
   constexpr int64_t FoodDigestionAmount = 1;
 
   size_t count = 0;
@@ -305,74 +305,98 @@ void actor_updateStats(actor *pActor, const viewCone &cone)
 
 void actor_move(actor *pActor, const level &lvl)
 {
-  constexpr size_t _movementEnergyCost = 10;
-  constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+  constexpr int64_t MovementEnergyCost = 10;
+  constexpr int64_t CollideEnergyCost = 4;
+  constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, -1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
-  if (pActor->stats[as_Energy] >= _movementEnergyCost)
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], -MovementEnergyCost);
+
+  if (oldEnergy < MovementEnergyCost)
     return;
 
-  const vec2u16 newPos = vec2u16(pActor->pos.x + lut[pActor->look_at_dir].x, pActor->pos.y + lut[pActor->look_at_dir].y);
+  const vec2u16 newPos = vec2u16(vec2i16(pActor->pos) + lut[pActor->look_at_dir]);
 
-  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
+  if (lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable)
   {
-    pActor->pos = newPos;
-    pActor->stats[as_Energy] -= _movementEnergyCost;
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    return;
   }
+
+  pActor->pos = newPos;
 }
 
 void actor_moveTwo(actor *pActor, const level &lvl)
 {
-  constexpr size_t DoubleMovementEnergyCost = 17;
-  constexpr vec2i8 lut[_lookDirection_Count] = { vec2i8(-1, 0), vec2i8(0, -1), vec2i8(1, 0), vec2i8(0, -1) };
+  constexpr int64_t DoubleMovementEnergyCost = 30;
+  constexpr int64_t CollideEnergyCost = 4;
+  constexpr vec2i16 LutDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, -2) };
+  constexpr int8_t LutSingle[_lookDirection_Count] = { -1, -(int64_t)level::width, 1, level::width };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
-  if (pActor->stats[as_Energy] < DoubleMovementEnergyCost)
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], DoubleMovementEnergyCost);
+
+  if (oldEnergy < DoubleMovementEnergyCost)
     return;
 
-  const vec2u16 newPos = vec2u16(pActor->pos.x + 2 * lut[pActor->look_at_dir].x, pActor->pos.y + 2 * lut[pActor->look_at_dir].y);
-  const size_t nearIdx = (pActor->pos.y + lut[pActor->look_at_dir].y) * level::width + (pActor->pos.x + lut[pActor->look_at_dir].x);
+  const size_t nearIdx = (pActor->pos.y * level::width + pActor->pos.x) + LutSingle[pActor->look_at_dir];
+  const size_t newPosIdx = nearIdx + LutSingle[pActor->look_at_dir];
 
-  if (!(lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable) && !(lvl.grid[nearIdx] & tf_Collidable) && newPos.x >= level::wallThickness && newPos.x < (level::width - level::wallThickness) && newPos.y >= level::wallThickness && newPos.y < (level::height - level::wallThickness))
+  if ((lvl.grid[newPosIdx] & tf_Collidable) || (lvl.grid[nearIdx] & tf_Collidable))
   {
-    pActor->pos = newPos;
-    pActor->stats[as_Energy] -= DoubleMovementEnergyCost;
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    return;
   }
+
+  const vec2u16 newPos = vec2u16((vec2i16)(pActor->pos) + LutDouble[pActor->look_at_dir]);
+  pActor->pos = newPos;
 }
 
 constexpr int64_t TurnEnergy = 2;
 
 void actor_turnLeft(actor *pActor)
 {
-  if (pActor->stats[as_Energy] < TurnEnergy)
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], TurnEnergy);
+
+  if (oldEnergy < TurnEnergy)
     return;
 
-  pActor->stats[as_Energy] -= TurnEnergy;
   pActor->look_at_dir = pActor->look_at_dir == ld_left ? ld_down : (lookDirection)(pActor->look_at_dir - 1);
   lsAssert(pActor->look_at_dir < _lookDirection_Count);
 }
 
 void actor_turnRight(actor *pActor)
 {
-  if (pActor->stats[as_Energy] < TurnEnergy)
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], TurnEnergy);
+
+  if (oldEnergy < TurnEnergy)
     return;
 
-  pActor->stats[as_Energy] -= TurnEnergy;
   pActor->look_at_dir = pActor->look_at_dir == ld_down ? ld_left : (lookDirection)(pActor->look_at_dir + 1);
   lsAssert(pActor->look_at_dir < _lookDirection_Count);
 }
 
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
-  // TODO different values for different food?
+  static constexpr int64_t EatEnergyCost = 3;
   static constexpr int64_t FoodAmount = 2;
   static constexpr uint8_t StomachCapacity = 255;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
+
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], EatEnergyCost);
+
+  if (oldEnergy < TurnEnergy)
+    return;
 
   size_t stomachFoodCount = 0;
 
@@ -501,13 +525,3 @@ epilogue:
 // load specific brain: list and then select in console
 
 // train: load actor, start training, save actor whilst training, reevaluate scores... save
-
-void train_actor(actor *pActor, level *pLvl)
-{
-  // start training
-
-  // save
-  
-  // reevaluate after xxx time
-
-}
