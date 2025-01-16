@@ -56,9 +56,14 @@ function setLevelContainerSize(levelContainer ,mapWidth, mapHeight){
   //Adjust according to level-tile css class
   const tileSize = 20;
   const tileMargin = 1;
+  const containerWidth = mapHeight * (tileSize + tileMargin*4) + 'pt';
+  const containerHeight = mapWidth * (tileSize + tileMargin*4) + 'pt';
 
-  levelContainer.style.width = mapWidth * (tileSize + tileMargin*4) + 'pt';
-  levelContainer.style.height = mapHeight * (tileSize + tileMargin*4) + 'pt';
+  levelContainer.style.width = containerWidth;
+  levelContainer.style.height = containerHeight;
+
+  levelContainer.style.minWidth = containerWidth;
+  levelContainer.style.minHeight = containerHeight;
 }
 
 function setupTileElements(levelContainer, grid){
@@ -106,6 +111,7 @@ function setupViewCone(){
       tile.classList.add('view-cone-tile');
       tile.style.gridRow = positions[i].row;
       tile.style.gridColumn = positions[i].col;
+      tile.style.backgroundColor = '#c6c6c6'
       tile.id = 'view-cone-tile-' + i;
       grid.appendChild(tile);
     }
@@ -149,7 +155,11 @@ function updateTiles(grid){
 
 function checkTileFlags(tile, tileElement){
   if(hasTileCondition(tile, "Hidden")){
-
+    if(tileElement.id.split('-')[0] === 'view'){
+      tileElement.style.backgroundColor = '';
+      tileElement.style.border = '2px solid black';
+      return;
+    }
   }
   if(hasTileCondition(tile, "OtherActor")){
 
@@ -242,16 +252,9 @@ function showViewCone(eventElementId){
   console.log(viewCone);
   for(let i=0; i<actorStats.viewcone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
-    tile.innerHTML = ''; // Leeren Sie zuerst den Inhalt
-    tile.style.backgroundColor = '#567345'; // Setzen Sie die Standard-Hintergrundfarbe
+    tile.innerHTML = actorStats.viewcone[i];
+    tile.style.backgroundColor = '#567345';
     checkTileFlags(viewCone[i], tile);
-
-    console.log(`Checking tile ${i}:`);
-    console.log("Underwater?", hasTileCondition(viewCone[i], "Underwater"));
-    console.log("Protein?", hasTileCondition(viewCone[i], "Protein"));
-    console.log("Sugar?", hasTileCondition(viewCone[i], "Sugar"));
-    console.log("Vitamin?", hasTileCondition(viewCone[i], "Vitamin"));
-    console.log("Fat?", hasTileCondition(viewCone[i], "Fat"));
   }
 }
 
