@@ -2,10 +2,7 @@ const server_url = 'http://localhost:21110/';
 
 //Cached Variables
 let actorElements = [];
-let mapGridArray;
-let tick = 1;
-let actorStats = [];
-let mapWidth;
+let worldData;
 
 const tileFlags = {
       Underwater: 1 << 0,
@@ -41,27 +38,24 @@ function setupStatsWindow(){
   optionsElement.appendChild(statsMessage);
 }
 
-function setupMap(data){
-  const mapHeight = data.level.height;
-  mapWidth = data.level.width;
-
+function setupMap(){
   const levelContainer = document.getElementById("level-container");
-  setLevelContainerSize(levelContainer, mapHeight);
-  setupTileElements(levelContainer, data.level.grid);
+  setLevelContainerSize(levelContainer);
+  setupTileElements(levelContainer, worldData.level.grid);
 
-  data.actor.forEach((actor, i) => {
-    setupActor(actor, i, mapWidth);
+  worldData.actor.forEach((actor, i) => {
+    setupActor(actor, i, worldData.level.width);
   })
 
-    updateWorld(data);
+    updateWorld();
 }
 
-function setLevelContainerSize(levelContainer, mapHeight){
+function setLevelContainerSize(levelContainer){
   //Adjust according to level-tile css class
   const tileSize = 20;
   const tileMargin = 1;
-  const containerWidth = mapHeight * (tileSize + tileMargin*4) + 'pt';
-  const containerHeight = mapWidth * (tileSize + tileMargin*4) + 'pt';
+  const containerWidth = worldData.level.height * (tileSize + tileMargin*4) + 'pt';
+  const containerHeight = worldData.level.width * (tileSize + tileMargin*4) + 'pt';
 
   levelContainer.style.width = containerWidth;
   levelContainer.style.height = containerHeight;
@@ -133,29 +127,28 @@ function fetchAllData(callback = null) {
   console.log("Updating World...");
   //Tried to avoid lambda but could not find alternative
   fetchLevel(res => {
-    updateWorld(res, callback);
+    updateWorld(callback);
   });
 }
 
-function updateWorld(newData, callback){
-  console.log("Received World Data:\n", newData);
+function updateWorld(callback){
+  console.log("Received World Data:\n", worldData);
 
-  updateTiles(newData.level.grid);
+  updateTiles();
 
-  newData.actor.forEach((actor, i) => {
+  worldData.actor.forEach((actor, i) => {
       updateActor(actor, i);
   });
   if (callback) callback();
-  console.log(`Updated Tick ${tick++}!`);
 }
 
-function updateTiles(grid){
+function updateTiles(){
+  const grid = worldData.level.grid;
   for(let i=0; i<grid.length; i++){
     const tileElement = document.getElementById("tile-"+i);
     tileElement.innerHTML = '';
     tileElement.style.backgroundColor = '#567345';
 
-    mapGridArray = grid;
     checkTileFlags(grid[i], tileElement);
   }
 }
@@ -204,9 +197,10 @@ function createFoodOf(type){
 }
 
 function updateActor(actor, index){
-  const actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
+  console.log(worldData)
+  const actorTile = document.getElementById("tile-" + (actor.posX + worldData.level.width * actor.posY));
   actorTile.appendChild(actorElements[index]);
-  actorStats[index] = actor;
+  worldData.actor[index] = actor;
 }
 
 //Stats view for Actor functions
@@ -232,7 +226,7 @@ function showActorStats(actorId){
 }
 
 function showViewCone(actorId){
-  const viewCone = actorStats[actorId.split('-')[1]].viewcone;
+  const viewCone = worldData.actor[actorId.split('-')[1]].viewcone;
   for(let i=0; i<viewCone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
     tile.innerText = viewCone[i];
@@ -258,7 +252,7 @@ function fillActorLabelsAndValuesElements(actorId, labels, values){
   ]
 
   const actorIndex = actorId.split('-')[1];
-  const targetActorStats = actorStats[actorIndex]
+  const targetActorStats = worldData.actor[actorIndex];
   labels.innerHTML = "Actor ID:<br>PosX:<br>PosY:<br>LookDir:<br><br>";
   values.innerHTML = `${actorId}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br><br>`;
   for (const stat in targetActorStats.stats ){
@@ -316,15 +310,16 @@ function showTileStats(tileId){
 
 function fillTileStatsElements(id, labels, values, optionsButtonsElement){
   const tileIndex = id.split('-')[1];
-  const x = tileIndex % mapWidth;
-  const y = Math.floor(tileIndex / mapWidth);
+  const x = tileIndex % worldData.level.width;
+  const y = Math.floor(tileIndex / worldData.level.width);
 
   labels.innerHTML = "Tile ID:<br>X:<br>Y:<br><br>";
   values.innerHTML = `${id}<br>${x}<br>${y}<br><br>`;
 
+  const grid = worldData.level.grid;
   for(const flag in tileFlags){
     labels.innerHTML += flag+"<br>";
-    values.innerHTML += hasTileCondition(mapGridArray[tileIndex], flag)+"<br>";
+    values.innerHTML += hasTileCondition(grid[tileIndex], flag)+"<br>";
 
     const button = createTileButton(tileIndex, flag);
     optionsButtonsElement.appendChild(button);
@@ -349,10 +344,10 @@ function initiateActorActionRequest(event){
 
 function initiateSetTileRequest(event){
   const tileIndex = event.target.id.split('-')[3];
-  const tile = mapGridArray[tileIndex];
+  const tile = worldData.level.grid[tileIndex];
   const condition = event.target.id.split('-')[4];
-  const x = tileIndex % mapWidth;
-  const y = Math.floor(tileIndex / mapWidth);
+  const x = tileIndex % worldData.level.width;
+  const y = Math.floor(tileIndex / worldData.level.width);
 
   const newTile = tile ^ tileFlags[condition];
 
@@ -421,7 +416,10 @@ function load_backend_url(url, callback, payload, failure_callback) {
 }
 
 function fetchLevel(callback){
-   load_backend_url('getLevel', callback,
+   load_backend_url('getLevel', res => {
+      worldData = res;
+      callback(worldData);
+     },
     {}, handleError);
 }
 
