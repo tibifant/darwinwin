@@ -372,13 +372,7 @@ function initiateSetTileRequest(event){
   const x = tileIndex % mapWidth;
   const y = Math.floor(tileIndex / mapWidth);
 
-  let newTile;
-  if(hasTileCondition(tile, condition)){
-    newTile = tile - tileFlags[condition];
-  }
-  else {
-    newTile = tile + tileFlags[condition];
-  }
+  const newTile = tile ^ tileFlags[condition];
 
   const payload = {
     x: x,
