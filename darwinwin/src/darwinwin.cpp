@@ -1,5 +1,6 @@
 #include "darwinwin.h"
 #include "io.h"
+#include "level_generator.h"
 
 #include <filesystem>
 
@@ -170,6 +171,37 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
   lsAssert(anyAlive); // otherwise, maybe don't call us???
 
   return anyAlive;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+void level_gen_water_level(level *pLvl)
+{
+  level_gen_init(pLvl, tf_Underwater);
+  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
+  level_gen_grow(pLvl, 0);
+  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
+  level_gen_finalize(pLvl);
+}
+
+void level_gen_water_food_level(level *pLvl)
+{
+  level_gen_init(pLvl, tf_Underwater);
+  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
+  level_gen_grow(pLvl, 0);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin | tf_Underwater, level::total / 10);
+  level_gen_random_sprinkle_replace(pLvl, tf_Vitamin | tf_Underwater, tf_Vitamin | tf_Underwater | tf_Fat, level::total / 3); // UVF looks sus
+  level_gen_sprinkle_grow_into_mask(pLvl, tf_Underwater | tf_Vitamin, tf_Underwater, level_gen_make_chance<0.75>());
+  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
+  level_gen_finalize(pLvl);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+void level_generateDefault(level *pLvl)
+{
+  level_gen_water_food_level(pLvl);
 }
 
 //////////////////////////////////////////////////////////////////////////

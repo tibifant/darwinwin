@@ -200,11 +200,9 @@ Aktuelle Tasks:
 Frontend:
 - Testen
 - Branch fertig machen!
---
 - viewcone seperat anzeigen aus Frontend zusammengebaut (in neuer Branch1, wenn fertig -> neue MR)
 - Button: single step fuer ai-actor `/ai_step` (neue Branch2)
 - Button: generiertes Level vom Server anfragen `/level_generate` (neue Branch3 & MR)
---
 - Buttons: `/start_training`, `/stop_training`, `is_training`  (neue Branch4 & MR)
 
 Backend:

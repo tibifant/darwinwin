@@ -55,6 +55,11 @@ namespace asio
 crow::response handle_getLevel(const crow::request &req);
 crow::response handle_setTile(const crow::request &req);
 crow::response handle_manualAct(const crow::request &req);
+crow::response handle_aiStep(const crow::request &req);
+crow::response handle_levelGenerate(const crow::request &req);
+crow::response handle_startTraining(const crow::request &req);
+crow::response handle_stopTraining(const crow::request &req);
+crow::response handle_isTraining(const crow::request &req);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -147,6 +152,11 @@ int32_t main(const int32_t argc, const char **pArgv)
     CROW_ROUTE(app, "/getLevel").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_getLevel(req); });
     CROW_ROUTE(app, "/setTile").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_setTile(req); });
     CROW_ROUTE(app, "/manualAct").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_manualAct(req); });
+    CROW_ROUTE(app, "/ai_step").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_aiStep(req); });
+    CROW_ROUTE(app, "/level_generate").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_levelGenerate(req); });
+    CROW_ROUTE(app, "/start_training").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_startTraining(req); });
+    CROW_ROUTE(app, "/stop_training").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_stopTraining(req); });
+    CROW_ROUTE(app, "/is_training").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_isTraining(req); });
 
     app.port(21110).multithreaded().run();
 
@@ -233,6 +243,66 @@ crow::response handle_manualAct(const crow::request &req)
   actor_act(&_WebActor, &_WebLevel, cone, actorAction(id));
 
   return crow::response(crow::status::OK);
+}
+
+crow::response handle_aiStep(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  // TODO: Call `level_performStep` once everything is ready.
+
+  return crow::response(crow::status::NOT_IMPLEMENTED);
+}
+
+crow::response handle_levelGenerate(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  level_generateDefault(&_WebLevel);
+
+  return crow::response(crow::status::OK);
+}
+
+crow::response handle_startTraining(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  // TODO!
+
+  return crow::response(crow::status::NOT_IMPLEMENTED);
+}
+
+crow::response handle_stopTraining(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  // TODO!
+
+  return crow::response(crow::status::NOT_IMPLEMENTED);
+}
+
+crow::response handle_isTraining(const crow::request &req)
+{
+  auto body = crow::json::load(req.body);
+
+  if (!body)
+    return crow::response(crow::status::BAD_REQUEST);
+
+  // TODO!
+
+  return crow::response(crow::status::NOT_IMPLEMENTED);
 }
 
 //////////////////////////////////////////////////////////////////////////
