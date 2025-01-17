@@ -1,9 +1,10 @@
 const server_url = 'http://localhost:21110/';
 
 //Cached Variables
+let actorElements = [];
 let mapGridArray;
 let tick = 1;
-let actorStats;
+let actorStats = [];
 let mapWidth;
 
 const tileFlags = {
@@ -48,9 +49,11 @@ function setupMap(data){
   setLevelContainerSize(levelContainer, mapHeight);
   setupTileElements(levelContainer, data.level.grid);
 
-  setupActor(data.actor[0]);
+  data.actor.forEach((actor, i) => {
+    setupActor(actor, i, mapWidth);
+  })
 
-  updateWorld(data);
+    updateWorld(data);
 }
 
 function setLevelContainerSize(levelContainer, mapHeight){
@@ -77,13 +80,17 @@ function setupTileElements(levelContainer, grid){
   })
 }
 
-function setupActor(actor){
-  actorElements = document.createElement("div");
-  actorElement.classList.add("actor");
-  actorElement.id = "actor";
-  actorElement.addEventListener("click", showActorStats)
+function setupActor(actor, index){
+  const newActorElement = document.createElement("div");
+  newActorElement.classList.add("actor");
+  newActorElement.id = "actor-"+index;
+  newActorElement.addEventListener("click", event => {
+    showActorStats(event.target.id);
+    event.stopPropagation();
+  })
+  actorElements[index] = newActorElement;
 
-  updateActor(actor);
+  updateActor(actor, index);
 }
 
 function setupViewCone(){
@@ -135,8 +142,9 @@ function updateWorld(newData, callback){
 
   updateTiles(newData.level.grid);
 
-  const actor = newData.actor[0];
-  updateActor(actor);
+  newData.actor.forEach((actor, i) => {
+      updateActor(actor, i);
+  });
   if (callback) callback();
   console.log(`Updated Tick ${tick++}!`);
 }
@@ -195,17 +203,15 @@ function createFoodOf(type){
   return newItem;
 }
 
-function updateActor(actor){
+function updateActor(actor, index){
   const actorTile = document.getElementById("tile-" + (actor.posX + mapWidth * actor.posY));
-  actorTile.appendChild(actorElement);
-  actorStats = actor;
-  console.log("actorStats updated:");
-  console.log(actorStats)
+  actorTile.appendChild(actorElements[index]);
+  actorStats[index] = actor;
 }
 
 //Stats view for Actor functions
-function showActorStats(event){
-  console.log("Showing Actor Stats");
+function showActorStats(actorId){
+  console.log("Showing Actor Stats for " + actorId);
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -216,22 +222,17 @@ function showActorStats(event){
   const labelsElement = document.createElement('label')
   const valuesElement = document.createElement('label');
 
-  fillActorLabelsAndValuesElements(labelsElement, valuesElement);
+  fillActorLabelsAndValuesElements(actorId, labelsElement, valuesElement);
 
   infoLabelsElement.appendChild(labelsElement);
   infoValuesElement.appendChild(valuesElement);
-  optionsElement.appendChild(createActorOptionsButtonsElement());
+  optionsElement.appendChild(createActorOptionsButtonsElement(actorId));
 
-  showViewCone(event.detail.id);
-
-  event.stopPropagation();
+  showViewCone(actorId);
 }
 
-function showViewCone(eventElementId){
-  //TODO: Change for multiple actors
-  //let actor = document.getElementById(eventElementId);
-  //let actorStats = actor.actorStats;
-  const viewCone = actorStats.viewcone;
+function showViewCone(actorId){
+  const viewCone = actorStats[actorId.split('-')[1]].viewcone;
   for(let i=0; i<viewCone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
     tile.innerText = viewCone[i];
@@ -240,7 +241,7 @@ function showViewCone(eventElementId){
   }
 }
 
-function fillActorLabelsAndValuesElements(labels, values){
+function fillActorLabelsAndValuesElements(actorId, labels, values){
   const lookDirections = [
     "left",
     "up",
@@ -256,28 +257,33 @@ function fillActorLabelsAndValuesElements(labels, values){
     "Energy"
   ]
 
-  for(const key in actorStats ){
+  labels.innerHTML = "Actor ID:<br>";
+  values.innerHTML = actorId+"<br>";
+
+  const actorIndex = actorId.split('-')[1];
+  const targetActorStats = actorStats[actorIndex]
+  for(const key in targetActorStats ){
     switch (key) {
       case "stats":
         labels.innerHTML += "<br>";
         values.innerHTML += "<br>";
-        for (const stat in actorStats.stats ){
+        for (const stat in targetActorStats.stats ){
           labels.innerHTML += statDescriptions[stat] + "<br>";
-          values.innerHTML += actorStats.stats[stat] + "<br>";
+          values.innerHTML += targetActorStats.stats[stat] + "<br>";
         }
         break;
       case "lookDir":
         labels.innerHTML += key + '<br>';
-        values.innerHTML += lookDirections[actorStats[key]] + '<br>';
+        values.innerHTML += lookDirections[targetActorStats[key]] + '<br>';
         break;
       default:
         labels.innerHTML += key + '<br>';
-        values.innerHTML += actorStats[key] + '<br>';
+        values.innerHTML += targetActorStats[key] + '<br>';
     }
   }
 }
 
-function createActorOptionsButtonsElement(){
+function createActorOptionsButtonsElement(actorId){
   const actorActions = [
     "move",
     "move 2",
@@ -289,15 +295,15 @@ function createActorOptionsButtonsElement(){
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
   actorActions.forEach((action, i) => {
-    const button = createActorButton(action, i);
+    const button = createActorButton(actorId, action, i);
     optionsButtonsElement.appendChild(button);
   })
   return optionsButtonsElement;
 }
 
-function createActorButton(action, i){
+function createActorButton(actorId, action, actionId){
   const button = document.createElement('button');
-  button.id = "option-button-"+i;
+  button.id = "option-button-"+actorId+"-"+actionId;
   button.innerText = action;
   button.addEventListener('click', initiateActorActionRequest)
   return button;
@@ -353,8 +359,10 @@ function createTileButton(tileIndex, key){
 
 //Set functions
 function initiateActorActionRequest(event){
-  const actionId = event.target.id.slice(-1);
-  postActorAction(actionId);
+  const idSplit = event.target.id.split('-');
+  const actorId = idSplit[2] + "-" + idSplit[3];
+  const actionId = idSplit[4];
+  postActorAction(actorId, actionId);
 }
 
 function initiateSetTileRequest(event){
@@ -441,9 +449,11 @@ function fetchLevel(callback){
     {}, handleError);
 }
 
-function postActorAction(id){
-  load_backend_url('manualAct', fetchAllData,
-    {actionId: id}, handleError);
+function postActorAction(actorId, actionId) {
+  const updateFunction = showActorStats.bind(null, actorId);
+  const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
+  load_backend_url('manualAct', fetchAndUpdate,
+    {actionId: actionId}, handleError);
 }
 
 function postTileSetRequest(payload, tileId){
