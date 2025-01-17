@@ -371,8 +371,8 @@ function initiateSetTileRequest(event){
   const tileIndex = event.target.id.split('-')[3];
   const tile = mapGridArray[tileIndex];
   const condition = event.target.id.split('-')[4];
-  const x = tileIndex % 32;
-  const y = Math.floor(tileIndex / 32);
+  const x = tileIndex % mapWidth;
+  const y = Math.floor(tileIndex / mapWidth);
 
   let newTile;
   if(hasTileCondition(tile, condition)){
