@@ -50,12 +50,13 @@ struct level
   uint8_t grid[width * height];
 };
 
-void level_initLinear(level *pLevel);
+void level_initLinear(level *pLevel); 
 void level_print(const level &level);
 
 struct actor;
 
 bool level_performStep(level &lvl, actor *pActors, const size_t actorCount);
+void level_generateDefault(level *pLvl);
 
 //////////////////////////////////////////////////////////////////////////
 
