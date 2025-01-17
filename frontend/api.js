@@ -1,10 +1,9 @@
 const server_url = 'http://localhost:21110/';
 
-let actorElement;
+//Cached Variables
 let mapGridArray;
 let tick = 1;
 let actorStats;
-let updateInfo = false;
 let mapWidth;
 
 const tileFlags = {
@@ -26,7 +25,6 @@ function setup(){
   fetchLevel(setupMap);
   setupStatsWindow();
   setupViewCone();
-  setInterval(fetchAllData, 1000);
   console.log("Setup Complete!");
 }
 
@@ -51,6 +49,8 @@ function setupMap(data){
   setupTileElements(levelContainer, data.level.grid);
 
   setupActor(data.actor[0]);
+
+  updateWorld(data);
 }
 
 function setLevelContainerSize(levelContainer, mapHeight){
@@ -78,7 +78,7 @@ function setupTileElements(levelContainer, grid){
 }
 
 function setupActor(actor){
-  actorElement = document.createElement("div");
+  actorElements = document.createElement("div");
   actorElement.classList.add("actor");
   actorElement.id = "actor";
   actorElement.addEventListener("click", showActorStats)
@@ -122,33 +122,22 @@ function setupViewCone(){
 //##################Periodic Update Functions########################
 //###################################################################
 
-function fetchAllData() {
+function fetchAllData(callback = null) {
   console.log("Updating World...");
-  fetchLevel(updateWorld)
+  //Tried to avoid lambda but could not find alternative
+  fetchLevel(res => {
+    updateWorld(res, callback);
+  });
 }
 
-function updateWorld(newData){
+function updateWorld(newData, callback){
   console.log("Received World Data:\n", newData);
 
   updateTiles(newData.level.grid);
 
   const actor = newData.actor[0];
   updateActor(actor);
-  if(updateInfo){ //TODO: Temporary solution
-    switch (updateInfo.split("-")[0]) {
-      case "actor":
-        showActorStats(new CustomEvent("", {
-          detail: {
-            id: updateInfo
-          }
-        }));
-        break;
-      case "tile":
-        showTileStats(updateInfo);
-        break;
-    }
-    updateInfo = false;
-  }
+  if (callback) callback();
   console.log(`Updated Tick ${tick++}!`);
 }
 
@@ -315,7 +304,9 @@ function createActorButton(action, i){
 }
 
 //Stats view for Tile functions
-function showTileStats(id){
+function showTileStats(tileId){
+  console.log(tileId);
+
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -328,7 +319,7 @@ function showTileStats(id){
   const labels = document.createElement('label');
   const values = document.createElement('label');
 
-  fillTileStatsElements(id, labels, values, optionsButtonsElement);
+  fillTileStatsElements(tileId, labels, values, optionsButtonsElement);
 
   infoLabelsElement.appendChild(labels);
   infoValuesElement.appendChild(values);
@@ -364,7 +355,6 @@ function createTileButton(tileIndex, key){
 function initiateActorActionRequest(event){
   const actionId = event.target.id.slice(-1);
   postActorAction(actionId);
-  updateInfo = "actor";
 }
 
 function initiateSetTileRequest(event){
@@ -388,8 +378,7 @@ function initiateSetTileRequest(event){
     value: newTile
   }
 
-  postTileSetRequest(payload);
-  updateInfo = "tile-"+tileIndex;
+  postTileSetRequest(payload, "tile-"+tileIndex);
 }
 
 //Net functions
@@ -415,7 +404,13 @@ function load_url(url, callback, payload, failure_callback) {
           let obj = JSON.parse(xmlhttp.responseText);
           callback(obj);
         } catch (e) {
-          failure_callback(e);
+          if(e instanceof SyntaxError) {
+            console.log("Request returned Faulty JSON, attempting callback without additional parameters.");
+            callback();
+          }
+          else {
+            failure_callback(e);
+          }
         }
       } else { // TODO: handle all relevant error codes
         if (xmlhttp.status == 403) {
@@ -447,11 +442,13 @@ function fetchLevel(callback){
 }
 
 function postActorAction(id){
-  load_backend_url('manualAct', {},
+  load_backend_url('manualAct', fetchAllData,
     {actionId: id}, handleError);
 }
 
-function postTileSetRequest(payload){
-  load_backend_url('setTile', {},
+function postTileSetRequest(payload, tileId){
+  const updateFunction = showTileStats.bind(null, tileId);
+  const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
+  load_backend_url('setTile', fetchAndUpdate,
     payload, handleError);
 }
