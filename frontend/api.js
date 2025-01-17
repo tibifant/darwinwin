@@ -245,7 +245,7 @@ function showViewCone(eventElementId){
   const viewCone = actorStats.viewcone;
   for(let i=0; i<viewCone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
-    tile.innerHTML = viewCone[i];
+    tile.innerText = viewCone[i];
     tile.style.backgroundColor = '#567345';
     checkTileFlags(viewCone[i], tile);
   }
@@ -336,8 +336,6 @@ function showTileStats(id){
 }
 
 function fillTileStatsElements(id, labels, values, optionsButtonsElement){
-  console.log(1);
-
   const tileIndex = id.split('-')[1];
   const x = tileIndex % mapWidth;
   const y = Math.floor(tileIndex / mapWidth);
