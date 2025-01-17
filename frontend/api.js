@@ -257,29 +257,13 @@ function fillActorLabelsAndValuesElements(actorId, labels, values){
     "Energy"
   ]
 
-  labels.innerHTML = "Actor ID:<br>";
-  values.innerHTML = actorId+"<br>";
-
   const actorIndex = actorId.split('-')[1];
   const targetActorStats = actorStats[actorIndex]
-  for(const key in targetActorStats ){
-    switch (key) {
-      case "stats":
-        labels.innerHTML += "<br>";
-        values.innerHTML += "<br>";
-        for (const stat in targetActorStats.stats ){
-          labels.innerHTML += statDescriptions[stat] + "<br>";
-          values.innerHTML += targetActorStats.stats[stat] + "<br>";
-        }
-        break;
-      case "lookDir":
-        labels.innerHTML += key + '<br>';
-        values.innerHTML += lookDirections[targetActorStats[key]] + '<br>';
-        break;
-      default:
-        labels.innerHTML += key + '<br>';
-        values.innerHTML += targetActorStats[key] + '<br>';
-    }
+  labels.innerHTML = "Actor ID:<br>PosX:<br>PosY:<br>LookDir:<br><br>";
+  values.innerHTML = `${actorId}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br><br>`;
+  for (const stat in targetActorStats.stats ){
+    labels.innerHTML += statDescriptions[stat] + "<br>";
+    values.innerHTML += targetActorStats.stats[stat] + "<br>";
   }
 }
 
@@ -311,8 +295,6 @@ function createActorButton(actorId, action, actionId){
 
 //Stats view for Tile functions
 function showTileStats(tileId){
-  console.log(tileId);
-
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
