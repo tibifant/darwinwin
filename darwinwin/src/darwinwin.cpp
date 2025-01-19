@@ -372,7 +372,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
   lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], DoubleMovementEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -DoubleMovementEnergyCost);
 
   if (oldEnergy < DoubleMovementEnergyCost)
     return;
@@ -395,7 +395,7 @@ constexpr int64_t TurnEnergy = 2;
 void actor_turnLeft(actor *pActor)
 {
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], TurnEnergy);
+  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy);
 
   if (oldEnergy < TurnEnergy)
     return;
@@ -407,7 +407,7 @@ void actor_turnLeft(actor *pActor)
 void actor_turnRight(actor *pActor)
 {
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], TurnEnergy);
+  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy);
 
   if (oldEnergy < TurnEnergy)
     return;
@@ -425,7 +425,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], EatEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -EatEnergyCost);
 
   if (oldEnergy < TurnEnergy)
     return;
