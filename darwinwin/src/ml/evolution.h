@@ -332,3 +332,10 @@ void evolution_reevaluate(evolution<target, config> &e, func evalFunc)
 
   list_sort<int64_t>(e.bestGeneIndices, idxToScore);
 }
+
+template <typename target, typename config, typename func>
+void evolution_for_each(evolution<target, config> &e, func f)
+{
+  for (auto g : e.genes)
+    f(g.pItem->t);
+}

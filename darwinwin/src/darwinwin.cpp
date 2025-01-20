@@ -205,8 +205,6 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
     actor_act(&pActors[i], &lvl, cone, pActors[i].last_action);
   }
 
-  lsAssert(anyAlive); // otherwise, maybe don't call us???
-
   return anyAlive;
 }
 
@@ -305,6 +303,9 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
     actor_eat(pActor, pLevel, cone);
     break;
 
+  case aa_Wait:
+    break;
+
   default:
     lsFail(); // not implemented.
     break;
@@ -364,7 +365,7 @@ void actor_move(actor *pActor, const level &lvl)
 {
   constexpr int64_t MovementEnergyCost = 10;
   constexpr int64_t CollideEnergyCost = 4;
-  constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, -1) };
+  constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, 1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
@@ -376,13 +377,16 @@ void actor_move(actor *pActor, const level &lvl)
     return;
 
   const vec2u16 newPos = vec2u16(vec2i16(pActor->pos) + lut[pActor->look_dir]);
+  const size_t newIdx = newPos.y * level::width + newPos.x;
 
-  if (lvl.grid[newPos.y * level::width + newPos.x] & tf_Collidable)
+  if (!!(lvl.grid[newIdx] & tf_Collidable))
   {
     modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
     return;
   }
 
+  lsAssert(!(lvl.grid[newIdx] & tf_Collidable));
+  lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
   pActor->pos = newPos;
 }
 
@@ -390,11 +394,12 @@ void actor_moveTwo(actor *pActor, const level &lvl)
 {
   constexpr int64_t DoubleMovementEnergyCost = 30;
   constexpr int64_t CollideEnergyCost = 4;
-  constexpr vec2i16 LutDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, -2) };
-  constexpr int8_t LutSingle[_lookDirection_Count] = { -1, -(int64_t)level::width, 1, level::width };
+  constexpr vec2i16 LutPosDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, 2) };
+  constexpr int8_t LutIdxSingle[_lookDirection_Count] = { -1, -(int64_t)level::width, 1, level::width };
 
+  const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
-  lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
+  lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
   modify_with_clamp(pActor->stats[as_Energy], -DoubleMovementEnergyCost);
@@ -402,16 +407,20 @@ void actor_moveTwo(actor *pActor, const level &lvl)
   if (oldEnergy < DoubleMovementEnergyCost)
     return;
 
-  const size_t nearIdx = (pActor->pos.y * level::width + pActor->pos.x) + LutSingle[pActor->look_dir];
-  const size_t newPosIdx = nearIdx + LutSingle[pActor->look_dir];
+  const size_t nearIdx = currentIdx + LutIdxSingle[pActor->look_dir];
+  const size_t newPosIdx = nearIdx + LutIdxSingle[pActor->look_dir];
 
-  if ((lvl.grid[newPosIdx] & tf_Collidable) || (lvl.grid[nearIdx] & tf_Collidable))
+  if (!!(lvl.grid[newPosIdx] & tf_Collidable) || !!(lvl.grid[nearIdx] & tf_Collidable))
   {
     modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
     return;
   }
 
-  const vec2u16 newPos = vec2u16((vec2i16)(pActor->pos) + LutDouble[pActor->look_dir]);
+  //const vec2u16 newPos = (vec2u16)((vec2i16)(pActor->pos) + LutPosDouble[pActor->look_dir]);
+  const size_t y = newPosIdx / level::width;
+  const vec2u16 newPos = vec2u16((uint16_t)(newPosIdx - y * level::width), (uint16_t)y);
+  lsAssert(!(lvl.grid[newPosIdx] & tf_Collidable));
+  lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
   pActor->pos = newPos;
 }
 
@@ -488,6 +497,7 @@ void crossbreed(actor &val, const actor parentA, const actor parentB, const cros
 {
   val.look_dir = parentA.look_dir;
   val.pos = parentA.pos;
+  lsMemcpy(val.stats, parentA.stats, LS_ARRAYSIZE(val.stats));
 
   crossbreeder_eval(c, val.brain.values, LS_ARRAYSIZE(val.brain.values), parentA.brain.values, parentB.brain.values);
 }
@@ -495,7 +505,7 @@ void crossbreed(actor &val, const actor parentA, const actor parentB, const cros
 template <typename mutator>
 void mutate(actor &target, const mutator &m)
 {
-  mutator_eval(m, &target.brain.values[0], LS_ARRAYSIZE(target.brain.values), (int16_t)lsMinValue<uint8_t>(), (int16_t)lsMaxValue<uint8_t>());
+  mutator_eval(m, &target.brain.values[0], LS_ARRAYSIZE(target.brain.values), (int16_t)lsMinValue<int8_t>(), (int16_t)lsMaxValue<int8_t>());
 }
 
 // TODO: Eval Funcs... -> Give scores
@@ -503,6 +513,7 @@ void mutate(actor &target, const mutator &m)
 size_t evaluate_actor(const actor &in)
 {
   constexpr size_t cycles = 1000;
+  constexpr size_t foodSprinkleMask = (1ULL << 5) - 1;
 
   actor actr = in;
   level lvl = _CurrentLevel;
@@ -512,7 +523,7 @@ size_t evaluate_actor(const actor &in)
   {
     const uint8_t foodCapacityBefore = actr.stomach_remaining_capacity;
 
-    if ((i & 32) == 0)
+    if ((i & foodSprinkleMask) == 0)
     {
       // TODO: Sprinkle Foods.
     }
@@ -541,8 +552,9 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
     load_newest_brain(dir, actr);
 
     uint64_t rand = lsGetRand();
-    actr.pos = vec2u16(rand % level::width, (rand >> level::widthBits) % level::height);
-    actr.look_dir = (lookDirection)((rand >> (level::widthBits + level::heightBits)) % _lookDirection_Count);
+    actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+    actr.pos += vec2u16(level::wallThickness);
+    actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
 
     actor_initStats(&actr);
 
@@ -556,6 +568,25 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
     while (_DoTraining)
     {
       level_generateDefault(&_CurrentLevel);
+      size_t maxRetries = 32;
+
+      do
+      {
+        rand = lsGetRand();
+        actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+        actr.pos += vec2u16(level::wallThickness);
+        actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+        maxRetries--;
+      } while ((_CurrentLevel.grid[actr.pos.x + actr.pos.y * level::width] & tf_Collidable) && maxRetries);
+
+      evolution_for_each(evl, [&](actor &a) { a.pos = actr.pos; a.look_dir = actr.look_dir; });
+
+      if (maxRetries == 0)
+      {
+        print_error_line("Failed to find non-collidable position in lvl.");
+        continue;
+      }
+
       evolution_reevaluate(evl, evaluate_actor);
 
       const actor *pBest = nullptr;
@@ -654,8 +685,8 @@ lsResult load_newest_brain(const char *dir, actor &actr)
     }
   }
 
-  lsAssert(bestTime >= 0);
   LS_ERROR_IF(best.empty(), lsR_ResourceNotFound);
+  lsAssert(bestTime >= 0);
   LS_ERROR_CHECK(load_brain_from_file(best.c_str(), actr));
 
 epilogue:
