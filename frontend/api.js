@@ -3,6 +3,7 @@ const server_url = 'http://localhost:21110/';
 //Cached Variables
 let actorElements = [];
 let worldData;
+let aiStepIntervalIdCache;
 
 const tileFlags = {
       Underwater: 1 << 0,
@@ -34,6 +35,8 @@ function setupControlPanel(){
   levelGenerateButton.addEventListener('click', levelGenerate);
   const aiStepButton = document.getElementById('ai-step-button');
   aiStepButton.addEventListener('click', aiStep);
+  const aiStepToggleButton = document.getElementById('ai-step-start-button');
+  aiStepToggleButton.addEventListener('click', aiStepToggle);
   const trainingStartButton = document.getElementById('training-start-button');
   const trainingStopButton = document.getElementById('training-stop-button');
   trainingStartButton.addEventListener('click', startTraining)
@@ -344,7 +347,7 @@ function createTileButton(tileIndex, key){
   return button;
 }
 
-// ### Control Panel functions ###7
+// ### Control Panel functions ###
 
 function levelGenerate(){
   postGenerateLevelRequest();
@@ -352,6 +355,28 @@ function levelGenerate(){
 
 function aiStep(){
   postAiStepRequest();
+}
+
+function aiStepToggle(event){
+  let intervalId;
+  const element = event.target;
+  switch (element.id.split('-')[2]) {
+    case 'start':
+      aiStepIntervalIdCache = setInterval(aiStep, 1000);
+      element.id = "ai-step-stop-button";
+      element.innerText = "Stop AI Step";
+      break;
+    case 'stop':
+      if(!aiStepIntervalIdCache){
+        console.error("Stop AI Step interval was called before interval was started.")
+      }
+      clearInterval(aiStepIntervalIdCache);
+      element.id = "ai-step-start-button";
+      element.innerText = "Start AI Step";
+      break;
+    default:
+      console.error("StepToggle - ID not recognized: " + element.id);
+  }
 }
 
 //TODO: Merge Buttons into single one, that switches function based on state
