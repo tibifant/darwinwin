@@ -471,7 +471,7 @@ function postTileSetRequest(payload, tileId){
 }
 
 function postAiStepRequest(){
-  load_backend_url('ai_step', {}, {}, handleError);
+  load_backend_url('ai_step', fetchAllData, {}, handleError);
 }
 
 function postGenerateLevelRequest(){
