@@ -119,6 +119,8 @@ Aktuelle Tasks:
 
 ## 13.01.2025:
 
+**Jan:** N/A (krank)
+
 **Marvin:**
 - Actor manual actions implementiert
 - setTile post request + tile info mit stats
@@ -168,6 +170,8 @@ Backend:
 
 ## 16.01.2025
 
+**Marvin:** N/A
+
 **Jan:**
 - Anfang view cone Implementierung
 
@@ -188,7 +192,7 @@ Backend:
 
 ## 17.01.2025
 
-Aktuelle Tasks:
+**Marvin:** N/A
 
 **Jan:**
 - Bugfix viewcone
@@ -196,6 +200,8 @@ Aktuelle Tasks:
 
 **Malin:**
 - Code Review
+
+Aktuelle Tasks:
 
 Frontend:
 - Testen
@@ -208,3 +214,28 @@ Frontend:
 Backend:
 - Frontend Änderungen mergen, wenn bereit
 - Training vorbereiten + training testen
+
+## 20.01.2025
+
+**Marvin:**
+- Angefragte Änderungen aus Code Review implementiert
+- Anpassung, fuer mehrere Actor
+
+**Jan:**
+- Testing actor Funktionalitaeten
+
+**Malin:**
+- Code Review
+- Merge request
+- Fehler gefixt vom Testing
+
+Aktuelle Tasks:
+
+Frontend:
+- viewcone seperat anzeigen aus Frontend zusammengebaut (in neuer Branch1, wenn fertig -> neue MR)
+- Button: single step fuer ai-actor `/ai_step` (neue Branch2)
+- Button: generiertes Level vom Server anfragen `/level_generate` (neue Branch3 & MR)
+- Buttons: `/start_training`, `/stop_training`, `is_training`  (neue Branch4 & MR)
+
+Backend:
+- Testen von Evolution und Neuronalem Netz
