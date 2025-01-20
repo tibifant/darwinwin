@@ -74,7 +74,37 @@ inline void mutator_eval(const mutator_random &m, T &val, const T min = lsMinVal
 {
   (void)m;
 
-  val = lsClamp((int8_t)lsGetRand(), min, max);
+  val = lsClamp((T)lsGetRand(), min, max);
+}
+
+inline void mutator_eval(const mutator_random &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
+{
+  (void)m;
+  (void)min;
+  (void)max;
+  lsAssert(min == lsMinValue<int8_t>() && max == lsMaxValue<int8_t>());
+
+  size_t i = 0;
+  uint64_t rand;
+
+  for (; i + 7 < count; i += 8)
+  {
+    rand = lsGetRand();
+
+    for (size_t j = 0; j < 8; j++)
+    {
+      pVal[i + j] = (int8_t)(rand & 0xFF);
+      rand >>= 8;
+    }
+  }
+
+  rand = lsGetRand();
+
+  for (; i < count; i++)
+  {
+    pVal[i] = (int8_t)(rand & 0xFF);
+    rand >>= 8;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -104,6 +134,38 @@ inline void crossbreeder_eval(const crossbreeder_naive &c, T *pVal, const size_t
 {
   for (size_t i = 0; i < count; i++)
     crossbreeder_eval(c, pVal[i], pParentA[i], pParentB[i]);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+struct crossbreeder_copy
+{
+};
+
+inline void crossbreeder_init(crossbreeder_copy &cb, const size_t scoreParentA, const size_t scoreParentB)
+{
+  (void)cb;
+  (void)scoreParentA;
+  (void)scoreParentB;
+}
+
+template <typename T>
+  requires (std::is_integral_v<T>)
+inline void crossbreeder_eval(const crossbreeder_copy &c, T &val, const T parentA, const T parentB)
+{
+  (void)c;
+  (void)parentB;
+  val = parentA;
+}
+
+template <typename T>
+  requires (std::is_integral_v<T>)
+inline void crossbreeder_eval(const crossbreeder_copy &c, T *pVal, const size_t count, const T *pParentA, const T *pParentB)
+{
+
+  (void)c;
+  (void)pParentB;
+  lsMemcpy(pVal, pParentA, count);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -261,8 +323,8 @@ void evolution_get_best(const evolution<target, config> &e, const target **ppTar
 template <typename target, typename config, typename func>
 void evolution_reevaluate(evolution<target, config> &e, func evalFunc)
 {
-  for (auto &g : e.genes)
-    g.score = evalFunc(g.t);
+  for (auto g : e.genes)
+    g.pItem->score = evalFunc(g.pItem->t);
 
   const std::function<int64_t(const size_t &index)> &idxToScore = [&e](const size_t &index) -> int64_t {
     return -(int64_t)pool_get(e.genes, index)->score;

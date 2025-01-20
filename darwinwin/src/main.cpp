@@ -49,6 +49,8 @@ namespace asio
 
 #include "darwinwin.h"
 #include "testable.h"
+#include "thread_pool.h"
+#include "io.h"
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -57,9 +59,12 @@ crow::response handle_setTile(const crow::request &req);
 crow::response handle_manualAct(const crow::request &req);
 crow::response handle_aiStep(const crow::request &req);
 crow::response handle_levelGenerate(const crow::request &req);
-crow::response handle_startTraining(const crow::request &req);
-crow::response handle_stopTraining(const crow::request &req);
-crow::response handle_isTraining(const crow::request &req);
+crow::response handle_startTraining();
+crow::response handle_stopTraining();
+crow::response handle_isTraining();
+crow::response handle_loadTrainingLevel();
+crow::response handle_loadTrainingActor();
+crow::response handle_resetStats();
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -71,6 +76,9 @@ static void print_args();
 static std::atomic<bool> _IsRunning = true;
 static level _WebLevel;
 static actor _WebActor(vec2u8(level::width / 2, level::height / 2), ld_up);
+static std::thread *_pTrainingThread = nullptr;
+static thread_pool *_pThreadPool = nullptr;
+static const char *_TrainingDirectory = "training/";
 
 static struct {
   bool runTests = true;
@@ -136,11 +144,22 @@ int32_t main(const int32_t argc, const char **pArgv)
 
   if (_Args.runServer)
   {
+    if (!lsFileExists(_TrainingDirectory))
+      if (LS_FAILED(lsCreateDirectory(_TrainingDirectory)))
+        print_error_line("Failed to create training directory at '", _TrainingDirectory, "'.");
+
+    _pThreadPool = thread_pool_new(lsMax(1, thread_pool_max_threads()));
+
+    if (!_pThreadPool)
+      print_error_line("Failed to initialize thread pool.");
+
     crow::App<crow::CORSHandler> app;
 
     level_initLinear(&_WebLevel);
-    for (size_t i = 0; i < _actorStats_Count; i++)
-      _WebActor.stats[i] = 32;
+    actor_initStats(&_WebActor);
+
+    print_error_line("WARNING: STARTING TRAINING!");
+    handle_startTraining();
 
     auto &cors = app.get_middleware<crow::CORSHandler>();
 #ifndef DARWINWIN_LOCALHOST
@@ -154,9 +173,12 @@ int32_t main(const int32_t argc, const char **pArgv)
     CROW_ROUTE(app, "/manualAct").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_manualAct(req); });
     CROW_ROUTE(app, "/ai_step").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_aiStep(req); });
     CROW_ROUTE(app, "/level_generate").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_levelGenerate(req); });
-    CROW_ROUTE(app, "/start_training").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_startTraining(req); });
-    CROW_ROUTE(app, "/stop_training").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_stopTraining(req); });
-    CROW_ROUTE(app, "/is_training").methods(crow::HTTPMethod::POST)([](const crow::request &req) { return handle_isTraining(req); });
+    CROW_ROUTE(app, "/start_training").methods(crow::HTTPMethod::POST)([](const crow::request &) { return handle_startTraining(); });
+    CROW_ROUTE(app, "/stop_training").methods(crow::HTTPMethod::POST)([](const crow::request &) { return handle_stopTraining(); });
+    CROW_ROUTE(app, "/is_training").methods(crow::HTTPMethod::POST)([](const crow::request &) { return handle_isTraining(); });
+    CROW_ROUTE(app, "/load_training_level").methods(crow::HTTPMethod::POST)([](const crow::request &) { return handle_loadTrainingLevel(); });
+    CROW_ROUTE(app, "/load_training_actor").methods(crow::HTTPMethod::POST)([](const crow::request &) { return handle_loadTrainingActor(); });
+    CROW_ROUTE(app, "/reset_stats").methods(crow::HTTPMethod::POST)([](const crow::request &) { return handle_resetStats(); });
 
     app.port(21110).multithreaded().run();
 
@@ -188,7 +210,7 @@ crow::response handle_getLevel(const crow::request &req)
 
   ret["actor"][0]["posX"] = _WebActor.pos.x;
   ret["actor"][0]["posY"] = _WebActor.pos.y;
-  ret["actor"][0]["lookDir"] = _WebActor.look_at_dir;
+  ret["actor"][0]["lookDir"] = _WebActor.look_dir;
 
   for (size_t i = 0; i < _actorStats_Count; i++)
   {
@@ -269,40 +291,64 @@ crow::response handle_levelGenerate(const crow::request &req)
   return crow::response(crow::status::OK);
 }
 
-crow::response handle_startTraining(const crow::request &req)
+crow::response handle_startTraining()
 {
-  auto body = crow::json::load(req.body);
+  if (_TrainingRunning)
+    return crow::response(crow::status::CONFLICT);
 
-  if (!body)
-    return crow::response(crow::status::BAD_REQUEST);
+  if (_pTrainingThread)
+  {
+    if (_pTrainingThread->joinable())
+      _pTrainingThread->join();
 
-  // TODO!
+    delete _pTrainingThread;
+    _pTrainingThread = nullptr;
+  }
 
-  return crow::response(crow::status::NOT_IMPLEMENTED);
+  _DoTraining = true;
+  _TrainingRunning = true;
+  _pTrainingThread = new std::thread(train_loop, _pThreadPool, _TrainingDirectory);
+
+  return crow::response(crow::status::OK);
 }
 
-crow::response handle_stopTraining(const crow::request &req)
+crow::response handle_stopTraining()
 {
-  auto body = crow::json::load(req.body);
+  _DoTraining = false;
 
-  if (!body)
-    return crow::response(crow::status::BAD_REQUEST);
-
-  // TODO!
-
-  return crow::response(crow::status::NOT_IMPLEMENTED);
+  return crow::response(crow::status::OK);
 }
 
-crow::response handle_isTraining(const crow::request &req)
+crow::response handle_isTraining()
 {
-  auto body = crow::json::load(req.body);
+  if (_pTrainingThread == nullptr)
+    return crow::json::wvalue({ "result", false });
 
-  if (!body)
-    return crow::response(crow::status::BAD_REQUEST);
+  if (_TrainingRunning)
+    return crow::json::wvalue({ "result", true });
 
-  // TODO!
+  return crow::json::wvalue({ "result", false });
+}
 
-  return crow::response(crow::status::NOT_IMPLEMENTED);
+crow::response handle_loadTrainingLevel()
+{
+  _WebLevel = _CurrentLevel;
+
+  return crow::response(crow::status::OK);
+}
+
+crow::response handle_loadTrainingActor()
+{
+  load_newest_brain(_TrainingDirectory, _WebActor);
+
+  return crow::response(crow::status::OK);
+}
+
+crow::response handle_resetStats()
+{
+  actor_initStats(&_WebActor);
+
+  return crow::response(crow::status::OK);
 }
 
 //////////////////////////////////////////////////////////////////////////

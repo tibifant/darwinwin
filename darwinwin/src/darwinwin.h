@@ -2,7 +2,12 @@
 
 #include "core.h"
 #include "neural_net.h"
-#include "evolution.h"
+
+//////////////////////////////////////////////////////////////////////////
+
+extern struct level _CurrentLevel;
+extern volatile bool _DoTraining;
+extern volatile bool _TrainingRunning;
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -41,8 +46,10 @@ void tileFlag_print(const uint8_t flag);
 
 struct level
 {
-  static constexpr size_t width = 32;
-  static constexpr size_t height = 32;
+  static constexpr size_t widthBits = 5;
+  static constexpr size_t heightBits = 5;
+  static constexpr size_t width = 1ULL << widthBits;
+  static constexpr size_t height = 1ULL << heightBits;
   static constexpr size_t total = width * height;
 
   static constexpr uint8_t wallThickness = 3; // this needs a shorter name
@@ -50,7 +57,7 @@ struct level
   uint8_t grid[width * height];
 };
 
-void level_initLinear(level *pLevel); 
+void level_initLinear(level *pLevel);
 void level_print(const level &level);
 
 struct actor;
@@ -104,17 +111,6 @@ void viewCone_print(const viewCone &values, const actor &actor);
 
 //////////////////////////////////////////////////////////////////////////
 
-struct actor
-{
-  vec2u16 pos;
-  lookDirection look_at_dir;
-  uint8_t stats[_actorStats_Count];
-  uint8_t stomach_remaining_capacity;
-  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 2, 1> brain;
-
-  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_at_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
-};
-
 enum actorAction
 {
   aa_Move,
@@ -127,5 +123,29 @@ enum actorAction
   _actorAction_Count
 };
 
+struct actor
+{
+  vec2u16 pos;
+  lookDirection look_dir;
+  uint8_t stats[_actorStats_Count];
+  uint8_t stomach_remaining_capacity;
+  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 2, 1> brain;
+  actorAction last_action; // will be set by `level_performStep`, may be uninitialized.
+
+  actor() = default;
+  actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
+};
+
 void actor_updateStats(actor *pActor, const viewCone &cone);
 void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action);
+void actor_initStats(actor *pActor);
+
+//////////////////////////////////////////////////////////////////////////
+
+lsResult save_brain(const char *dir, const actor &actr);
+lsResult load_newest_brain(const char *dir, actor &actr);
+lsResult load_brain_from_file(const char *filename, actor &actr);
+
+//////////////////////////////////////////////////////////////////////////
+
+lsResult train_loop(struct thread_pool *pThreadPool, const char *dir);
