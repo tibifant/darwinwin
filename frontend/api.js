@@ -15,6 +15,8 @@ const tileFlags = {
       Hidden: 1 << 7,
     }
 
+const emptyColor = "rgb(112, 168, 87)";
+
 document.addEventListener('DOMContentLoaded', setup);
 
 //Initial Setup Functions
@@ -147,7 +149,7 @@ function updateTiles(){
   for(let i=0; i<grid.length; i++){
     const tileElement = document.getElementById("tile-"+i);
     tileElement.innerHTML = '';
-    tileElement.style.backgroundColor = '#567345';
+    tileElement.style.backgroundColor = emptyColor;
 
     checkTileFlags(grid[i], tileElement);
   }
@@ -181,7 +183,7 @@ function checkTileFlags(tile, tileElement){
     tileElement.appendChild(createFoodOf('P'));
   }
   if(hasTileCondition(tile, "Underwater")){ //Underwater
-    tileElement.style.backgroundColor = '#0000ff';
+    tileElement.style.backgroundColor = 'rgb(50, 115, 185)';
   }
 }
 
@@ -230,7 +232,7 @@ function showViewCone(actorId){
   for(let i=0; i<viewCone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
     tile.innerText = viewCone[i];
-    tile.style.backgroundColor = '#567345';
+    tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile);
   }
 }
