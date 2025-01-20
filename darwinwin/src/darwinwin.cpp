@@ -394,7 +394,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
 {
   constexpr int64_t DoubleMovementEnergyCost = 30;
   constexpr int64_t CollideEnergyCost = 4;
-  constexpr vec2i16 LutPosDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, 2) };
+  //constexpr vec2i16 LutPosDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, 2) };
   constexpr int8_t LutIdxSingle[_lookDirection_Count] = { -1, -(int64_t)level::width, 1, level::width };
 
   const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
@@ -549,7 +549,7 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
 
   {
     actor actr;
-    load_newest_brain(dir, actr);
+    actor_loadNewestBrain(dir, actr);
 
     uint64_t rand = lsGetRand();
     actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
@@ -605,7 +605,7 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
       }
 
 
-      LS_ERROR_CHECK(save_brain(dir, *pBest));
+      LS_ERROR_CHECK(actor_saveBrain(dir, *pBest));
       levelIndex++;
     }
   }
@@ -619,7 +619,7 @@ epilogue:
 
 #include <time.h>
 
-lsResult save_brain(const char *dir, const actor &actr)
+lsResult actor_saveBrain(const char *dir, const actor &actr)
 {
   lsResult result = lsR_Success;
 
@@ -643,7 +643,7 @@ epilogue:
   return result;
 }
 
-lsResult load_brain_from_file(const char *filename, actor &actr)
+lsResult actor_loadBrainFromFile(const char *filename, actor &actr)
 {
   lsResult result = lsR_Success;
 
@@ -661,7 +661,7 @@ epilogue:
   return result;
 }
 
-lsResult load_newest_brain(const char *dir, actor &actr)
+lsResult actor_loadNewestBrain(const char *dir, actor &actr)
 {
   lsResult result = lsR_Success;
 
@@ -687,7 +687,9 @@ lsResult load_newest_brain(const char *dir, actor &actr)
 
   LS_ERROR_IF(best.empty(), lsR_ResourceNotFound);
   lsAssert(bestTime >= 0);
-  LS_ERROR_CHECK(load_brain_from_file(best.c_str(), actr));
+  char filename[256];
+  sformat_to(filename, LS_ARRAYSIZE(filename), dir, '/', best.c_str());
+  LS_ERROR_CHECK(actor_loadBrainFromFile(filename, actr));
 
 epilogue:
   return result;

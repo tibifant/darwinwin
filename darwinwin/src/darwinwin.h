@@ -142,9 +142,9 @@ void actor_initStats(actor *pActor);
 
 //////////////////////////////////////////////////////////////////////////
 
-lsResult save_brain(const char *dir, const actor &actr);
-lsResult load_newest_brain(const char *dir, actor &actr);
-lsResult load_brain_from_file(const char *filename, actor &actr);
+lsResult actor_saveBrain(const char *dir, const actor &actr);
+lsResult actor_loadNewestBrain(const char *dir, actor &actr);
+lsResult actor_loadBrainFromFile(const char *filename, actor &actr);
 
 //////////////////////////////////////////////////////////////////////////
 

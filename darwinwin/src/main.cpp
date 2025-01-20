@@ -339,7 +339,7 @@ crow::response handle_loadTrainingLevel()
 
 crow::response handle_loadTrainingActor()
 {
-  load_newest_brain(_TrainingDirectory, _WebActor);
+  actor_loadNewestBrain(_TrainingDirectory, _WebActor);
 
   return crow::response(crow::status::OK);
 }
