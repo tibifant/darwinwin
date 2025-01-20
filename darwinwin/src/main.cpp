@@ -279,13 +279,8 @@ crow::response handle_aiStep(const crow::request &req)
   return crow::response(crow::status::NOT_IMPLEMENTED);
 }
 
-crow::response handle_levelGenerate(const crow::request &req)
+crow::response handle_levelGenerate(const crow::request &)
 {
-  auto body = crow::json::load(req.body);
-
-  if (!body)
-    return crow::response(crow::status::BAD_REQUEST);
-
   level_generateDefault(&_WebLevel);
 
   return crow::response(crow::status::OK);
