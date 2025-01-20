@@ -122,6 +122,7 @@ enum actorAction
   aa_TurnLeft,
   aa_TurnRight,
   aa_Eat,
+  aa_None,
 
   _actorAction_Count
 };

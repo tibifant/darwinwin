@@ -123,6 +123,39 @@ void level_print(const level &level)
   print('\n');
 }
 
+//////////////////////////////////////////////////////////////////////////
+
+void level_gen_water_level(level *pLvl)
+{
+  level_gen_init(pLvl, tf_Underwater);
+  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
+  level_gen_grow(pLvl, 0);
+  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
+  level_gen_finalize(pLvl);
+}
+
+void level_gen_water_food_level(level *pLvl)
+{
+  level_gen_init(pLvl, tf_Underwater);
+  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
+  level_gen_grow(pLvl, 0);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin | tf_Underwater, level::total / 10);
+  level_gen_random_sprinkle_replace(pLvl, tf_Vitamin | tf_Underwater, tf_Vitamin | tf_Underwater | tf_Fat, level::total / 3); // UVF looks sus
+  level_gen_sprinkle_grow_into_mask(pLvl, tf_Underwater | tf_Vitamin, tf_Underwater, level_gen_make_chance<0.75>());
+  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
+  level_gen_finalize(pLvl);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+void level_generateDefault(level *pLvl)
+{
+  level_gen_water_food_level(pLvl);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 {
   // TODO: optional level internal step. (grow plants, etc.)
@@ -171,37 +204,6 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
   lsAssert(anyAlive); // otherwise, maybe don't call us???
 
   return anyAlive;
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-void level_gen_water_level(level *pLvl)
-{
-  level_gen_init(pLvl, tf_Underwater);
-  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
-  level_gen_grow(pLvl, 0);
-  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
-  level_gen_finalize(pLvl);
-}
-
-void level_gen_water_food_level(level *pLvl)
-{
-  level_gen_init(pLvl, tf_Underwater);
-  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
-  level_gen_grow(pLvl, 0);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin | tf_Underwater, level::total / 10);
-  level_gen_random_sprinkle_replace(pLvl, tf_Vitamin | tf_Underwater, tf_Vitamin | tf_Underwater | tf_Fat, level::total / 3); // UVF looks sus
-  level_gen_sprinkle_grow_into_mask(pLvl, tf_Underwater | tf_Vitamin, tf_Underwater, level_gen_make_chance<0.75>());
-  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
-  level_gen_finalize(pLvl);
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-void level_generateDefault(level *pLvl)
-{
-  level_gen_water_food_level(pLvl);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -463,6 +465,15 @@ struct proto_config // TODO!
   static constexpr size_t newGenesPerGeneration = 4;
 };
 
+struct starter_random_config // TODO!
+{
+  using mutator = mutator_random<proto_chance_config>; // ?
+  using crossbreeder = crossbreeder_naive;
+
+  static constexpr size_t survivingGenes = 4;
+  static constexpr size_t newGenesPerGeneration = 4;
+};
+
 template <typename crossbreeder>
 void crossbreed(actor &val, const actor parentA, const actor parentB, const crossbreeder &c)
 {
@@ -476,6 +487,11 @@ void mutate(actor &target, const mutator &m)
 }
 
 // TODO: Eval Funcs... -> Give scores
+
+size_t starter_eval_func(actor &actr)
+{
+
+}
 
 //////////////////////////////////////////////////////////////////////////
 

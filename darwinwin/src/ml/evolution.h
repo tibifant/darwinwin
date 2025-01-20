@@ -58,6 +58,25 @@ inline void mutator_eval(const mutator_chance<config> &m, T &val, const T min = 
   val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
 }
 
+struct mutator_random
+{
+};
+
+inline void mutator_init(mutator_random &mut, const size_t generation)
+{
+  (void)mut;
+  (void)generation;
+}
+
+template <typename mutator, typename T>
+  requires (std::is_integral_v<T>)
+inline void mutator_eval(const mutator_random &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  (void)m;
+
+  val = lsClamp((int8_t)lsGetRand(), min, max);
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 struct crossbreeder_naive
