@@ -3,6 +3,7 @@ const server_url = 'http://localhost:21110/';
 //Cached Variables
 let actorElements = [];
 let worldData;
+let aiStepIntervalIdCache;
 
 const tileFlags = {
       Underwater: 1 << 0,
@@ -19,13 +20,27 @@ const emptyColor = "rgb(112, 168, 87)";
 
 document.addEventListener('DOMContentLoaded', setup);
 
-//Initial Setup Functions
+// ### Initial Setup Functions ###
 function setup(){
   console.log("Initiating Setup...");
+  setupControlPanel();
   fetchLevel(setupMap);
   setupStatsWindow();
   setupViewCone();
   console.log("Setup Complete!");
+}
+
+function setupControlPanel(){
+  const levelGenerateButton = document.getElementById('level-generate-button');
+  levelGenerateButton.addEventListener('click', levelGenerate);
+  const aiStepButton = document.getElementById('ai-step-button');
+  aiStepButton.addEventListener('click', aiStep);
+  const aiStepToggleButton = document.getElementById('ai-step-start-button');
+  aiStepToggleButton.addEventListener('click', aiStepToggle);
+  const trainingStartButton = document.getElementById('training-start-button');
+  const trainingStopButton = document.getElementById('training-stop-button');
+  trainingStartButton.addEventListener('click', startTraining)
+  trainingStopButton.addEventListener('click', stopTraining)
 }
 
 function setupStatsWindow(){
@@ -120,11 +135,7 @@ function setupViewCone(){
   }
 }
 
-
-//###################################################################
-//##################Periodic Update Functions########################
-//###################################################################
-
+// ### Periodic Update Functions ###
 function fetchAllData(callback = null) {
   console.log("Updating World...");
   //Tried to avoid lambda but could not find alternative
@@ -205,7 +216,7 @@ function updateActor(actor, index){
   worldData.actor[index] = actor;
 }
 
-//Stats view for Actor functions
+// ### Stats view for Actor functions ###
 function showActorStats(actorId){
   console.log("Showing Actor Stats for " + actorId);
   const infoLabelsElement = document.getElementById("stats-info-labels");
@@ -289,7 +300,7 @@ function createActorButton(actorId, action, actionId){
   return button;
 }
 
-//Stats view for Tile functions
+// ### Stats view for Tile functions ###
 function showTileStats(tileId){
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
@@ -336,7 +347,47 @@ function createTileButton(tileIndex, key){
   return button;
 }
 
-//Set functions
+// ### Control Panel functions ###
+
+function levelGenerate(){
+  postGenerateLevelRequest();
+}
+
+function aiStep(){
+  postAiStepRequest();
+}
+
+function aiStepToggle(event){
+  const element = event.target;
+  switch (element.id.split('-')[2]) {
+    case 'start':
+      aiStepIntervalIdCache = setInterval(aiStep, 1000);
+      element.id = "ai-step-stop-button";
+      element.innerText = "Stop AI Step";
+      break;
+    case 'stop':
+      if(!aiStepIntervalIdCache){
+        console.error("Stop AI Step interval was called before interval was started.")
+      }
+      clearInterval(aiStepIntervalIdCache);
+      element.id = "ai-step-start-button";
+      element.innerText = "Start AI Step";
+      break;
+    default:
+      console.error("StepToggle - ID not recognized: " + element.id);
+  }
+}
+
+//TODO: Merge Buttons into single one, that switches function based on state
+function startTraining(){
+  postTrainingStartRequest();
+}
+
+function stopTraining(){
+  postTrainingStopRequest();
+}
+
+// ### Set functions ###
 function initiateActorActionRequest(event){
   const idSplit = event.target.id.split('-');
   const actorId = idSplit[2] + "-" + idSplit[3];
@@ -362,7 +413,7 @@ function initiateSetTileRequest(event){
   postTileSetRequest(payload, "tile-"+tileIndex);
 }
 
-//Net functions
+// ### Net functions ###
 function handleError(error){
   console.error("Encountered error during fetch:\n", error);
 }
@@ -425,6 +476,10 @@ function fetchLevel(callback){
     {}, handleError);
 }
 
+function fetchTrainingState(callback){
+  load_backend_url('is_training', callback, {}, handleError)
+}
+
 function postActorAction(actorId, actionId) {
   const updateFunction = showActorStats.bind(null, actorId);
   const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
@@ -437,4 +492,20 @@ function postTileSetRequest(payload, tileId){
   const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
   load_backend_url('setTile', fetchAndUpdate,
     payload, handleError);
+}
+
+function postAiStepRequest(){
+  load_backend_url('ai_step', fetchAllData, {}, handleError);
+}
+
+function postGenerateLevelRequest(){
+  load_backend_url('level_generate', fetchAllData, {})
+}
+
+function postTrainingStartRequest(){
+  load_backend_url('start_training', {}, {}, handleError);
+}
+
+function postTrainingStopRequest(){
+  load_backend_url('stop_training', {}, {}, handleError);
 }
