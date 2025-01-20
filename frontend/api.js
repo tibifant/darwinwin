@@ -358,7 +358,6 @@ function aiStep(){
 }
 
 function aiStepToggle(event){
-  let intervalId;
   const element = event.target;
   switch (element.id.split('-')[2]) {
     case 'start':
