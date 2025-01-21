@@ -33,16 +33,16 @@ function setupControlPanel(){
   const levelGenerateButton = document.getElementById('level-generate-button');
   levelGenerateButton.addEventListener('click', levelGenerate);
   const aiLoadBrainButton = document.getElementById('ai-load-brain-button');
-  aiLoadBrainButton.addEventListener('click', reloadBrain)
+  aiLoadBrainButton.addEventListener('click', postLoadBrainRequest)
   const aiStepButton = document.getElementById('ai-step-button');
-  aiStepButton.addEventListener('click', aiStep);
+  aiStepButton.addEventListener('click', postAiStepRequest);
   const aiStepToggleButton = document.getElementById('ai-step-toggle-button');
   aiStepToggleButton.addEventListener('click', aiStepStart);
   const aiResetStatsButton = document.getElementById('ai-reset-brain-button');
-  aiResetStatsButton.addEventListener('click', resetStats);
+  aiResetStatsButton.addEventListener('click', postResetStatsRequest);
   fetchTrainingState(setupTrainingButton)
   const trainingLoadLevelButton = document.getElementById('training-load-level-button');
-  trainingLoadLevelButton.addEventListener('click', loadTrainingLevel);
+  trainingLoadLevelButton.addEventListener('click', postLoadTrainingLevelRequest);
 }
 
 function setupTrainingButton(isTraining){
@@ -365,24 +365,13 @@ function createTileButton(tileIndex, key){
 // ### Control Panel functions ###
 
 function levelGenerate(){
+  //Amend in case generation options become available
   postGenerateLevelRequest();
-}
-
-function reloadBrain(){
-  postLoadBrainRequest();
-}
-
-function resetStats(){
-  postResetStatsRequest();
-}
-
-function aiStep(){
-  postAiStepRequest();
 }
 
 function aiStepStart(event){
   const button = event.target;
-  button.dataset.intervalId = setInterval(aiStep, 1000).toString();
+  button.dataset.intervalId = setInterval(postAiStepRequest, 1000).toString();
   button.removeEventListener('click', aiStepStart);
   button.addEventListener('click', aiStepStop);
   button.innerText = "Stop AI Step";
@@ -394,10 +383,6 @@ function aiStepStop(event){
   button.removeEventListener('click', aiStepStop);
   button.addEventListener('click', aiStepStart);
   button.innerText = "Start AI Step";
-}
-
-function loadTrainingLevel(){
-  postLoadTrainingLevelRequest();
 }
 
 function startTraining(event){
