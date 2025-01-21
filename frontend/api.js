@@ -30,19 +30,7 @@ function setup(){
 }
 
 function setupControlPanel(){
-  const levelGenerateButton = document.getElementById('level-generate-button');
-  levelGenerateButton.addEventListener('click', levelGenerate);
-  const aiLoadBrainButton = document.getElementById('ai-load-brain-button');
-  aiLoadBrainButton.addEventListener('click', postLoadBrainRequest)
-  const aiStepButton = document.getElementById('ai-step-button');
-  aiStepButton.addEventListener('click', postAiStepRequest);
-  const aiStepToggleButton = document.getElementById('ai-step-toggle-button');
-  aiStepToggleButton.addEventListener('click', aiStepStart);
-  const aiResetStatsButton = document.getElementById('ai-reset-brain-button');
-  aiResetStatsButton.addEventListener('click', postResetStatsRequest);
-  fetchTrainingState(setupTrainingButton)
-  const trainingLoadLevelButton = document.getElementById('training-load-level-button');
-  trainingLoadLevelButton.addEventListener('click', postLoadTrainingLevelRequest);
+  fetchTrainingState(setupTrainingButton);
 }
 
 function setupTrainingButton(isTraining){
@@ -50,11 +38,11 @@ function setupTrainingButton(isTraining){
 
   if(isTraining.result){
     trainingToggleButton.innerText = "Start Training";
-    trainingToggleButton.addEventListener('click', startTraining);
+    trainingToggleButton.onclick = startTraining;
   }
   else {
     trainingToggleButton.innerText = "Stop Training";
-    trainingToggleButton.addEventListener('click', stopTraining);
+    trainingToggleButton.onclick = stopTraining;
   }
 }
 
@@ -372,16 +360,14 @@ function levelGenerate(){
 function aiStepStart(event){
   const button = event.target;
   button.dataset.intervalId = setInterval(postAiStepRequest, 1000).toString();
-  button.removeEventListener('click', aiStepStart);
-  button.addEventListener('click', aiStepStop);
+  button.onclick = aiStepStop;
   button.innerText = "Stop AI Step";
 }
 
 function aiStepStop(event){
   const button = event.target;
   clearInterval(parseInt(button.dataset.intervalId));
-  button.removeEventListener('click', aiStepStop);
-  button.addEventListener('click', aiStepStart);
+  button.onclick = aiStepStart;
   button.innerText = "Start AI Step";
 }
 

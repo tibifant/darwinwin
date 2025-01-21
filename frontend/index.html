@@ -12,15 +12,15 @@
   <div id="app_container">
     <script type="text/javascript" language="javascript" src="api.js"></script>
     <div id="control-panel" class="control-panel">
-      <button id="level-generate-button">Generate Level</button>
+      <button id="level-generate-button" onclick="levelGenerate()">Generate Level</button>
       <span></span>
-      <button id="ai-load-brain-button">Reload Brain</button>
-      <button id="ai-step-button">Single AI Step</button>
-      <button id="ai-step-toggle-button">Start AI Step</button>
-      <button id="ai-reset-brain-button">Reset Stats</button>
+      <button id="ai-load-brain-button" onclick="postLoadBrainRequest()">Reload Brain</button>
+      <button id="ai-step-button" onclick="postAiStepRequest()">Single AI Step</button>
+      <button id="ai-step-toggle-button" onclick="aiStepStart(event)">Start AI Step</button>
+      <button id="ai-reset-brain-button" onclick="postResetStatsRequest()">Reset Stats</button>
       <span></span>
-      <button id="training-load-level-button">Load Training Level</button>
-      <button id="training-toggle-button">Start Training</button>
+      <button id="training-load-level-button" onclick="postLoadTrainingLevelRequest()">Load Training Level</button>
+      <button id="training-toggle-button" onclick="startTraining()">Start Training</button>
     </div>
     <div class="level-view">
       <div id="level-container" class="level-container"></div>
