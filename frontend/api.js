@@ -31,6 +31,22 @@ function setup(){
 }
 
 function setupControlPanel(){
+  const levelGenerateButton = document.getElementById('level-generate-button');
+  levelGenerateButton.addEventListener('click', levelGenerate);
+  const aiLoadBrainButton = document.getElementById('ai-load-brain-button');
+  aiLoadBrainButton.addEventListener('click', reloadBrain)
+  const aiStepButton = document.getElementById('ai-step-button');
+  aiStepButton.addEventListener('click', aiStep);
+  const aiStepToggleButton = document.getElementById('ai-step-toggle-button');
+  aiStepToggleButton.addEventListener('click', aiStepStart);
+  const aiResetStatsButton = document.getElementById('ai-reset-brain-button');
+  aiResetStatsButton.addEventListener('click', resetStats);
+  const trainingStartButton = document.getElementById('training-start-button');
+  const trainingStopButton = document.getElementById('training-stop-button');
+  trainingStartButton.addEventListener('click', startTraining)
+  trainingStopButton.addEventListener('click', stopTraining)
+  const trainingLoadLevelButton = document.getElementById('training-load-level-button');
+  trainingLoadLevelButton.addEventListener('click', loadTrainingLevel);
 }
 
 function setupStatsWindow(){
