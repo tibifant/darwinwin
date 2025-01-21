@@ -155,7 +155,7 @@ int32_t main(const int32_t argc, const char **pArgv)
 
     crow::App<crow::CORSHandler> app;
 
-    level_initLinear(&_WebLevel);
+    level_generateDefault(&_WebLevel);
     actor_initStats(&_WebActor);
 
     print_error_line("WARNING: STARTING TRAINING!");

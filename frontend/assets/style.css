@@ -48,7 +48,6 @@ body {
 }
 
 #app_container {
-  display: flex;
   margin: 0;
   background: #1a1a1a;
   width: 100vw;
@@ -66,6 +65,30 @@ div.box {
   padding: 40pt 80pt;
   color: #fff;
   font-family: 'Segoe UI', sans-serif;
+}
+
+.level-view {
+  display: flex;
+}
+
+.control-panel {
+  display: flex;
+  padding: 5pt;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: gray;
+  border-radius: 2pt;
+}
+
+.control-panel button {
+  font-family: 'Segoe UI', sans-serif;
+  margin: 10pt;
+  font-size: 20pt;
+}
+
+.control-panel span {
+  width: 30pt;
 }
 
 .level-container {
@@ -174,5 +197,5 @@ div.box {
   height: 20pt;
   width: 20pt;
   border-radius: 50%;
-  background-color: darkred;
+  background-color: #FFF;
 }
