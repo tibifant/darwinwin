@@ -239,3 +239,25 @@ Frontend:
 
 Backend:
 - Testen von Evolution und Neuronalem Netz
+
+## 21.01.2025
+
+**Marvin:**
+- Controlpanel fuer AI_step, Training start etc.
+
+**Jan:**
+-
+
+**Malin:**
+- Erste Testdurchlauefe zum Trainieren
+- Frontend: neue Apis und BUttons hinzugefuegt
+
+Aktuelle Tasks:
+Frontend:
+- `moveDiagnonalLeft`, `moveDiagnonalRight`, `wait`
+- set tile: checkboxes zum Auswaehlen der Tilefalgs, copy tileflags von anderer tile
+- Feedback implementieren: MR & onclick
+
+- diagnonal move muss hinzufuegen
+- trainloop anpassen
+- Outputs gewichtet auswaehlen
