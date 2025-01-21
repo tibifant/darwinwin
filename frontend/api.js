@@ -3,7 +3,6 @@ const server_url = 'http://localhost:21110/';
 //Cached Variables
 let actorElements = [];
 let worldData;
-let aiStepIntervalIdCache;
 
 const tileFlags = {
       Underwater: 1 << 0,
@@ -372,19 +371,16 @@ function aiStep(){
 }
 
 function aiStepStart(event){
-  aiStepIntervalIdCache = setInterval(aiStep, 1000);
-
   const button = event.target;
-  button.onclick = '';
+  button.dataset.intervalId = setInterval(aiStep, 1000).toString();
   button.removeEventListener('click', aiStepStart);
   button.addEventListener('click', aiStepStop);
   button.innerText = "Stop AI Step";
 }
 
 function aiStepStop(event){
-  clearInterval(aiStepIntervalIdCache);
-
   const button = event.target;
+  clearInterval(parseInt(button.dataset.intervalId));
   button.removeEventListener('click', aiStepStop);
   button.addEventListener('click', aiStepStart);
   button.innerText = "Start AI Step";
