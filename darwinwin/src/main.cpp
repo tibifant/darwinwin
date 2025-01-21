@@ -267,16 +267,11 @@ crow::response handle_manualAct(const crow::request &req)
   return crow::response(crow::status::OK);
 }
 
-crow::response handle_aiStep(const crow::request &req)
+crow::response handle_aiStep(const crow::request &)
 {
-  auto body = crow::json::load(req.body);
+  level_performStep(_WebLevel, &_WebActor, 1);
 
-  if (!body)
-    return crow::response(crow::status::BAD_REQUEST);
-
-  // TODO: Call `level_performStep` once everything is ready.
-
-  return crow::response(crow::status::NOT_IMPLEMENTED);
+  return crow::response(crow::status::OK);
 }
 
 crow::response handle_levelGenerate(const crow::request &)

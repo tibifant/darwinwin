@@ -31,16 +31,6 @@ function setup(){
 }
 
 function setupControlPanel(){
-  const levelGenerateButton = document.getElementById('level-generate-button');
-  levelGenerateButton.addEventListener('click', levelGenerate);
-  const aiStepButton = document.getElementById('ai-step-button');
-  aiStepButton.addEventListener('click', aiStep);
-  const aiStepToggleButton = document.getElementById('ai-step-start-button');
-  aiStepToggleButton.addEventListener('click', aiStepToggle);
-  const trainingStartButton = document.getElementById('training-start-button');
-  const trainingStopButton = document.getElementById('training-stop-button');
-  trainingStartButton.addEventListener('click', startTraining)
-  trainingStopButton.addEventListener('click', stopTraining)
 }
 
 function setupStatsWindow(){
@@ -353,6 +343,14 @@ function levelGenerate(){
   postGenerateLevelRequest();
 }
 
+function reloadBrain(){
+  postLoadBrainRequest();
+}
+
+function resetStats(){
+  postResetStatsRequest();
+}
+
 function aiStep(){
   postAiStepRequest();
 }
@@ -376,6 +374,10 @@ function aiStepToggle(event){
     default:
       console.error("StepToggle - ID not recognized: " + element.id);
   }
+}
+
+function loadTrainingLevel(){
+  postLoadTrainingLevelRequest();
 }
 
 //TODO: Merge Buttons into single one, that switches function based on state
@@ -494,12 +496,24 @@ function postTileSetRequest(payload, tileId){
     payload, handleError);
 }
 
+function postGenerateLevelRequest(){
+  load_backend_url('level_generate', fetchAllData, {})
+}
+
+function postResetStatsRequest(){
+  load_backend_url('reset_stats', fetchAllData, {}, handleError);
+}
+
 function postAiStepRequest(){
   load_backend_url('ai_step', fetchAllData, {}, handleError);
 }
 
-function postGenerateLevelRequest(){
-  load_backend_url('level_generate', fetchAllData, {})
+function postLoadBrainRequest(){
+  load_backend_url('load_training_actor', fetchAllData, {}, handleError);
+}
+
+function postLoadTrainingLevelRequest(){
+  load_backend_url('load_training_level', fetchAllData, {}, handleError);
 }
 
 function postTrainingStartRequest(){
