@@ -108,19 +108,22 @@ function setupViewCone(){
     { row: 4, col: 2 },
   ];
 
-  const grid = document.getElementById('view-cone-grid') || {}
+  const view_cone_grids = [document.getElementById('view-cone-grid-0'), document.getElementById('view-cone-grid-1')] || [];
 
-  if(grid.length === 0){
-    console.error("Error: Could not find view-cone-grid element");
-  } else {
-    for (let i = 0; i < viewConeSize; i++) {
-      const tile = document.createElement('div');
-      tile.classList.add('view-cone-tile');
-      tile.style.gridRow = positions[i].row;
-      tile.style.gridColumn = positions[i].col;
-      tile.style.backgroundColor = '#c6c6c6'
-      tile.id = 'view-cone-tile-' + i;
-      grid.appendChild(tile);
+  for (let i = 0; i < view_cone_grids.length; i++) {
+    const grid = view_cone_grids[i];
+    if (grid.length === 0) {
+      console.error("Error: Could not find view-cone-grid element");
+    } else {
+      for (let j = 0; j < viewConeSize; j++) {
+        const tile = document.createElement('div');
+        tile.classList.add('view-cone-tile');
+        tile.style.gridRow = positions[j].row;
+        tile.style.gridColumn = positions[j].col;
+        tile.style.backgroundColor = '#c6c6c6'
+        tile.id = 'view-cone-tile-' + i + j;
+        grid.appendChild(tile);
+      }
     }
   }
 }
@@ -141,6 +144,7 @@ function updateWorld(callback){
 
   worldData.actor.forEach((actor, i) => {
       updateActor(actor, i);
+      drawViewConeOnMap(i);
   });
   if (callback) callback();
 }
@@ -225,17 +229,75 @@ function showActorStats(actorId){
   infoValuesElement.appendChild(valuesElement);
   optionsElement.appendChild(createActorOptionsButtonsElement(actorId));
 
-  showViewCone(actorId);
+  const actorIndex = actorId.split('-')[1];
+  showBackendViewCone(actorIndex);
+  showFrontendViewCone(calculateViewConeTileIndexes(actorIndex));
 }
 
-function showViewCone(actorId){
-  const viewCone = worldData.actor[actorId.split('-')[1]].viewcone;
-  for(let i=0; i<viewCone.length; i++){
-    const tile = document.getElementById('view-cone-tile-'+i);
+function showBackendViewCone(actorIndex){
+  const viewCone = worldData.actor[actorIndex].viewcone;
+
+  for (let i = 0; i < viewCone.length; i++) {
+    const tile = document.getElementById('view-cone-tile-' + 0 + i);
     tile.innerText = viewCone[i];
     tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile);
   }
+  displayActorIcon(document.getElementById('view-cone-tile-00'));
+}
+
+function calculateViewConeTileIndexes(actorIndex){
+  const lookDir = worldData.actor[actorIndex].lookDir;
+  const actorTileIndex = worldData.actor[actorIndex].posY * worldData.level.width + worldData.actor[actorIndex].posX;
+  switch (lookDir) {
+    case 0:
+      return [actorTileIndex, actorTileIndex + 31, actorTileIndex - 1, actorTileIndex - 33, actorTileIndex + 30, actorTileIndex - 2, actorTileIndex - 34, actorTileIndex - 3];
+    case 1:
+      return [actorTileIndex, actorTileIndex - 33, actorTileIndex - 32, actorTileIndex - 31, actorTileIndex - 65, actorTileIndex - 64, actorTileIndex - 63, actorTileIndex - 96];
+    case 2:
+      return [actorTileIndex, actorTileIndex - 31, actorTileIndex +1, actorTileIndex + 33, actorTileIndex - 30, actorTileIndex + 2, actorTileIndex + 34, actorTileIndex + 3];
+    case 3:
+      return [actorTileIndex, actorTileIndex + 33, actorTileIndex + 32, actorTileIndex + 31, actorTileIndex + 65, actorTileIndex + 64, actorTileIndex + 63, actorTileIndex + 96];
+    default:
+      console.error("Error: Invalid lookDir -> function: calculateViewConeTileIndexes");
+  }
+}
+
+function showFrontendViewCone(tileIndexes){
+  tileIndexes.forEach((index, i) => {
+    const gridTile = document.getElementById('view-cone-tile-'+ 1 + i);
+    const tileValue = worldData.level.grid[index];
+    gridTile.style.backgroundColor = emptyColor;
+    gridTile.innerText = tileValue;
+    checkTileFlags(tileValue, gridTile);
+  })
+  displayActorIcon(document.getElementById('view-cone-tile-10'));
+}
+
+function displayActorIcon(actorTile){
+  const icon = document.createElement("img");
+  icon.className = "actor-icon";
+  icon.src = "assets/actor-icon.png";
+  actorTile.appendChild(icon);
+}
+
+function drawViewConeOnMap(index){
+  const viewConeTileIndexes = calculateViewConeTileIndexes(index);
+  viewConeTileIndexes.forEach((tileIndex) => {
+    const tile = document.getElementById('tile-'+tileIndex);
+    if(tile === null){
+      console.error("Error: Could not find tile element -> function: drawViewConeOnMap");
+    }else{
+      console.log("Reducing opacity of tile: ", tile.id);
+
+      const currentColor = tile.style.backgroundColor || emptyColor;
+      const rgbValues = currentColor.match(/\d+/g);
+      if (rgbValues) {
+        tile.style.backgroundColor = `rgba(${rgbValues[0]}, ${rgbValues[1]}, ${rgbValues[2]}, 0.5)`;
+      }
+    }
+  })
+
 }
 
 function fillActorLabelsAndValuesElements(actorId, labels, values){
