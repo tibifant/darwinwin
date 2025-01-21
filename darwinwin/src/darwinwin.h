@@ -119,6 +119,8 @@ enum actorAction
   aa_TurnRight,
   aa_Eat,
   aa_Wait,
+  aa_DiagnonalMoveLeft,
+  aa_DiagonalMoveRight,
 
   _actorAction_Count
 };
