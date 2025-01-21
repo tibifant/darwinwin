@@ -40,12 +40,22 @@ function setupControlPanel(){
   aiStepToggleButton.addEventListener('click', aiStepStart);
   const aiResetStatsButton = document.getElementById('ai-reset-brain-button');
   aiResetStatsButton.addEventListener('click', resetStats);
-  const trainingStartButton = document.getElementById('training-start-button');
-  const trainingStopButton = document.getElementById('training-stop-button');
-  trainingStartButton.addEventListener('click', startTraining)
-  trainingStopButton.addEventListener('click', stopTraining)
+  fetchTrainingState(setupTrainingButton)
   const trainingLoadLevelButton = document.getElementById('training-load-level-button');
   trainingLoadLevelButton.addEventListener('click', loadTrainingLevel);
+}
+
+function setupTrainingButton(isTraining){
+  const trainingToggleButton = document.getElementById('training-toggle-button');
+
+  if(isTraining.result){
+    trainingToggleButton.innerText = "Start Training";
+    trainingToggleButton.addEventListener('click', startTraining);
+  }
+  else {
+    trainingToggleButton.innerText = "Stop Training";
+    trainingToggleButton.addEventListener('click', stopTraining);
+  }
 }
 
 function setupStatsWindow(){
@@ -390,13 +400,34 @@ function loadTrainingLevel(){
   postLoadTrainingLevelRequest();
 }
 
-//TODO: Merge Buttons into single one, that switches function based on state
-function startTraining(){
-  postTrainingStartRequest();
+function startTraining(event){
+  try {
+    postTrainingStartRequest();
+  }
+  catch (e){
+    console.error("Encountered an error in startTraining, cancelling now.");
+    return;
+  }
+
+  const button = event.target;
+  button.removeEventListener('click', startTraining);
+  button.addEventListener('click', stopTraining);
+  button.innerText = "Stop Training";
 }
 
-function stopTraining(){
-  postTrainingStopRequest();
+function stopTraining(event){
+  try {
+    postTrainingStopRequest();
+  }
+  catch (e){
+    console.error("Encountered an error in stopTraining, cancelling now.");
+    return;
+  }
+
+  const button = event.target;
+  button.removeEventListener('click', stopTraining);
+  button.addEventListener('click', startTraining);
+  button.innerText = "Start Training";
 }
 
 // ### Set functions ###
