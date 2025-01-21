@@ -58,6 +58,107 @@ inline void mutator_eval(const mutator_chance<config> &m, T &val, const T min = 
   val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
 }
 
+struct mutator_random
+{
+};
+
+inline void mutator_init(mutator_random &mut, const size_t generation)
+{
+  (void)mut;
+  (void)generation;
+}
+
+template <typename mutator, typename T>
+  requires (std::is_integral_v<T>)
+inline void mutator_eval(const mutator_random &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  (void)m;
+
+  val = lsClamp((T)lsGetRand(), min, max);
+}
+
+inline void mutator_eval(const mutator_random &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
+{
+  (void)m;
+  (void)min;
+  (void)max;
+  lsAssert(min == lsMinValue<int8_t>() && max == lsMaxValue<int8_t>());
+
+  size_t i = 0;
+  uint64_t rand;
+
+  for (; i + 7 < count; i += 8)
+  {
+    rand = lsGetRand();
+
+    for (size_t j = 0; j < 8; j++)
+      pVal[i + j] = (int8_t)((rand >> (j * 8)) & 0xFF);
+  }
+
+  rand = lsGetRand();
+
+  for (; i < count; i++)
+  {
+    pVal[i] = (int8_t)(rand & 0xFF);
+    rand >>= 8;
+  }
+}
+
+template <typename config>
+struct mutator_zero_chance
+{
+};
+
+template <typename config>
+inline void mutator_init(mutator_zero_chance<config> &mut, const size_t generation)
+{
+  (void)mut;
+  (void)generation;
+}
+
+template <typename T, typename config>
+  requires (std::is_integral_v<T>)
+inline void mutator_eval(const mutator_zero_chance<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  (void)m;
+  lsAssert(min == lsMinValue<int8_t>() && max == lsMaxValue<int8_t>());
+
+  const uint64_t rand = lsGetRand();
+
+  if ((rand & 1024) > config::chanceOf1024)
+    return;
+
+  val = lsClamp(lsGetRand(), min, max);
+}
+
+template <typename config>
+inline void mutator_eval(const mutator_zero_chance<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
+{
+  (void)m;
+  (void)min;
+  (void)max;
+  lsAssert(min == lsMinValue<int8_t>() && max == lsMaxValue<int8_t>());
+
+  size_t i = 0;
+  uint64_t rand;
+
+  for (; i + 7 < count; i += 8)
+  {
+    rand = lsGetRand();
+
+    for (size_t j = 0; j < 8; j++)
+      pVal[i + j] = (int8_t)((rand >> (j * 8)) & 0xFF);
+  }
+
+  rand = lsGetRand();
+
+  for (; i < count; i++)
+  {
+    pVal[i] = (int8_t)(rand & 0xFF);
+    rand >>= 8;
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 struct crossbreeder_naive
@@ -85,6 +186,38 @@ inline void crossbreeder_eval(const crossbreeder_naive &c, T *pVal, const size_t
 {
   for (size_t i = 0; i < count; i++)
     crossbreeder_eval(c, pVal[i], pParentA[i], pParentB[i]);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+struct crossbreeder_copy
+{
+};
+
+inline void crossbreeder_init(crossbreeder_copy &cb, const size_t scoreParentA, const size_t scoreParentB)
+{
+  (void)cb;
+  (void)scoreParentA;
+  (void)scoreParentB;
+}
+
+template <typename T>
+  requires (std::is_integral_v<T>)
+inline void crossbreeder_eval(const crossbreeder_copy &c, T &val, const T parentA, const T parentB)
+{
+  (void)c;
+  (void)parentB;
+  val = parentA;
+}
+
+template <typename T>
+  requires (std::is_integral_v<T>)
+inline void crossbreeder_eval(const crossbreeder_copy &c, T *pVal, const size_t count, const T *pParentA, const T *pParentB)
+{
+
+  (void)c;
+  (void)pParentB;
+  lsMemcpy(pVal, pParentA, count);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -242,12 +375,19 @@ void evolution_get_best(const evolution<target, config> &e, const target **ppTar
 template <typename target, typename config, typename func>
 void evolution_reevaluate(evolution<target, config> &e, func evalFunc)
 {
-  for (auto &g : e.genes)
-    g.score = evalFunc(g.t);
+  for (auto g : e.genes)
+    g.pItem->score = evalFunc(g.pItem->t);
 
   const std::function<int64_t(const size_t &index)> &idxToScore = [&e](const size_t &index) -> int64_t {
     return -(int64_t)pool_get(e.genes, index)->score;
     };
 
   list_sort<int64_t>(e.bestGeneIndices, idxToScore);
+}
+
+template <typename target, typename config, typename func>
+void evolution_for_each(evolution<target, config> &e, func f)
+{
+  for (auto g : e.genes)
+    f(g.pItem->t);
 }
