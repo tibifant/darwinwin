@@ -14,12 +14,12 @@
     <div id="control-panel" class="control-panel">
       <button id="level-generate-button" onclick="javascript:levelGenerate()">Generate Level</button>
       <span></span>
-      <button id="training-load-level-button" onclick="javascript:loadTrainingLevel()">Load Training Level</button>
       <button id="ai-load-brain-button" onclick="javascript:reloadBrain()">Reload Brain</button>
-      <button id="ai-reset-brain-button" onclick="javascript:resetStats()">Reset Stats</button>
       <button id="ai-step-button" onclick="javascript:aiStep()">Single AI Step</button>
-      <button id="ai-step-start-button" onclick="javascript:aiStepToggle()">Start AI Step</button>
+      <button id="ai-step-toggle-button" onclick="javascript:aiStepStart(event)">Start AI Step</button>
+      <button id="ai-reset-brain-button" onclick="javascript:resetStats()">Reset Stats</button>
       <span></span>
+      <button id="training-load-level-button" onclick="javascript:loadTrainingLevel()">Load Training Level</button>
       <button id="training-start-button" onclick="javascript:startTraining()">Start Training</button>
       <button id="training-stop-button" onclick="javascript:stopTraining()">Stop Training</button>
     </div>

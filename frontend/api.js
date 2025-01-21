@@ -355,25 +355,23 @@ function aiStep(){
   postAiStepRequest();
 }
 
-function aiStepToggle(event){
-  const element = event.target;
-  switch (element.id.split('-')[2]) {
-    case 'start':
-      aiStepIntervalIdCache = setInterval(aiStep, 1000);
-      element.id = "ai-step-stop-button";
-      element.innerText = "Stop AI Step";
-      break;
-    case 'stop':
-      if(!aiStepIntervalIdCache){
-        console.error("Stop AI Step interval was called before interval was started.")
-      }
-      clearInterval(aiStepIntervalIdCache);
-      element.id = "ai-step-start-button";
-      element.innerText = "Start AI Step";
-      break;
-    default:
-      console.error("StepToggle - ID not recognized: " + element.id);
-  }
+function aiStepStart(event){
+  aiStepIntervalIdCache = setInterval(aiStep, 1000);
+
+  const button = event.target;
+  button.onclick = '';
+  button.removeEventListener('click', aiStepStart);
+  button.addEventListener('click', aiStepStop);
+  button.innerText = "Stop AI Step";
+}
+
+function aiStepStop(event){
+  clearInterval(aiStepIntervalIdCache);
+
+  const button = event.target;
+  button.removeEventListener('click', aiStepStop);
+  button.addEventListener('click', aiStepStart);
+  button.innerText = "Start AI Step";
 }
 
 function loadTrainingLevel(){
