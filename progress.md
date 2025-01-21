@@ -85,7 +85,7 @@ Aktuelle Tasks:
 
 **Hauptrioritaet Frontend:** Visualisierung Level.
 
-**Hauptrioritaet Backend:** Grundstruktur Genetic Algorithm
+**Hauptrioritaet Training Engine:** Grundstruktur Genetic Algorithm
 
 ## 09.01.2025:
 
@@ -101,7 +101,7 @@ Aktuelle Tasks:
 
 **Aktuelle Tasks:**
 - Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
-- Backend: Mutator mit Random Chance implementieren, weitere Fixes in verschiedenen Actions
+- Training Engine: Mutator mit Random Chance implementieren, weitere Fixes in verschiedenen Actions
 
 ## 10.01.2025:
 
@@ -115,7 +115,7 @@ Aktuelle Tasks:
 
 **Aktuelle Tasks:**
 - Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
-- Backend: `Mutator` mit Normalverteilung
+- Training Engine: `Mutator` mit Normalverteilung
 
 ## 13.01.2025:
 
@@ -138,7 +138,7 @@ Frontend:
 - Darstellung: Collidable & Wasser farbig
 - (Refactoring)
 
-Backend:
+Training Engine:
 - Speichersystem NN
 - Level Generator
 
@@ -163,7 +163,7 @@ Frontend:
 - Info automatisch updaten
 - Clean-Up und Refactoring
 
-Backend:
+Training Engine:
 - getLevel viewcone hinzufuegen
 - NN in Datei schreiben
 - Level Generator
@@ -187,7 +187,7 @@ Frontend:
 - Viewcone fertig machen
 - Testen!
 
-Backend:
+Training Engine:
 - Vorbereitung fuer Training
 
 ## 17.01.2025
@@ -211,7 +211,7 @@ Frontend:
 - Button: generiertes Level vom Server anfragen `/level_generate` (neue Branch3 & MR)
 - Buttons: `/start_training`, `/stop_training`, `is_training`  (neue Branch4 & MR)
 
-Backend:
+Training Engine:
 - Frontend Änderungen mergen, wenn bereit
 - Training vorbereiten + training testen
 
@@ -237,7 +237,7 @@ Frontend:
 - Button: generiertes Level vom Server anfragen `/level_generate` (neue Branch3 & MR)
 - Buttons: `/start_training`, `/stop_training`, `is_training`  (neue Branch4 & MR)
 
-Backend:
+Training Engine:
 - Testen von Evolution und Neuronalem Netz
 
 ## 21.01.2025
@@ -254,10 +254,12 @@ Backend:
 
 Aktuelle Tasks:
 Frontend:
-- `moveDiagnonalLeft`, `moveDiagnonalRight`, `wait`
+- viewcone im Frontend zusammenstellen (fertigstellen, Jan)
+- neue Actions auswaehlen fuer manualAct: `moveDiagnonalLeft`, `moveDiagnonalRight`, `wait`
 - set tile: checkboxes zum Auswaehlen der Tilefalgs, copy tileflags von anderer tile
-- Feedback implementieren: MR & onclick
+- Feedback implementieren: MR & onclick (Marvin)
 
-- diagnonal move muss hinzufuegen
-- trainloop anpassen
+Training Engine:
+- diagnonal move hinzufuegen
+- trainloop anpassen (asynchron unabhaengig voneinander trainieren lassen)
 - Outputs gewichtet auswaehlen
