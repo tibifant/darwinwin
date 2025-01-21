@@ -527,9 +527,13 @@ function postLoadTrainingLevelRequest(){
 }
 
 function postTrainingStartRequest(){
-  load_backend_url('start_training', {}, {}, handleError);
+  load_backend_url('start_training', logSuccess, {}, handleError);
 }
 
 function postTrainingStopRequest(){
-  load_backend_url('stop_training', {}, {}, handleError);
+  load_backend_url('stop_training', logSuccess, {}, handleError);
+}
+
+function logSuccess(){
+  console.log("Successfully made successful call with success");
 }
