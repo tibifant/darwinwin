@@ -570,7 +570,7 @@ struct starter_random_config
   using crossbreeder = crossbreeder_naive;
 
   static constexpr size_t survivingGenes = 16;
-  static constexpr size_t newGenesPerGeneration = 3 * 2 * 16;
+  static constexpr size_t newGenesPerGeneration = 3 * 2 * 5 * 8;
 };
 
 template <typename crossbreeder>
@@ -628,6 +628,8 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
 {
   lsResult result = lsR_Success;
 
+  constexpr bool trainSynchronously = true;
+
   {
     actor actr;
     actor_loadNewestBrain(dir, actr);
@@ -675,7 +677,11 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
 
       for (size_t i = 0; i < iterationsPerLevel && _DoTraining; i++)
       {
-        evolution_generation(evl, evaluate_actor, pThreadPool);
+        if constexpr (trainSynchronously)
+          evolution_generation(evl, evaluate_actor);
+        else
+          evolution_generation(evl, evaluate_actor, pThreadPool);
+
         evolution_get_best(evl, &pBest, score);
 
         if (score > bestScore)

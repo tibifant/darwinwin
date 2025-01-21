@@ -92,10 +92,62 @@ inline void mutator_eval(const mutator_random &m, int16_t *pVal, const size_t co
     rand = lsGetRand();
 
     for (size_t j = 0; j < 8; j++)
-    {
-      pVal[i + j] = (int8_t)(rand & 0xFF);
-      rand >>= 8;
-    }
+      pVal[i + j] = (int8_t)((rand >> (j * 8)) & 0xFF);
+  }
+
+  rand = lsGetRand();
+
+  for (; i < count; i++)
+  {
+    pVal[i] = (int8_t)(rand & 0xFF);
+    rand >>= 8;
+  }
+}
+
+template <typename config>
+struct mutator_zero_chance
+{
+};
+
+template <typename config>
+inline void mutator_init(mutator_zero_chance<config> &mut, const size_t generation)
+{
+  (void)mut;
+  (void)generation;
+}
+
+template <typename T, typename config>
+  requires (std::is_integral_v<T>)
+inline void mutator_eval(const mutator_zero_chance<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  (void)m;
+  lsAssert(min == lsMinValue<int8_t>() && max == lsMaxValue<int8_t>());
+
+  const uint64_t rand = lsGetRand();
+
+  if ((rand & 1024) > config::chanceOf1024)
+    return;
+
+  val = lsClamp(lsGetRand(), min, max);
+}
+
+template <typename config>
+inline void mutator_eval(const mutator_zero_chance<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
+{
+  (void)m;
+  (void)min;
+  (void)max;
+  lsAssert(min == lsMinValue<int8_t>() && max == lsMaxValue<int8_t>());
+
+  size_t i = 0;
+  uint64_t rand;
+
+  for (; i + 7 < count; i += 8)
+  {
+    rand = lsGetRand();
+
+    for (size_t j = 0; j < 8; j++)
+      pVal[i + j] = (int8_t)((rand >> (j * 8)) & 0xFF);
   }
 
   rand = lsGetRand();
