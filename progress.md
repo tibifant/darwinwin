@@ -245,8 +245,7 @@ Training Engine:
 **Marvin:**
 - Controlpanel fuer AI_step, Training start etc.
 
-**Jan:**
--
+**Jan:** -
 
 **Malin:**
 - Erste Testdurchlauefe zum Trainieren

@@ -267,6 +267,8 @@ void actor_moveTwo(actor *pActor, const level &lvl);
 void actor_turnLeft(actor *pActor);
 void actor_turnRight(actor *pActor);
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
+void actor_moveDiagnonalLeft(actor *pActor, const level lvl);
+void actor_moveDiagonalRight(actor *pActor, const level lvl);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -362,10 +364,11 @@ void actor_updateStats(actor *pActor, const viewCone &cone)
 
 //////////////////////////////////////////////////////////////////////////
 
+constexpr int64_t CollideEnergyCost = 4;
+
 void actor_move(actor *pActor, const level &lvl)
 {
   constexpr int64_t MovementEnergyCost = 10;
-  constexpr int64_t CollideEnergyCost = 4;
   constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, 1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
@@ -388,14 +391,14 @@ void actor_move(actor *pActor, const level &lvl)
 
   lsAssert(!(lvl.grid[newIdx] & tf_Collidable));
   lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
+
   pActor->pos = newPos;
 }
 
 void actor_moveTwo(actor *pActor, const level &lvl)
 {
   constexpr int64_t DoubleMovementEnergyCost = 30;
-  constexpr int64_t CollideEnergyCost = 4;
-  //constexpr vec2i16 LutPosDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, 2) };
+  constexpr vec2i16 LutPosDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, 2) };
   constexpr int8_t LutIdxSingle[_lookDirection_Count] = { -1, -(int64_t)level::width, 1, level::width };
 
   const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
@@ -417,11 +420,12 @@ void actor_moveTwo(actor *pActor, const level &lvl)
     return;
   }
 
-  //const vec2u16 newPos = (vec2u16)((vec2i16)(pActor->pos) + LutPosDouble[pActor->look_dir]);
-  const size_t y = newPosIdx / level::width;
-  const vec2u16 newPos = vec2u16((uint16_t)(newPosIdx - y * level::width), (uint16_t)y);
+  const vec2u16 newPos = (vec2u16)((vec2i16)(pActor->pos) + LutPosDouble[pActor->look_dir]);
+
+  lsAssert(newPosIdx == newPos.y * level::width + newPos.x);
   lsAssert(!(lvl.grid[newPosIdx] & tf_Collidable));
   lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
+
   pActor->pos = newPos;
 }
 
@@ -480,6 +484,66 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
       pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i);
     }
   }
+}
+
+static constexpr int64_t MoveDiagonalCost = 16;
+
+void actor_moveDiagnonalLeft(actor *pActor, const level lvl)
+{
+  const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
+  lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
+  lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
+
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost);
+
+  if (oldEnergy < MoveDiagonalCost)
+    return;
+
+  constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 1), vec2i16(-1, -1), vec2i16(1, -1), vec2i16(1, 1) };
+
+  const vec2u16 newPos = (vec2u16)((vec2i16)(pActor->pos) + lut[pActor->look_dir]);
+  const size_t newIdx = newPos.y * level::width + newPos.x;
+
+  if (!!(lvl.grid[newIdx] & tf_Collidable))
+  {
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    return;
+  }
+
+  lsAssert(!(lvl.grid[newIdx] & tf_Collidable));
+  lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
+
+  pActor->pos = newPos;
+}
+
+void actor_moveDiagonalRight(actor *pActor, const level lvl)
+{
+  const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
+  lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
+  lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
+
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost);
+
+  if (oldEnergy < MoveDiagonalCost)
+    return;
+
+  constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, -1), vec2i16(1, -1), vec2i16(1, 1), vec2i16(-1, 1) };
+
+  const vec2u16 newPos = (vec2u16)((vec2i16)(pActor->pos) + lut[pActor->look_dir]);
+  const size_t newIdx = newPos.y * level::width + newPos.x;
+
+  if (!!(lvl.grid[newIdx] & tf_Collidable))
+  {
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    return;
+  }
+
+  lsAssert(!(lvl.grid[newIdx] & tf_Collidable));
+  lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
+
+  pActor->pos = newPos;
 }
 
 //////////////////////////////////////////////////////////////////////////
