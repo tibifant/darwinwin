@@ -137,7 +137,6 @@ struct actor
   actorAction last_action; // will be set by `level_performStep`, may be uninitialized.
   int16_t previous_feedback_output[FeedbackBlocks * neural_net_block_size] = {}; // will be set by `level_performStep`, may be uninitialized.
 
-
   actor() = default;
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
 };

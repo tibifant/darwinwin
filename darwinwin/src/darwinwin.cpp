@@ -2,8 +2,9 @@
 #include "io.h"
 #include "level_generator.h"
 #include "evolution.h"
-#include <time.h>
+#include "local_list.h"
 
+#include <time.h>
 #include <filesystem>
 
 //////////////////////////////////////////////////////////////////////////
@@ -220,7 +221,7 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 
     pActors[i].last_action = (actorAction)bestActionIndex;
     actor_act(&pActors[i], &lvl, cone, pActors[i].last_action);
-  
+
     lsMemcpy(pActors[i].previous_feedback_output, &ioBuffer[pActors[i].brain.last_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], LS_ARRAYSIZE(pActors[i].previous_feedback_output));
   }
 
@@ -327,6 +328,14 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
   case aa_Wait:
     break;
 
+  case aa_DiagonalMoveLeft:
+    actor_moveDiagonalLeft(pActor, *pLevel);
+    break;
+
+  case aa_DiagonalMoveRight:
+    actor_moveDiagonalRight(pActor, *pLevel);
+    break;
+
   default:
     lsFail(); // not implemented.
     break;
@@ -430,7 +439,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
     return;
 
   const size_t nearIdx = currentIdx + LutIdxSingle[pActor->look_dir];
-  const size_t newPosIdx = nearIdx + LutIdxSingle[pActor->look_dir];
+  const size_t newPosIdx = currentIdx + 2 * LutIdxSingle[pActor->look_dir];
 
   if (!!(lvl.grid[newPosIdx] & tf_Collidable) || !!(lvl.grid[nearIdx] & tf_Collidable))
   {
@@ -655,6 +664,12 @@ struct starter_random_config
   static constexpr size_t newGenesPerGeneration = 3 * 2 * 5 * 8;
 };
 
+struct starter_random_config_independent : starter_random_config
+{
+  static constexpr size_t survivingGenes = 4;
+  static constexpr size_t newGenesPerGeneration = 16;
+};
+
 template <typename crossbreeder>
 void crossbreed(actor &val, const actor parentA, const actor parentB, const crossbreeder &c)
 {
@@ -701,9 +716,138 @@ size_t evaluate_actor(const actor &in)
   return score;
 }
 
-size_t evalutate_null(const actor &)
+size_t evaluate_null(const actor &)
 {
   return 0;
+}
+
+lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *dir)
+{
+  lsResult result = lsR_Success;
+
+  using config = starter_random_config_independent;
+  using evl_type = evolution<actor, config>;
+  small_list<evl_type> evolutions;
+
+  struct actor_ref
+  {
+    size_t score, evolution_idx, idx;
+    actor_ref() = default; // actor_ref': no appropriate default constructor available -> yes?
+    actor_ref(const size_t score, const size_t evolution_idx, const size_t idx) : score(score), evolution_idx(evolution_idx), idx(idx) {}
+    bool operator > (const actor_ref &other) const { return score < other.score; }
+    bool operator < (const actor_ref &other) const { return score > other.score; }
+  };
+
+  small_list<actor_ref> best_actor_refs;
+  actor best_actors[config::survivingGenes];
+
+  actor actr;
+  actor_loadNewestBrain(dir, actr);
+
+  uint64_t rand = lsGetRand();
+  actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+  actr.pos += vec2u16(level::wallThickness);
+  actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+
+  actor_initStats(&actr);
+  size_t trainingCycle = 0;
+
+  for (size_t i = 0; i < thread_pool_thread_count(pThreadPool); i++)
+  {
+    evl_type evl;
+    LS_ERROR_CHECK(evolution_init_empty(evl));
+
+    evolution_add_unevaluated_target(evl, actr);
+
+    LS_ERROR_CHECK(list_add(&evolutions, std::move(evl)));
+  }
+
+  while (_DoTraining)
+  {
+    list_clear(&best_actor_refs);
+
+    level_generateDefault(&_CurrentLevel);
+    size_t maxRetries = 32;
+
+    do
+    {
+      rand = lsGetRand();
+      actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+      actr.pos += vec2u16(level::wallThickness);
+      actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+      maxRetries--;
+    } while ((_CurrentLevel.grid[actr.pos.x + actr.pos.y * level::width] & tf_Collidable) && maxRetries);
+
+    for (auto &evol : evolutions)
+      evolution_for_each(evol, [&](actor &a) { a.pos = actr.pos; a.look_dir = actr.look_dir; });
+
+    if (maxRetries == 0)
+    {
+      print_error_line("Failed to find non-collidable position in lvl.");
+      continue;
+    }
+
+    for (auto &evol : evolutions)
+      evolution_reevaluate(evol, evaluate_actor);
+
+    for (size_t i = 0; i < evolutions.count; i++)
+    {
+      evl_type *pEvolution = &evolutions[i];
+
+      std::function<void()> async_func = [=]()
+        {
+          constexpr size_t iterationsPerLevel = 1000;
+
+          for (size_t j = 0; j < iterationsPerLevel && _DoTraining; j++)
+            evolution_generation(*pEvolution, evaluate_actor);
+        };
+
+      thread_pool_add(pThreadPool, async_func);
+    }
+
+    thread_pool_await(pThreadPool);
+
+    // extract actor refs w/ score
+    size_t index = 0;
+    for (auto &evol : evolutions)
+    {
+      for (size_t j = 0; j < evolution_get_count(evol); j++)
+      {
+        const size_t idx = evolution_get_idx_at(evol, j); // coc?
+        const size_t score = evolution_get_score(evol, idx); // coc?
+        const actor_ref ref(score, index, idx);
+        LS_ERROR_CHECK(list_add(&best_actor_refs, ref)); // coc?
+      }
+      index++;
+    }
+
+    // sort
+    list_sort(best_actor_refs);
+
+    // extract best actors to best_actors
+    for (size_t i = 0; i < LS_ARRAYSIZE(best_actors); i++)
+      best_actors[i] = std::move(pool_get(evolutions[best_actor_refs[i].evolution_idx].genes, best_actor_refs[i].idx)->t);
+
+    for (auto &evol : evolutions)
+    {
+      // clear evolutions
+      evolution_clear(evol);
+
+      // insert best actors to evolutions
+      for (size_t i = 0; i < LS_ARRAYSIZE(best_actors); i++)
+        evolution_add_unevaluated_target(evol, best_actors[i]);
+    }
+
+    const actor_ref *pBestRef = list_get(&best_actor_refs, 0);
+    print_log_line("Current Best: Training Cycle: ", trainingCycle, " w/ score: ", pBestRef->score);
+    LS_ERROR_CHECK(actor_saveBrain(dir, best_actors[0]));
+
+    trainingCycle++;
+  }
+
+epilogue:
+  _TrainingRunning = false;
+  return result;
 }
 
 lsResult train_loop(thread_pool *pThreadPool, const char *dir)
@@ -726,7 +870,7 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
     constexpr size_t iterationsPerLevel = 1000;
 
     evolution<actor, starter_random_config> evl;
-    evolution_init(evl, actr, evalutate_null); // because no level is generated yet!
+    evolution_init(evl, actr, evaluate_null); // because no level is generated yet!
 
     size_t levelIndex = 0;
 
