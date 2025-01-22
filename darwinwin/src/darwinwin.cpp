@@ -757,7 +757,7 @@ lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *di
     evl_type evl;
     LS_ERROR_CHECK(evolution_init_empty(evl));
 
-    evolution_add_unevaluated_target(evl, actr);
+    evolution_add_unevaluated_target(evl, std::move(actr));
 
     LS_ERROR_CHECK(list_add(&evolutions, std::move(evl)));
   }
@@ -813,11 +813,12 @@ lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *di
     {
       for (size_t j = 0; j < evolution_get_count(evol); j++)
       {
-        const size_t idx = evolution_get_idx_at(evol, j); // coc?
-        const size_t score = evolution_get_score(evol, idx); // coc?
-        const actor_ref ref(score, index, idx);
-        LS_ERROR_CHECK(list_add(&best_actor_refs, ref)); // coc?
+        size_t idx;
+        size_t score;
+        evolution_get_at(evol, j, idx, score);
+        LS_ERROR_CHECK(list_add(&best_actor_refs, actor_ref(score, index, idx)));
       }
+
       index++;
     }
 
