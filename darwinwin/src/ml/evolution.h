@@ -437,7 +437,7 @@ template <typename target, typename config>
 size_t evolution_get_idx_at(evolution<target, config> &e, const size_t idx)
 {
   lsAssert(idx < e.bestGeneIndices.count); // coc?
-  return e.bestGeneIndices[idx];
+  return *list_get(e.bestGeneIndices, idx);
 }
 
 template <typename target, typename config>
