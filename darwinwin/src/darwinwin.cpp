@@ -187,23 +187,41 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
     for (size_t j = 0; j < _actorStats_Count; j++)
       ioBuffer[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
 
+    lsMemcpy(&ioBuffer[pActors[i].brain.first_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], pActors[i].previous_feedback_output, LS_ARRAYSIZE(pActors[i].previous_feedback_output));
+
     neural_net_eval(pActors[i].brain, ioBuffer);
 
-    int16_t maxValue = ioBuffer.data[0];
-    size_t bestActionIndex = 0;
-    constexpr size_t maxActionIndex = lsMin(LS_ARRAYSIZE(ioBuffer.data), _actorAction_Count);
+    size_t actionValueCount = 0;
 
-    for (size_t actionIndex = 1; actionIndex < maxActionIndex; actionIndex++)
+    static_assert(_actorAction_Count <= LS_ARRAYSIZE(ioBuffer.data));
+
+    for (size_t j = 0; j < _actorAction_Count; j++)
+      actionValueCount += ioBuffer[j];
+
+    size_t bestActionIndex = 0;
+
+    if (actionValueCount > 0)
     {
-      if (maxValue < ioBuffer.data[actionIndex])
+      const size_t rand = lsGetRand() % actionValueCount;
+
+      for (size_t actionIndex = 0; actionIndex < _actorAction_Count; actionIndex++)
       {
-        maxValue = ioBuffer.data[actionIndex];
-        bestActionIndex = actionIndex;
+        const int16_t val = ioBuffer[actionIndex];
+
+        if (val < rand)
+        {
+          bestActionIndex = actionIndex;
+          break;
+        }
+
+        actionValueCount -= val;
       }
     }
 
     pActors[i].last_action = (actorAction)bestActionIndex;
     actor_act(&pActors[i], &lvl, cone, pActors[i].last_action);
+  
+    lsMemcpy(pActors[i].previous_feedback_output, &ioBuffer[pActors[i].brain.last_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], LS_ARRAYSIZE(pActors[i].previous_feedback_output));
   }
 
   return anyAlive;
@@ -267,7 +285,7 @@ void actor_moveTwo(actor *pActor, const level &lvl);
 void actor_turnLeft(actor *pActor);
 void actor_turnRight(actor *pActor);
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
-void actor_moveDiagnonalLeft(actor *pActor, const level lvl);
+void actor_moveDiagonalLeft(actor *pActor, const level lvl);
 void actor_moveDiagonalRight(actor *pActor, const level lvl);
 
 //////////////////////////////////////////////////////////////////////////
@@ -488,7 +506,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 
 static constexpr int64_t MoveDiagonalCost = 16;
 
-void actor_moveDiagnonalLeft(actor *pActor, const level lvl)
+void actor_moveDiagonalLeft(actor *pActor, const level lvl)
 {
   const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
