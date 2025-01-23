@@ -332,7 +332,10 @@ function createActorOptionsButtonsElement(actorId){
     "move 2",
     "turn left",
     "turn right",
-    "eat"
+    "eat",
+    "wait",
+    "move diagonal-left",
+    "move diagonal-right"
   ]
 
   const optionsButtonsElement = document.createElement('div');
@@ -547,6 +550,7 @@ function fetchTrainingState(callback){
 function postActorAction(actorId, actionId) {
   const updateFunction = showActorStats.bind(null, actorId);
   const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
+  console.log("Sending action request for actor: " + actorId + " with action: " + actionId);
   load_backend_url('manualAct', fetchAndUpdate,
     {actionId: actionId}, handleError);
 }
