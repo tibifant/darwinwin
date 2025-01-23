@@ -309,13 +309,15 @@ crow::response handle_stopTraining()
 
 crow::response handle_isTraining()
 {
+  crow::json::wvalue ret;
+
   if (_pTrainingThread == nullptr)
-    return crow::json::wvalue({ "result", false });
+    return ret["result"] = false;
 
   if (_TrainingRunning)
-    return crow::json::wvalue({ "result", true });
+    return ret["result"] = true;
 
-  return crow::json::wvalue({ "result", false });
+  return ret["result"] = false;
 }
 
 crow::response handle_loadTrainingLevel()
