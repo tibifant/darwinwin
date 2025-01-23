@@ -30,20 +30,7 @@ function setup(){
 }
 
 function setupControlPanel(){
-  fetchTrainingState(setupTrainingButton);
-}
-
-function setupTrainingButton(isTraining){
-  const trainingToggleButton = document.getElementById('training-toggle-button');
-
-  if(isTraining.result){
-    trainingToggleButton.innerText = "Start Training";
-    trainingToggleButton.onclick = startTraining;
-  }
-  else {
-    trainingToggleButton.innerText = "Stop Training";
-    trainingToggleButton.onclick = stopTraining;
-  }
+  fetchTrainingState(switchTrainingButton);
 }
 
 function setupStatsWindow(){
@@ -371,32 +358,17 @@ function aiStepStop(event){
   button.innerText = "Start AI Step";
 }
 
-function startTraining(event){
-  try {
-    postTrainingStartRequest();
+function switchTrainingButton(isTraining){
+  const toggleTrainingButton = document.getElementById('training-toggle-button');
+  console.log(isTraining);
+  if(isTraining === ""){
+    toggleTrainingButton.onclick = postTrainingStartRequest;
+    toggleTrainingButton.innerText = "Start Training";
   }
-  catch (e){
-    console.error("Encountered an error in startTraining, cancelling now.");
-    return;
+  else {
+    toggleTrainingButton.onclick = postTrainingStopRequest;
+    toggleTrainingButton.innerText = "Stop Training";
   }
-
-  const button = event.target;
-  button.onclick = stopTraining;
-  button.innerText = "Stop Training";
-}
-
-function stopTraining(event){
-  try {
-    postTrainingStopRequest();
-  }
-  catch (e){
-    console.error("Encountered an error in stopTraining, cancelling now.");
-    return;
-  }
-
-  const button = event.target;
-  button.onclick = startTraining;
-  button.innerText = "Start Training";
 }
 
 // ### Set functions ###
@@ -527,13 +499,11 @@ function postLoadTrainingLevelRequest(){
 }
 
 function postTrainingStartRequest(){
-  load_backend_url('start_training', logSuccess, {}, handleError);
+  const callback = fetchTrainingState.bind(null, switchTrainingButton);
+  load_backend_url('start_training', callback, {}, handleError);
 }
 
 function postTrainingStopRequest(){
-  load_backend_url('stop_training', logSuccess, {}, handleError);
-}
-
-function logSuccess(){
-  console.log("Successfully made successful call with success");
+  const callback = fetchTrainingState.bind(null, switchTrainingButton);
+  load_backend_url('stop_training', callback, {}, handleError);
 }
