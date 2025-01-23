@@ -259,6 +259,17 @@ epilogue:
   return result;
 }
 
+template <typename target, typename config>
+lsResult evolution_init_empty(evolution<target, config> &e)
+{
+  lsResult result = lsR_Success;
+
+  LS_ERROR_CHECK(pool_reserve(&e.genes, config::survivingGenes + config::newGenesPerGeneration));
+
+epilogue:
+  return result;
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 template <typename target, typename config>
@@ -372,6 +383,21 @@ void evolution_get_best(const evolution<target, config> &e, const target **ppTar
   best_score = pBestGene->score;
 }
 
+template <typename target, typename config>
+void evolution_get_at(evolution<target, config> &e, const size_t at, size_t &index, size_t &score)
+{
+  lsAssert(at < e.bestGeneIndices.count);
+
+  index = *list_get(&e.bestGeneIndices, at);
+  score = pool_get(e.genes, index)->score;
+}
+
+template <typename target, typename config>
+size_t evolution_get_count(evolution<target, config> &e)
+{
+  return e.bestGeneIndices.count;
+}
+
 template <typename target, typename config, typename func>
 void evolution_reevaluate(evolution<target, config> &e, func evalFunc)
 {
@@ -390,4 +416,45 @@ void evolution_for_each(evolution<target, config> &e, func f)
 {
   for (auto g : e.genes)
     f(g.pItem->t);
+}
+
+// Only use this if you know what you are doing! Target must always be evaluated afterwards!
+template <typename target, typename config>
+lsResult evolution_add_unevaluated_target(evolution<target, config> &e, target &&t)
+{
+  lsResult result = lsR_Success;
+
+  typename evolution<target, config>::gene g;
+  g.t = std::move(t);
+
+  size_t idx;
+  LS_ERROR_CHECK(pool_add(&e.genes, std::move(g), &idx));
+  LS_ERROR_CHECK(list_add(&e.bestGeneIndices, idx));
+
+epilogue:
+  return result;
+}
+
+// Only use this if you know what you are doing! Target must always be evaluated afterwards!
+template <typename target, typename config>
+lsResult evolution_add_unevaluated_target(evolution<target, config> &e, const target &t)
+{
+  lsResult result = lsR_Success;
+
+  typename evolution<target, config>::gene g;
+  g.t = t;
+
+  size_t idx;
+  LS_ERROR_CHECK(pool_add(&e.genes, std::move(g), &idx));
+  LS_ERROR_CHECK(list_add(&e.bestGeneIndices, idx));
+
+epilogue:
+  return result;
+}
+
+template <typename target, typename config>
+void evolution_clear(evolution<target, config> &e)
+{
+  pool_clear(&e.genes);
+  list_clear(&e.bestGeneIndices);
 }
