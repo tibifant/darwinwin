@@ -76,7 +76,10 @@ function setupTileElements(levelContainer, grid){
     const newTile = document.createElement("div");
     newTile.classList.add("level-tile");
     newTile.id = "tile-"+i;
-    newTile.addEventListener("click", event => {showTileStats(event.target.id)})
+    newTile.addEventListener("click", event => {showTileStats(event.target)})
+    newTile._index = i;
+    newTile._posX = (i % worldData.level.width).toString();
+    newTile._posY = Math.floor(i / worldData.level.width).toString();
     levelContainer.appendChild(newTile);
   })
 }
@@ -85,8 +88,9 @@ function setupActor(actor, index){
   const newActorElement = document.createElement("div");
   newActorElement.classList.add("actor");
   newActorElement.id = "actor-"+index;
+  newActorElement._index = index;
   newActorElement.addEventListener("click", event => {
-    showActorStats(event.target.id);
+    showActorStats(event.target);
     event.stopPropagation();
   })
   actorElements[index] = newActorElement;
@@ -151,6 +155,7 @@ function updateTiles(){
     const tileElement = document.getElementById("tile-"+i);
     tileElement.innerHTML = '';
     tileElement.style.backgroundColor = emptyColor;
+    tileElement._conditionsValue = grid[i];
 
     checkTileFlags(grid[i], tileElement);
   }
@@ -158,7 +163,7 @@ function updateTiles(){
 
 function checkTileFlags(tile, tileElement){
   if(hasTileCondition(tile, "Hidden")){
-    if(tileElement.id.split('-')[0] === 'view'){
+    if(tileElement.id.startsWith('view')){
       tileElement.style.backgroundColor = '';
       tileElement.style.border = '2px solid black';
       return;
@@ -207,8 +212,7 @@ function updateActor(actor, index){
 }
 
 // ### Stats view for Actor functions ###
-function showActorStats(actorId){
-  console.log("Showing Actor Stats for " + actorId);
+function showActorStats(actor){
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -219,26 +223,16 @@ function showActorStats(actorId){
   const labelsElement = document.createElement('label')
   const valuesElement = document.createElement('label');
 
-  fillActorLabelsAndValuesElements(actorId, labelsElement, valuesElement);
+  fillActorLabelsAndValuesElements(actor, labelsElement, valuesElement);
 
   infoLabelsElement.appendChild(labelsElement);
   infoValuesElement.appendChild(valuesElement);
-  optionsElement.appendChild(createActorOptionsButtonsElement(actorId));
+  optionsElement.appendChild(createActorOptionsButtonsElement(actor));
 
-  showViewCone(actorId);
+  showViewCone(actor);
 }
 
-function showViewCone(actorId){
-  const viewCone = worldData.actor[actorId.split('-')[1]].viewcone;
-  for(let i=0; i<viewCone.length; i++){
-    const tile = document.getElementById('view-cone-tile-'+i);
-    tile.innerText = viewCone[i];
-    tile.style.backgroundColor = emptyColor;
-    checkTileFlags(viewCone[i], tile);
-  }
-}
-
-function fillActorLabelsAndValuesElements(actorId, labels, values){
+function fillActorLabelsAndValuesElements(actor, labels, values){
   const lookDirections = [
     "left",
     "up",
@@ -254,17 +248,27 @@ function fillActorLabelsAndValuesElements(actorId, labels, values){
     "Energy"
   ]
 
-  const actorIndex = actorId.split('-')[1];
+  const actorIndex = actor._index;
   const targetActorStats = worldData.actor[actorIndex];
   labels.innerHTML = "Actor ID:<br>PosX:<br>PosY:<br>LookDir:<br><br>";
-  values.innerHTML = `${actorId}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br><br>`;
+  values.innerHTML = `${actor.id}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br><br>`;
   for (const stat in targetActorStats.stats ){
     labels.innerHTML += statDescriptions[stat] + "<br>";
     values.innerHTML += targetActorStats.stats[stat] + "<br>";
   }
 }
 
-function createActorOptionsButtonsElement(actorId){
+function showViewCone(actor){
+  const viewCone = worldData.actor[actor._index].viewcone;
+  for(let i=0; i<viewCone.length; i++){
+    const tile = document.getElementById('view-cone-tile-'+i);
+    tile.innerText = viewCone[i];
+    tile.style.backgroundColor = emptyColor;
+    checkTileFlags(viewCone[i], tile);
+  }
+}
+
+function createActorOptionsButtonsElement(actor){
   const actorActions = [
     "move",
     "move 2",
@@ -276,22 +280,24 @@ function createActorOptionsButtonsElement(actorId){
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
   actorActions.forEach((action, i) => {
-    const button = createActorButton(actorId, action, i);
+    const button = createActorButton(actor, action, i);
     optionsButtonsElement.appendChild(button);
   })
   return optionsButtonsElement;
 }
 
-function createActorButton(actorId, action, actionId){
+function createActorButton(actor, action, actionId){
   const button = document.createElement('button');
-  button.id = "option-button-"+actorId+"-"+actionId;
+  button.id = "option-button-"+actionId;
+  button._actorIndex = actor._index;
+  button._actionId = actionId;
   button.innerText = action;
   button.addEventListener('click', initiateActorActionRequest)
   return button;
 }
 
 // ### Stats view for Tile functions ###
-function showTileStats(tileId){
+function showTileStats(tile){
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -304,34 +310,32 @@ function showTileStats(tileId){
   const labels = document.createElement('label');
   const values = document.createElement('label');
 
-  fillTileStatsElements(tileId, labels, values, optionsButtonsElement);
+  fillTileStatsElements(tile, labels, values, optionsButtonsElement);
 
   infoLabelsElement.appendChild(labels);
   infoValuesElement.appendChild(values);
   optionsElement.appendChild(optionsButtonsElement);
 }
 
-function fillTileStatsElements(id, labels, values, optionsButtonsElement){
-  const tileIndex = id.split('-')[1];
-  const x = tileIndex % worldData.level.width;
-  const y = Math.floor(tileIndex / worldData.level.width);
-
+function fillTileStatsElements(tile, labels, values, optionsButtonsElement){
   labels.innerHTML = "Tile ID:<br>X:<br>Y:<br><br>";
-  values.innerHTML = `${id}<br>${x}<br>${y}<br><br>`;
+  values.innerHTML = `${tile.id}<br>${tile._posX}<br>${tile._posY}<br><br>`;
 
   const grid = worldData.level.grid;
   for(const flag in tileFlags){
     labels.innerHTML += flag+"<br>";
-    values.innerHTML += hasTileCondition(grid[tileIndex], flag)+"<br>";
+    values.innerHTML += hasTileCondition(grid[tile._index], flag)+"<br>";
 
-    const button = createTileButton(tileIndex, flag);
+    const button = createTileButton(tile._index, flag);
     optionsButtonsElement.appendChild(button);
   }
 }
 
 function createTileButton(tileIndex, key){
   const button = document.createElement('button');
-  button.id = "option-button-tile-"+tileIndex+"-"+key;
+  button.id = "option-button-tile-"+key;
+  button._tileIndex = tileIndex;
+  button._conditionKey = key;
   button.innerText = "Toggle "+key;
   button.addEventListener('click', initiateSetTileRequest);
   return button;
@@ -373,28 +377,26 @@ function switchTrainingButton(isTraining){
 
 // ### Set functions ###
 function initiateActorActionRequest(event){
-  const idSplit = event.target.id.split('-');
-  const actorId = idSplit[2] + "-" + idSplit[3];
-  const actionId = idSplit[4];
-  postActorAction(actorId, actionId);
+  const button = event.target;
+  const actor = document.getElementById("actor-"+button._actorIndex);
+  postActorAction(actor, button._actionId);
 }
 
 function initiateSetTileRequest(event){
-  const tileIndex = event.target.id.split('-')[3];
-  const tile = worldData.level.grid[tileIndex];
-  const condition = event.target.id.split('-')[4];
-  const x = tileIndex % worldData.level.width;
-  const y = Math.floor(tileIndex / worldData.level.width);
+  const button = event.target;
+  const tileIndex = button._tileIndex;
+  const condition = button._conditionKey;
+  const tile = document.getElementById("tile-"+tileIndex);
 
-  const newTile = tile ^ tileFlags[condition];
+  const newTileValue = tile._conditionsValue ^ tileFlags[condition];
 
   const payload = {
-    x: x,
-    y: y,
-    value: newTile
+    x: tile._posX,
+    y: tile._posY,
+    value: newTileValue
   }
 
-  postTileSetRequest(payload, "tile-"+tileIndex);
+  postTileSetRequest(payload, tile);
 }
 
 // ### Net functions ###
@@ -464,15 +466,15 @@ function fetchTrainingState(callback){
   load_backend_url('is_training', callback, {}, handleError)
 }
 
-function postActorAction(actorId, actionId) {
-  const updateFunction = showActorStats.bind(null, actorId);
+function postActorAction(actor, actionId) {
+  const updateFunction = showActorStats.bind(null, actor);
   const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
   load_backend_url('manualAct', fetchAndUpdate,
     {actionId: actionId}, handleError);
 }
 
-function postTileSetRequest(payload, tileId){
-  const updateFunction = showTileStats.bind(null, tileId);
+function postTileSetRequest(payload, tile){
+  const updateFunction = showTileStats.bind(null, tile);
   const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
   load_backend_url('setTile', fetchAndUpdate,
     payload, handleError);
