@@ -152,11 +152,24 @@ void level_gen_water_food_level(level *pLvl)
   level_gen_finalize(pLvl);
 }
 
+void level_gen_puddle_food_level(level *pLvl)
+{
+  level_gen_init(pLvl, 0);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 10);
+  level_gen_grow(pLvl, tf_Underwater);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Sugar, level::total / 10);
+  level_gen_finalize(pLvl);
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 void level_generateDefault(level *pLvl)
 {
-  level_gen_water_food_level(pLvl);
+  //level_gen_water_food_level(pLvl);
+  level_gen_puddle_food_level(pLvl);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -670,6 +683,25 @@ struct starter_random_config_independent : starter_random_config
   static constexpr size_t newGenesPerGeneration = 16;
 };
 
+struct smart_mutator_config
+{
+  static constexpr float param_mutation_min_fac = 1.1f;
+  static constexpr float param_mutation_max_fac = 1.f / param_mutation_min_fac;
+  static constexpr uint16_t mutationChanceBase = smart_mutator_make_chance<0.025>();
+  static constexpr uint16_t mutationRateBase = 8;
+};
+
+struct smart_config
+{
+  using mutator = smart_mutator<smart_mutator_config>;
+  using crossbreeder = crossbreeder_naive;
+
+  static constexpr size_t survivingGenes = 4;
+  static constexpr size_t newGenesPerGeneration = 16;
+};
+
+//////////////////////////////////////////////////////////////////////////
+
 template <typename crossbreeder>
 void crossbreed(actor &val, const actor parentA, const actor parentB, const crossbreeder &c)
 {
@@ -686,13 +718,12 @@ void mutate(actor &target, const mutator &m)
   mutator_eval(m, &target.brain.values[0], LS_ARRAYSIZE(target.brain.values), (int16_t)lsMinValue<int8_t>(), (int16_t)lsMaxValue<int8_t>());
 }
 
-// TODO: Eval Funcs... -> Give scores
-constexpr size_t EvaluatingCycles = 1000;
+//////////////////////////////////////////////////////////////////////////
+
+constexpr size_t EvaluatingCycles = 8;
 
 size_t evaluate_actor(const actor &in)
 {
-  constexpr size_t foodSprinkleMask = (1ULL << 5) - 1;
-
   actor actr = in;
   level lvl = _CurrentLevel;
   size_t score = 0;
@@ -700,11 +731,6 @@ size_t evaluate_actor(const actor &in)
   for (size_t i = 0; i < EvaluatingCycles; i++)
   {
     const uint8_t foodCapacityBefore = actr.stomach_remaining_capacity;
-
-    if ((i & foodSprinkleMask) == 0)
-    {
-      // TODO: Sprinkle Foods.
-    }
 
     if (!level_performStep(lvl, &actr, 1))
       break;
@@ -740,7 +766,7 @@ lsResult train_loop(thread_pool *pThreadPool, const char *dir)
 
     actor_initStats(&actr);
 
-    evolution<actor, starter_random_config> evl;
+    evolution<actor, smart_config> evl;
     evolution_init(evl, actr, evaluate_null); // because no level is generated yet!
 
     size_t levelIndex = 0;

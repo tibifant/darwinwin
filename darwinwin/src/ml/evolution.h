@@ -139,6 +139,7 @@ inline void mutator_eval(const mutator_zero_chance<config> &m, T &val, const T m
   val = lsClamp(lsGetRand(), min, max);
 }
 
+// THIS IS NOT ZERO CHANCE!
 template <typename config>
 inline void mutator_eval(const mutator_zero_chance<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
 {
@@ -205,6 +206,14 @@ inline void mutator_state_select(smart_mutator_state &ms, const size_t mutationI
   ms.selected = ms.gene_data[mutationIdx];
 }
 
+template <double chance>
+constexpr uint16_t smart_mutator_make_chance()
+{
+  static_assert(chance > 0 && chance < 1);
+  constexpr double unitSize = (double)0xFFFF;
+  return lsMax<uint16_t>(1, (uint16_t)(chance * unitSize + 0.5));
+}
+
 template <typename config>
 struct smart_mutator
 {
@@ -234,7 +243,7 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
   mut.params.mutation_chance = chanceDist(rnd);
   mut.params.mutation_rate = rateDist(rnd);
 
-  mutator_state_get_params(mut.params);
+  mut.params = mutator_state_get_params(state);
 
   mut.chance = (uint16_t)lsClamp<int64_t>((int64_t)lsRound((config::mutationChanceBase * mut.params.mutation_chance) / (float)0xFFFF), 0, 0xFFFF);
 
@@ -243,7 +252,7 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
 
   // precalculate changes.
   for (size_t i = 0; i < LS_ARRAYSIZE(mut.precalculatedChanges); i++)
-    mut.precalculatedChanges[i] = (int8_t)lsClamp((int64_t)lsRound(dist(rnd)), lsMinValue<int8_t>, lsMaxValue<int8_t>());
+    mut.precalculatedChanges[i] = (int8_t)lsClamp((int64_t)lsRound(dist(rnd)), (int64_t)lsMinValue<int8_t>(), (int64_t)lsMaxValue<int8_t>());
 }
 
 template <typename T, typename config>
@@ -260,7 +269,7 @@ inline void mutator_eval(const smart_mutator<config> &m, T &val, const T min = l
 }
 
 template <typename config>
-inline void mutator_eval(const mutator_zero_chance<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
+inline void mutator_eval(const smart_mutator<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
 {
   for (size_t i = 0; i < count; i++)
     mutator_eval(m, pVal[i], min, max);
