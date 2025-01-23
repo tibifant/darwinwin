@@ -12,16 +12,15 @@
   <div id="app_container">
     <script type="text/javascript" language="javascript" src="api.js"></script>
     <div id="control-panel" class="control-panel">
-      <button id="level-generate-button" onclick="javascript:levelGenerate()">Generate Level</button>
+      <button id="level-generate-button" onclick="levelGenerate()">Generate Level</button>
       <span></span>
-      <button id="training-load-level-button" onclick="javascript:loadTrainingLevel()">Load Training Level</button>
-      <button id="ai-load-brain-button" onclick="javascript:reloadBrain()">Reload Brain</button>
-      <button id="ai-reset-brain-button" onclick="javascript:resetStats()">Reset Stats</button>
-      <button id="ai-step-button" onclick="javascript:aiStep()">Single AI Step</button>
-      <button id="ai-step-start-button" onclick="javascript:aiStepToggle()">Start AI Step</button>
+      <button id="ai-load-brain-button" onclick="postLoadBrainRequest()">Reload Brain</button>
+      <button id="ai-step-button" onclick="postAiStepRequest()">Single AI Step</button>
+      <button id="ai-step-toggle-button" onclick="aiStepStart(event)">Start AI Step</button>
+      <button id="ai-reset-brain-button" onclick="postResetStatsRequest()">Reset Stats</button>
       <span></span>
-      <button id="training-start-button" onclick="javascript:startTraining()">Start Training</button>
-      <button id="training-stop-button" onclick="javascript:stopTraining()">Stop Training</button>
+      <button id="training-load-level-button" onclick="postLoadTrainingLevelRequest()">Load Training Level</button>
+      <button id="training-toggle-button" onclick="startTraining()">Start Training</button>
     </div>
     <div class="level-view">
       <div id="level-container" class="level-container"></div>
