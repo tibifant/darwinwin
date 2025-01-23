@@ -180,27 +180,27 @@ struct smart_mutator_state
   smart_mutator_mutation_params selected;
 };
 
-lsResult mutator_state_init(smart_mutator_state &ms, const size_t genesPerGeneration)
+inline lsResult mutator_state_init(smart_mutator_state &ms, const size_t genesPerGeneration)
 {
   return list_reserve(&ms.gene_data, genesPerGeneration);
 }
 
-void mutator_state_next_generation(smart_mutator_state &ms)
+inline void mutator_state_next_generation(smart_mutator_state &ms)
 {
   list_clear(&ms.gene_data);
 }
 
-smart_mutator_mutation_params mutator_state_get_params(smart_mutator_state &ms)
+inline smart_mutator_mutation_params mutator_state_get_params(smart_mutator_state &ms)
 {
   return ms.selected;
 }
 
-void mutator_state_add_params(smart_mutator_state &ms, const smart_mutator_mutation_params &params)
+inline void mutator_state_add_params(smart_mutator_state &ms, const smart_mutator_mutation_params &params)
 {
   LS_DEBUG_ERROR_ASSERT(list_add(&ms.gene_data, params));
 }
 
-void mutator_state_select(smart_mutator_state &ms, const size_t mutationIdx)
+inline void mutator_state_select(smart_mutator_state &ms, const size_t mutationIdx)
 {
   ms.selected = ms.gene_data[mutationIdx];
 }
@@ -473,6 +473,8 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
 template <typename target, typename config, typename func>
 void evolution_generation(evolution<target, config> &e, func evalFunc, thread_pool *pThreads)
 {
+  static_assert(!e.has_mutator_state);
+
   lsAssert(e.genes.count <= config::survivingGenes);
   lsAssert(e.genes.count > 0);
 
