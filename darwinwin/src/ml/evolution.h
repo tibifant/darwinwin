@@ -259,6 +259,13 @@ inline void mutator_eval(const smart_mutator<config> &m, T &val, const T min = l
   val = (T)lsClamp<int64_t>((int64_t)val + diff, min, max);
 }
 
+template <typename config>
+inline void mutator_eval(const mutator_zero_chance<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
+{
+  for (size_t i = 0; i < count; i++)
+    mutator_eval(m, pVal[i], min, max);
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 struct crossbreeder_naive
