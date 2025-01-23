@@ -360,14 +360,13 @@ function aiStepStop(event){
 
 function switchTrainingButton(isTraining){
   const toggleTrainingButton = document.getElementById('training-toggle-button');
-  console.log(isTraining);
-  if(isTraining === ""){
-    toggleTrainingButton.onclick = postTrainingStartRequest;
-    toggleTrainingButton.innerText = "Start Training";
-  }
-  else {
+  if(isTraining){
     toggleTrainingButton.onclick = postTrainingStopRequest;
     toggleTrainingButton.innerText = "Stop Training";
+  }
+  else {
+    toggleTrainingButton.onclick = postTrainingStartRequest;
+    toggleTrainingButton.innerText = "Start Training";
   }
 }
 
