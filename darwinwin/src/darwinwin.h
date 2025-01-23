@@ -154,3 +154,4 @@ lsResult actor_loadBrainFromFile(const char *filename, actor &actr);
 //////////////////////////////////////////////////////////////////////////
 
 lsResult train_loop(struct thread_pool *pThreadPool, const char *dir);
+lsResult train_loopIndependentEvolution(struct thread_pool *pThreadPool, const char *dir);

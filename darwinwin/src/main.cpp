@@ -297,7 +297,8 @@ crow::response handle_startTraining()
 
   _DoTraining = true;
   _TrainingRunning = true;
-  _pTrainingThread = new std::thread(train_loop, _pThreadPool, _TrainingDirectory);
+  //_pTrainingThread = new std::thread(train_loop, _pThreadPool, _TrainingDirectory);
+  _pTrainingThread = new std::thread(train_loopIndependentEvolution, _pThreadPool, _TrainingDirectory);
 
   return crow::response(crow::status::OK);
 }
