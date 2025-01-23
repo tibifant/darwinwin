@@ -460,7 +460,15 @@ function fetchLevel(callback){
 }
 
 function fetchTrainingState(callback){
-  load_backend_url('is_training', callback, {}, handleError)
+  const trainingToggleButton = document.getElementById('training-toggle-button');
+  trainingToggleButton.style.opacity = 0.5;
+  trainingToggleButton.style.cursor = 'wait';
+
+  setTimeout(() =>{
+    load_backend_url('is_training', callback, {}, handleError)
+    trainingToggleButton.style.opacity = 1;
+    trainingToggleButton.style.cursor = 'pointer';
+  }, 2000)
 }
 
 function postActorAction(actorId, actionId) {
