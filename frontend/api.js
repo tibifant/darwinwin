@@ -381,8 +381,7 @@ function startTraining(event){
   }
 
   const button = event.target;
-  button.removeEventListener('click', startTraining);
-  button.addEventListener('click', stopTraining);
+  button.onclick = stopTraining;
   button.innerText = "Stop Training";
 }
 
@@ -396,8 +395,7 @@ function stopTraining(event){
   }
 
   const button = event.target;
-  button.removeEventListener('click', stopTraining);
-  button.addEventListener('click', startTraining);
+  button.onclick = startTraining;
   button.innerText = "Start Training";
 }
 
