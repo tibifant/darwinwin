@@ -23,6 +23,7 @@ namespace nn_internal
     constexpr static size_t total_biases = n * neural_net_block_size;
     constexpr static size_t count = 1;
     constexpr static size_t max_child_neurons = self_neurons;
+    constexpr static size_t last_layer_blocks = n;
     constexpr static size_t self_weights(const size_t prevLayerNeurons) { return prevLayerNeurons * self_neurons; };
     constexpr static size_t size(const size_t prevLayerNeurons) { return self_weights(prevLayerNeurons) + self_biases; };
   };
@@ -38,6 +39,7 @@ namespace nn_internal
     constexpr static size_t total_biases = unwrap_layers_<n>::total_biases + unwrap_layers_<others...>::total_biases;
     constexpr static size_t count = unwrap_layers_<n>::count + unwrap_layers_<others...>::count;
     constexpr static size_t max_child_neurons = lsMax(self_neurons, unwrap_layers_<others...>::max_child_neurons);
+    constexpr static size_t last_layer_blocks = unwrap_layers_<others...>::last_layer_blocks;
     constexpr static size_t self_weights(const size_t prevLayerNeurons) { return unwrap_layers_<n>::self_weights(prevLayerNeurons); };
     constexpr static size_t size(const size_t prevLayerNeurons) { return unwrap_layers_<n>::size(prevLayerNeurons) + unwrap_layers_<others...>::size(self_neurons); };
   };
@@ -55,6 +57,8 @@ namespace nn_internal
     constexpr static size_t max_child_neurons = lsMax(self_neurons, unwrap_layers_<others...>::max_child_neurons);
     constexpr static size_t max_child_neurons_excl_first = unwrap_layers_<others...>::max_child_neurons;
     constexpr static size_t size = unwrap_layers_<others...>::size(self_neurons);
+    constexpr static size_t first_layer_blocks = n;
+    constexpr static size_t last_layer_blocks = unwrap_layers_<others...>::last_layer_blocks;
   };
 
   template <size_t prev_layer_neurons, size_t ...layer_blocks>
@@ -107,6 +111,8 @@ struct neural_net
 
   constexpr static size_t total_value_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::size;
   constexpr static uint8_t io_version = 0;
+  constexpr static size_t first_layer_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::first_layer_blocks * neural_net_block_size;
+  constexpr static size_t last_layer_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::last_layer_blocks * neural_net_block_size;
 
 #ifdef _MSC_VER
 #pragma warning(push)

@@ -245,14 +245,14 @@ Training Engine:
 **Marvin:**
 - Controlpanel fuer AI_step, Training start etc.
 
-**Jan:**
--
+**Jan:** -
 
 **Malin:**
 - Erste Testdurchlauefe zum Trainieren
 - Frontend: neue Apis und BUttons hinzugefuegt
 
-Aktuelle Tasks:
+**Aktuelle Tasks:**
+
 Frontend:
 - viewcone im Frontend zusammenstellen (fertigstellen, Jan)
 - neue Actions auswaehlen fuer manualAct: `moveDiagnonalLeft`, `moveDiagnonalRight`, `wait`
@@ -263,3 +263,27 @@ Training Engine:
 - diagnonal move hinzufuegen
 - trainloop anpassen (asynchron unabhaengig voneinander trainieren lassen)
 - Outputs gewichtet auswaehlen
+
+## 23.01.2025
+
+**Marvin:**
+
+**Jan:**
+- implementieren von grid-based viewcone
+
+**Malin:**
+- Diagonal Move, Logik und API calls hinzugefuegt
+- Outputs des NN gewichtet auswaehlen
+- Outputs wieder in das neuronales Netzwerk
+- neues Trainings-Loop, dass unabhaengige Instanzen parallel trainieren laesst -> massiver Performance Anhieb
+
+**Aktuelle Tasks:**
+
+Frontend:
+- neue Actions auswaehlen fuer manualAct: `moveDiagnonalLeft`, `moveDiagnonalRight`, `wait`
+- set tile: checkboxes zum Auswaehlen der Tileflags, copy tileflags von anderer tile
+- Bugfix: Start AI step macht nichts
+- Bugfix: Ai Step ausfuehrt und der Actor ausgewaehlt ist, werden die Stats vom Actor nicht automatisch implementiert
+
+Training Engine:
+- mutator, der sich selbst mutated
