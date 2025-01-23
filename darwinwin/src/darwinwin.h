@@ -119,7 +119,7 @@ enum actorAction
   aa_TurnRight,
   aa_Eat,
   aa_Wait,
-  aa_DiagnonalMoveLeft,
+  aa_DiagonalMoveLeft,
   aa_DiagonalMoveRight,
 
   _actorAction_Count
@@ -131,8 +131,11 @@ struct actor
   lookDirection look_dir;
   uint8_t stats[_actorStats_Count];
   uint8_t stomach_remaining_capacity;
-  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size, 2, 1> brain;
+
+  static constexpr size_t FeedbackBlocks = 1;
+  neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size + FeedbackBlocks, 2, (_actorAction_Count + neural_net_block_size - 1) / neural_net_block_size + FeedbackBlocks> brain;
   actorAction last_action; // will be set by `level_performStep`, may be uninitialized.
+  int16_t previous_feedback_output[FeedbackBlocks * neural_net_block_size] = {}; // will be set by `level_performStep`, may be uninitialized.
 
   actor() = default;
   actor(const vec2u8 pos, const lookDirection dir) : pos(pos), look_dir(dir) { lsAssert(pos.x >= level::wallThickness && pos.x < (level::width - level::wallThickness) && pos.y >= level::wallThickness && pos.y < (level::height - level::wallThickness)); }
@@ -151,3 +154,4 @@ lsResult actor_loadBrainFromFile(const char *filename, actor &actr);
 //////////////////////////////////////////////////////////////////////////
 
 lsResult train_loop(struct thread_pool *pThreadPool, const char *dir);
+lsResult train_loopIndependentEvolution(struct thread_pool *pThreadPool, const char *dir);
