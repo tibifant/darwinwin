@@ -74,9 +74,13 @@ Aktuelle Tasks:
 
 ## 07.01.2025:
 
-**Jan:** N/A (krank)
+**Jan:** (Krank)
+- Code Familiarization
+- Planung
 
-**Marvin:** N/A
+**Marvin:** (Nicht beim Meeting erschienen)
+- Code Familiarization
+- Planung
 
 **Malin:**
 - Das Weblevel wird mit Testwerten initalisiert.
@@ -92,7 +96,7 @@ Aktuelle Tasks:
 **Jan:** N/A (krank)
 
 **Marvin:**
-- Rudimentaere Darstellung Map inkl. api calls wird gehandlet 
+- Rudimentaere Darstellung Map inkl. api calls wird gehandlet
 
 **Malin:**
 - Grundgeruest des Genetic Algorithm ist implementiert und mit einfachem Beispiel erfolgreich getestet
@@ -107,14 +111,17 @@ Aktuelle Tasks:
 
 **Jan:** N/A (krank)
 
-**Marvin:** N/A
+**Marvin:** (Nicht beim Meeting erschienen)
+- Implementierung von Feedback und Code-Cleanup
+- Map formatierung jetzt durch Flexbox wrapping anstatt von column elementen
+- Info Anzeige für Actor
 
 **Malin:**
 - ein Mutator mutiert Daten nur bei einer gewissen Wahrscheinlichkeit
 - Actors haben Maegen: es passt nur eine bestimmte Kapazitaet in den Magen, sonst wird keine weitere Nahrung aufgenommen und jede Runde wird Nahrung verdaut, damit wird Energie freigesetzt.
 
 **Aktuelle Tasks:**
-- Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
+- Frontend: Info Anzeige Tiles, handling von `manualAct` und `setTile`
 - Training Engine: `Mutator` mit Normalverteilung
 
 ## 13.01.2025:
@@ -132,7 +139,7 @@ Aktuelle Tasks:
 
 **Aktuelle Tasks:**
 
-Frontend: 
+Frontend:
 - level & actor daten korrekt anzeigen (bug fix)
 - Testen ob manuelle Aktionen richtig funktionieren (Outcome und Stats kontrollieren)
 - Darstellung: Collidable & Wasser farbig
@@ -170,7 +177,8 @@ Training Engine:
 
 ## 16.01.2025
 
-**Marvin:** N/A
+**Marvin:**
+- Feedback Implementierung
 
 **Jan:**
 - Anfang view cone Implementierung
@@ -192,7 +200,8 @@ Training Engine:
 
 ## 17.01.2025
 
-**Marvin:** N/A
+**Marvin:** (Nicht zum Meeting erschienen)
+- Feedback Implementierung
 
 **Jan:**
 - Bugfix viewcone
@@ -266,7 +275,13 @@ Training Engine:
 
 ## 23.01.2025
 
-**Marvin:**
+**Marvin:** (Nicht zum Meeting erschienen)
+- Feedback Implementierung und Refactoring:
+  - AI step toggle rework
+  - Reverted to using addEventListener, then reverted back to using inline onclick
+  - Removed global variable aiStepIntervalIdCache
+  - Turned start and stop Training button into one
+  - removed .split usage
 
 **Jan:**
 - implementieren von grid-based viewcone
