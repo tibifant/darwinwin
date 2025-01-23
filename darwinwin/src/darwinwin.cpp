@@ -687,8 +687,8 @@ struct smart_mutator_config
 {
   static constexpr float param_mutation_min_fac = 1.1f;
   static constexpr float param_mutation_max_fac = 1.f / param_mutation_min_fac;
-  static constexpr uint16_t mutationChanceBase = smart_mutator_make_chance<0.025>();
-  static constexpr uint16_t mutationRateBase = 8;
+  static constexpr uint16_t mutationChanceBase = smart_mutator_make_chance<0.05>();
+  static constexpr uint16_t mutationRateBase = 64;
 };
 
 struct smart_config

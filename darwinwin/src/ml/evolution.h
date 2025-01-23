@@ -220,6 +220,15 @@ struct smart_mutator
   using state_type = smart_mutator_state;
   smart_mutator_mutation_params params;
 
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#endif
+  LS_ALIGN(16) mutable uint64_t rndLast[2];
+  LS_ALIGN(16) mutable uint64_t rndLast2[2];
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
   int8_t precalculatedChanges[256];
   uint16_t chance;
 };
@@ -228,6 +237,11 @@ template <typename config>
 inline void mutator_init(smart_mutator<config> &mut, const size_t generation, typename smart_mutator<config>::state_type &state)
 {
   (void)generation;
+
+  mut.rndLast[0] = lsGetCurrentTimeNs();
+  mut.rndLast[1] = __rdtsc();
+  mut.rndLast2[0] = ~mut.rndLast[1];
+  mut.rndLast2[1] = ~mut.rndLast[0];
 
   mut.params = mutator_state_get_params(state);
 
@@ -259,7 +273,14 @@ template <typename T, typename config>
   requires (std::is_integral_v<T>)
 inline void mutator_eval(const smart_mutator<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
 {
-  const uint64_t rand = lsGetRand();
+  const __m128i a = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast));
+  const __m128i b = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast2));
+  const __m128i r = _mm_aesdec_si128(a, b);
+
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast), b);
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast2), r);
+
+  const uint64_t rand = m.rndLast[1] ^ m.rndLast[0];
 
   if ((rand & 0xFFFF) > m.chance)
     return;
