@@ -6,7 +6,7 @@ template <double chance>
 constexpr uint8_t level_gen_make_chance()
 {
   static_assert(chance > 0 && chance < 1);
-  return lsMax<uint8_t>(1, (uint8_t)lsRound(chance * (double)0xFF));
+  return lsMax<uint8_t>(1, (uint8_t)(chance * (double)0xFF + 0.5));
 }
 
 void level_gen_finalize(level *pLvl);
