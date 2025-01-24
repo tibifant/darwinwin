@@ -214,26 +214,23 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 
     size_t bestActionIndex = 0;
 
-    if (actionValueCount > 0)
+    const size_t rand = lsGetRand() % lsMax(actionValueCount, 1);
+
+    for (size_t actionIndex = 0; actionIndex < _actorAction_Count; actionIndex++)
     {
-      const size_t rand = lsGetRand() % actionValueCount;
+      const int16_t val = ioBuffer[actionIndex];
 
-      for (size_t actionIndex = 0; actionIndex < _actorAction_Count; actionIndex++)
+      if (val < rand)
       {
-        const int16_t val = ioBuffer[actionIndex];
-
-        if (val < rand)
-        {
-          bestActionIndex = actionIndex;
-          break;
-        }
-
-        actionValueCount -= val;
+        bestActionIndex = actionIndex;
+        break;
       }
 
-      pActors[i].last_action = (actorAction)bestActionIndex;
-      actor_act(&pActors[i], &lvl, cone, pActors[i].last_action);
+      actionValueCount -= val;
     }
+
+    pActors[i].last_action = (actorAction)bestActionIndex;
+    actor_act(&pActors[i], &lvl, cone, pActors[i].last_action);
 
     lsMemcpy(pActors[i].previous_feedback_output, &ioBuffer[pActors[i].brain.last_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], LS_ARRAYSIZE(pActors[i].previous_feedback_output));
   }
@@ -697,7 +694,7 @@ struct smart_config
   using crossbreeder = crossbreeder_naive;
 
   static constexpr size_t survivingGenes = 4;
-  static constexpr size_t newGenesPerGeneration = 16;
+  static constexpr size_t newGenesPerGeneration = 32;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -747,7 +744,7 @@ size_t evaluate_null(const actor &)
   return 0;
 }
 
-constexpr size_t generationsPerLevel = 128;
+constexpr size_t generationsPerLevel = 1024ULL * 4;
 
 lsResult train_loop(thread_pool *pThreadPool, const char *dir)
 {
@@ -828,7 +825,7 @@ lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *di
 {
   lsResult result = lsR_Success;
 
-  using config = starter_random_config_independent;
+  using config = smart_config;
   using evl_type = evolution<actor, config>;
   small_list<evl_type> evolutions;
 

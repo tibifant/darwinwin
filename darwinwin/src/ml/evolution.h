@@ -300,13 +300,25 @@ inline void mutator_eval(const smart_mutator<config> &m, int16_t *pVal, const si
 
 struct crossbreeder_naive
 {
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#endif
+  LS_ALIGN(16) mutable uint64_t rndLast[2];
+  LS_ALIGN(16) mutable uint64_t rndLast2[2];
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 };
 
 inline void crossbreeder_init(crossbreeder_naive &cb, const size_t scoreParentA, const size_t scoreParentB)
 {
-  (void)cb;
   (void)scoreParentA;
   (void)scoreParentB;
+
+  cb.rndLast[0] = lsGetCurrentTimeNs();
+  cb.rndLast[1] = __rdtsc();
+  cb.rndLast2[0] = ~cb.rndLast[1];
+  cb.rndLast2[1] = ~cb.rndLast[0];
 }
 
 template <typename T>
@@ -321,8 +333,35 @@ template <typename T>
   requires (std::is_integral_v<T>)
 inline void crossbreeder_eval(const crossbreeder_naive &c, T *pVal, const size_t count, const T *pParentA, const T *pParentB)
 {
-  for (size_t i = 0; i < count; i++)
-    crossbreeder_eval(c, pVal[i], pParentA[i], pParentB[i]);
+  __m128i a = _mm_load_si128(reinterpret_cast<__m128i *>(c.rndLast));
+  __m128i b = _mm_load_si128(reinterpret_cast<__m128i *>(c.rndLast2));
+
+  size_t i = 0;
+  for (; i + 63 < count; i += 64)
+  {
+    const __m128i r = _mm_aesdec_si128(a, b); 
+
+    _mm_store_si128(reinterpret_cast<__m128i *>(c.rndLast), b);
+    b = r;
+
+    const uint64_t rand = c.rndLast[1] ^ c.rndLast[0];
+
+    for (size_t j = 0; j < 64; j++)
+      pVal[i + j] = ((rand >> j) & 1) ? pParentA[i + j] : pParentB[i + j];
+  }
+
+  const __m128i r = _mm_aesdec_si128(a, b);
+
+  _mm_store_si128(reinterpret_cast<__m128i *>(c.rndLast), b);
+  _mm_store_si128(reinterpret_cast<__m128i *>(c.rndLast2), r);
+
+  uint64_t rand = c.rndLast[1] ^ c.rndLast[0];
+
+  for (; i < count; i++)
+  {
+    pVal[i] = (rand & 1) ? pParentA[i] : pParentB[i];
+    rand >>= 1;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
