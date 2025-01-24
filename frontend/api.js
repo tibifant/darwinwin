@@ -372,14 +372,13 @@ function aiStepStop(event){
 
 function switchTrainingButton(isTraining){
   const toggleTrainingButton = document.getElementById('training-toggle-button');
-  console.log(isTraining);
-  if(isTraining === ""){
-    toggleTrainingButton.onclick = postTrainingStartRequest;
-    toggleTrainingButton.innerText = "Start Training";
-  }
-  else {
+  if(isTraining){
     toggleTrainingButton.onclick = postTrainingStopRequest;
     toggleTrainingButton.innerText = "Stop Training";
+  }
+  else {
+    toggleTrainingButton.onclick = postTrainingStartRequest;
+    toggleTrainingButton.innerText = "Start Training";
   }
 }
 
@@ -471,7 +470,15 @@ function fetchLevel(callback){
 }
 
 function fetchTrainingState(callback){
-  load_backend_url('is_training', callback, {}, handleError)
+  const trainingToggleButton = document.getElementById('training-toggle-button');
+  trainingToggleButton.style.opacity = 0.5;
+  trainingToggleButton.style.cursor = 'wait';
+
+  setTimeout(() =>{
+    load_backend_url('is_training', callback, {}, handleError)
+    trainingToggleButton.style.opacity = 1;
+    trainingToggleButton.style.cursor = 'pointer';
+  }, 2000)
 }
 
 function postActorAction(actor, actionId) {
