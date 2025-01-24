@@ -355,10 +355,10 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
 void actor_initStats(actor *pActor)
 {
   for (size_t i = 0; i < _actorStats_Count; i++)
-    pActor->stats[i] = 32;
+    pActor->stats[i] = 0;
 
   pActor->stats[as_Air] = 127;
-  pActor->stats[as_Energy] = 127;
+  pActor->stats[as_Energy] = 32;
 }
 
 void actor_updateStats(actor *pActor, const viewCone &cone)
@@ -494,9 +494,9 @@ void actor_turnRight(actor *pActor)
 
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
-  static constexpr int64_t EatEnergyCost = 3;
-  static constexpr int64_t FoodAmount = 2;
-  static constexpr uint8_t StomachCapacity = 255;
+  static constexpr int64_t EatEnergyCost = 1;
+  static constexpr int64_t FoodAmount = 5;
+  static constexpr uint8_t StomachCapacity = 127;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
@@ -518,7 +518,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
     if (cone[vcp_self] & (1ULL << i))
     {
       stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
-      pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i);
+      pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i); // yes, actor stats & tile masks SHARE the masks for foods.
     }
   }
 }
@@ -717,7 +717,7 @@ void mutate(actor &target, const mutator &m)
 
 //////////////////////////////////////////////////////////////////////////
 
-constexpr size_t EvaluatingCycles = 8;
+constexpr size_t EvaluatingCycles = 64;
 
 size_t evaluate_actor(const actor &in)
 {
@@ -727,13 +727,21 @@ size_t evaluate_actor(const actor &in)
 
   for (size_t i = 0; i < EvaluatingCycles; i++)
   {
-    const uint8_t foodCapacityBefore = actr.stomach_remaining_capacity;
+    uint16_t foodCapacityBefore = 0;
+
+    for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
+      foodCapacityBefore += actr.stats[j];
 
     if (!level_performStep(lvl, &actr, 1))
       break;
 
+    uint16_t foodCapacityAfter = 0;
+
+    for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
+      foodCapacityAfter += actr.stats[j];
+
     score++;
-    score += ((uint8_t)(foodCapacityBefore > actr.stomach_remaining_capacity)) * 3;
+    score += ((uint8_t)(foodCapacityAfter < foodCapacityBefore)) * 3;
   }
 
   return score;

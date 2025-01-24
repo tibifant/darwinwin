@@ -339,7 +339,7 @@ inline void crossbreeder_eval(const crossbreeder_naive &c, T *pVal, const size_t
   size_t i = 0;
   for (; i + 63 < count; i += 64)
   {
-    const __m128i r = _mm_aesdec_si128(a, b); 
+    const __m128i r = _mm_aesdec_si128(a, b);
 
     _mm_store_si128(reinterpret_cast<__m128i *>(c.rndLast), b);
     b = r;
@@ -462,7 +462,16 @@ void evolution_generation_finalize_internal(evolution<target, config> &e)
     return -(int64_t)pool_get(e.genes, index)->score;
     };
 
-  list_sort<int64_t>(e.bestGeneIndices, idxToScore);
+  constexpr bool use_stable_sort = false;
+
+  if constexpr (use_stable_sort)
+  {
+    // TODO: implement.
+  }
+  else
+  {
+    list_sort<int64_t>(e.bestGeneIndices, idxToScore);
+  }
 
   // Remove everyone from pool, who is lower than best 4 genes
   {
