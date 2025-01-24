@@ -63,7 +63,6 @@ void level_print(const level &level);
 struct actor;
 
 bool level_performStep(level &lvl, actor *pActors, const size_t actorCount);
-void level_generateDefault(level *pLvl);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -149,8 +148,3 @@ void actor_initStats(actor *pActor);
 lsResult actor_saveBrain(const char *dir, const actor &actr);
 lsResult actor_loadNewestBrain(const char *dir, actor &actr);
 lsResult actor_loadBrainFromFile(const char *filename, actor &actr);
-
-//////////////////////////////////////////////////////////////////////////
-
-lsResult train_loop(struct thread_pool *pThreadPool, const char *dir);
-lsResult train_loopIndependentEvolution(struct thread_pool *pThreadPool, const char *dir);

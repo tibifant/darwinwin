@@ -48,6 +48,7 @@ namespace asio
 //////////////////////////////////////////////////////////////////////////
 
 #include "darwinwin.h"
+#include "training.h"
 #include "testable.h"
 #include "thread_pool.h"
 #include "io.h"
