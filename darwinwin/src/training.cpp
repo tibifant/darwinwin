@@ -2,6 +2,10 @@
 #include "level_generator.h"
 #include "evolution.h"
 #include "local_list.h"
+#include "io.h"
+
+#include <time.h>
+#include <filesystem>
 
 void level_gen_water_level(level *pLvl)
 {
@@ -44,6 +48,86 @@ void level_generateDefault(level *pLvl)
   //level_gen_water_food_level(pLvl);
   level_gen_puddle_food_level(pLvl);
 }
+
+//////////////////////////////////////////////////////////////////////////
+
+lsResult actor_saveBrain(const char *dir, const actor &actr)
+{
+  lsResult result = lsR_Success;
+
+  const uint64_t now = (uint64_t)time(nullptr);
+  char filename[256];
+  sformat_to(filename, LS_ARRAYSIZE(filename), dir, "/", now, ".brain");
+
+  print("Saving brain to file: '", filename, '\n');
+
+  {
+    cached_file_byte_stream_writer<> write_stream;
+    LS_ERROR_CHECK(write_byte_stream_init(write_stream, filename));
+    value_writer<decltype(write_stream)> writer;
+    LS_ERROR_CHECK(value_writer_init(writer, &write_stream));
+
+    LS_ERROR_CHECK(neural_net_write(actr.brain, writer));
+    LS_ERROR_CHECK(write_byte_stream_flush(write_stream));
+  }
+
+epilogue:
+  return result;
+}
+
+lsResult actor_loadBrainFromFile(const char *filename, actor &actr)
+{
+  lsResult result = lsR_Success;
+
+  print("Loading brain from file: ", filename, '\n');
+
+  cached_file_byte_stream_reader<> read_stream;
+  value_reader<cached_file_byte_stream_reader<>> reader;
+  LS_ERROR_CHECK(read_byte_stream_init(read_stream, filename));
+  LS_ERROR_CHECK(value_reader_init(reader, &read_stream));
+
+  LS_ERROR_CHECK(neural_net_read(actr.brain, reader));
+  read_byte_stream_destroy(read_stream);
+
+epilogue:
+  return result;
+}
+
+lsResult actor_loadNewestBrain(const char *dir, actor &actr)
+{
+  lsResult result = lsR_Success;
+
+  const std::filesystem::path path(dir);
+
+  int64_t bestTime = -1;
+  std::string best;
+
+  for (const std::filesystem::directory_entry &dir_entry : std::filesystem::directory_iterator(dir))
+  {
+    if (dir_entry.is_regular_file())
+    {
+      const std::filesystem::file_time_type &timestamp = dir_entry.last_write_time();
+      const int64_t timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()).count();
+
+      if (bestTime < timeMs)
+      {
+        bestTime = timeMs;
+        best = dir_entry.path().filename().string();
+      }
+    }
+  }
+
+  LS_ERROR_IF(best.empty(), lsR_ResourceNotFound);
+  lsAssert(bestTime >= 0);
+  char filename[256];
+  sformat_to(filename, LS_ARRAYSIZE(filename), dir, '/', best.c_str());
+  LS_ERROR_CHECK(actor_loadBrainFromFile(filename, actr));
+
+epilogue:
+  return result;
+}
+
+// TODO load specific brain: list and then select in console
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -136,81 +220,7 @@ size_t evaluate_null(const actor &)
 
 constexpr size_t generationsPerLevel = 1024ULL * 4;
 
-lsResult train_loop(thread_pool *pThreadPool, const char *dir)
-{
-  lsResult result = lsR_Success;
-
-  constexpr bool trainSynchronously = true;
-
-  {
-    actor actr;
-    actor_loadNewestBrain(dir, actr);
-
-    uint64_t rand = lsGetRand();
-    actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
-    actr.pos += vec2u16(level::wallThickness);
-    actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
-
-    actor_initStats(&actr);
-
-    evolution<actor, smart_config> evl;
-    evolution_init(evl, actr, evaluate_null); // because no level is generated yet!
-
-    size_t levelIndex = 0;
-
-    while (_DoTraining)
-    {
-      level_generateDefault(&_CurrentLevel);
-      size_t maxRetries = 32;
-
-      do
-      {
-        rand = lsGetRand();
-        actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
-        actr.pos += vec2u16(level::wallThickness);
-        actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
-        maxRetries--;
-      } while ((_CurrentLevel.grid[actr.pos.x + actr.pos.y * level::width] & tf_Collidable) && maxRetries);
-
-      evolution_for_each(evl, [&](actor &a) { a.pos = actr.pos; a.look_dir = actr.look_dir; });
-
-      if (maxRetries == 0)
-      {
-        print_error_line("Failed to find non-collidable position in lvl.");
-        continue;
-      }
-
-      evolution_reevaluate(evl, evaluate_actor);
-
-      const actor *pBest = nullptr;
-      size_t score, bestScore = 0;
-
-      for (size_t i = 0; i < generationsPerLevel && _DoTraining; i++)
-      {
-        if constexpr (trainSynchronously)
-          evolution_generation(evl, evaluate_actor);
-        else
-          evolution_generation(evl, evaluate_actor, pThreadPool);
-
-        evolution_get_best(evl, &pBest, score);
-
-        if (score > bestScore)
-        {
-          print_log_line("New Best: Level ", levelIndex, ", Generation ", i, ": ", score);
-          bestScore = score;
-        }
-      }
-
-      LS_ERROR_CHECK(actor_saveBrain(dir, *pBest));
-      levelIndex++;
-    }
-  }
-
-epilogue:
-  _TrainingRunning = false;
-  return result;
-}
-
+// currently used train loop
 lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *dir)
 {
   lsResult result = lsR_Success;
@@ -346,3 +356,78 @@ epilogue:
   return result;
 }
 
+// NOT in use!
+lsResult train_loop(thread_pool *pThreadPool, const char *dir)
+{
+  lsResult result = lsR_Success;
+
+  constexpr bool trainSynchronously = true;
+
+  {
+    actor actr;
+    actor_loadNewestBrain(dir, actr);
+
+    uint64_t rand = lsGetRand();
+    actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+    actr.pos += vec2u16(level::wallThickness);
+    actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+
+    actor_initStats(&actr);
+
+    evolution<actor, smart_config> evl;
+    evolution_init(evl, actr, evaluate_null); // because no level is generated yet!
+
+    size_t levelIndex = 0;
+
+    while (_DoTraining)
+    {
+      level_generateDefault(&_CurrentLevel);
+      size_t maxRetries = 32;
+
+      do
+      {
+        rand = lsGetRand();
+        actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+        actr.pos += vec2u16(level::wallThickness);
+        actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+        maxRetries--;
+      } while ((_CurrentLevel.grid[actr.pos.x + actr.pos.y * level::width] & tf_Collidable) && maxRetries);
+
+      evolution_for_each(evl, [&](actor &a) { a.pos = actr.pos; a.look_dir = actr.look_dir; });
+
+      if (maxRetries == 0)
+      {
+        print_error_line("Failed to find non-collidable position in lvl.");
+        continue;
+      }
+
+      evolution_reevaluate(evl, evaluate_actor);
+
+      const actor *pBest = nullptr;
+      size_t score, bestScore = 0;
+
+      for (size_t i = 0; i < generationsPerLevel && _DoTraining; i++)
+      {
+        if constexpr (trainSynchronously)
+          evolution_generation(evl, evaluate_actor);
+        else
+          evolution_generation(evl, evaluate_actor, pThreadPool);
+
+        evolution_get_best(evl, &pBest, score);
+
+        if (score > bestScore)
+        {
+          print_log_line("New Best: Level ", levelIndex, ", Generation ", i, ": ", score);
+          bestScore = score;
+        }
+      }
+
+      LS_ERROR_CHECK(actor_saveBrain(dir, *pBest));
+      levelIndex++;
+    }
+  }
+
+epilogue:
+  _TrainingRunning = false;
+  return result;
+}

@@ -142,9 +142,3 @@ struct actor
 void actor_updateStats(actor *pActor, const viewCone &cone);
 void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action);
 void actor_initStats(actor *pActor);
-
-//////////////////////////////////////////////////////////////////////////
-
-lsResult actor_saveBrain(const char *dir, const actor &actr);
-lsResult actor_loadNewestBrain(const char *dir, actor &actr);
-lsResult actor_loadBrainFromFile(const char *filename, actor &actr);
