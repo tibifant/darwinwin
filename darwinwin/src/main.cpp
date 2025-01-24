@@ -158,9 +158,6 @@ int32_t main(const int32_t argc, const char **pArgv)
     level_generateDefault(&_WebLevel);
     actor_initStats(&_WebActor);
 
-    print_error_line("WARNING: STARTING TRAINING!");
-    handle_startTraining();
-
     auto &cors = app.get_middleware<crow::CORSHandler>();
 #ifndef DARWINWIN_LOCALHOST
     cors.global().origin(DARWINWIN_HOSTNAME);
@@ -312,13 +309,15 @@ crow::response handle_stopTraining()
 
 crow::response handle_isTraining()
 {
+  crow::json::wvalue ret;
+
   if (_pTrainingThread == nullptr)
-    return crow::json::wvalue({ "result", false });
+    return ret["result"] = false;
 
   if (_TrainingRunning)
-    return crow::json::wvalue({ "result", true });
+    return ret["result"] = true;
 
-  return crow::json::wvalue({ "result", false });
+  return ret["result"] = false;
 }
 
 crow::response handle_loadTrainingLevel()

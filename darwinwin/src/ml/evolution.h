@@ -4,14 +4,16 @@
 #include "pool.h"
 #include "small_list.h"
 #include "thread_pool.h"
+#include <random>
 
 //////////////////////////////////////////////////////////////////////////
 
 struct mutator_naive
 {
+  using state_type = std::nullptr_t;
 };
 
-inline void mutator_init(mutator_naive &mut, const size_t generation)
+inline void mutator_init(mutator_naive &mut, const size_t generation, std::nullptr_t &)
 {
   (void)mut;
   (void)generation;
@@ -58,11 +60,14 @@ inline void mutator_eval(const mutator_chance<config> &m, T &val, const T min = 
   val = (T)lsClamp<int64_t>(val + (int64_t)(lsGetRand() % 5) - 2, min, max);
 }
 
+//////////////////////////////////////////////////////////////////////////
+
 struct mutator_random
 {
+  using state_type = std::nullptr_t;
 };
 
-inline void mutator_init(mutator_random &mut, const size_t generation)
+inline void mutator_init(mutator_random &mut, const size_t generation, std::nullptr_t &)
 {
   (void)mut;
   (void)generation;
@@ -104,13 +109,16 @@ inline void mutator_eval(const mutator_random &m, int16_t *pVal, const size_t co
   }
 }
 
+//////////////////////////////////////////////////////////////////////////
+
 template <typename config>
 struct mutator_zero_chance
 {
+  using state_type = std::nullptr_t;
 };
 
 template <typename config>
-inline void mutator_init(mutator_zero_chance<config> &mut, const size_t generation)
+inline void mutator_init(mutator_zero_chance<config> &mut, const size_t generation, std::nullptr_t &)
 {
   (void)mut;
   (void)generation;
@@ -131,6 +139,7 @@ inline void mutator_eval(const mutator_zero_chance<config> &m, T &val, const T m
   val = lsClamp(lsGetRand(), min, max);
 }
 
+// THIS IS NOT ZERO CHANCE!
 template <typename config>
 inline void mutator_eval(const mutator_zero_chance<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
 {
@@ -157,6 +166,134 @@ inline void mutator_eval(const mutator_zero_chance<config> &m, int16_t *pVal, co
     pVal[i] = (int8_t)(rand & 0xFF);
     rand >>= 8;
   }
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+struct smart_mutator_mutation_params
+{
+  float mutation_chance = 1, mutation_rate = 1;
+};
+
+struct smart_mutator_state
+{
+  small_list<smart_mutator_mutation_params> gene_data;
+  smart_mutator_mutation_params selected;
+};
+
+inline lsResult mutator_state_init(smart_mutator_state &ms, const size_t genesPerGeneration)
+{
+  return list_reserve(&ms.gene_data, genesPerGeneration);
+}
+
+inline void mutator_state_next_generation(smart_mutator_state &ms)
+{
+  list_clear(&ms.gene_data);
+}
+
+inline smart_mutator_mutation_params mutator_state_get_params(smart_mutator_state &ms)
+{
+  return ms.selected;
+}
+
+inline void mutator_state_add_params(smart_mutator_state &ms, const smart_mutator_mutation_params &params)
+{
+  LS_DEBUG_ERROR_ASSERT(list_add(&ms.gene_data, params));
+}
+
+inline void mutator_state_select(smart_mutator_state &ms, const size_t mutationIdx)
+{
+  ms.selected = ms.gene_data[mutationIdx];
+}
+
+template <double chance>
+constexpr uint16_t smart_mutator_make_chance()
+{
+  static_assert(chance > 0 && chance < 1);
+  constexpr double unitSize = (double)0xFFFF;
+  return lsMax<uint16_t>(1, (uint16_t)(chance * unitSize + 0.5));
+}
+
+template <typename config>
+struct smart_mutator
+{
+  using state_type = smart_mutator_state;
+  smart_mutator_mutation_params params;
+
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#endif
+  LS_ALIGN(16) mutable uint64_t rndLast[2];
+  LS_ALIGN(16) mutable uint64_t rndLast2[2];
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+  int8_t precalculatedChanges[256];
+  uint16_t chance;
+};
+
+template <typename config>
+inline void mutator_init(smart_mutator<config> &mut, const size_t generation, typename smart_mutator<config>::state_type &state)
+{
+  (void)generation;
+
+  mut.rndLast[0] = lsGetCurrentTimeNs();
+  mut.rndLast[1] = __rdtsc();
+  mut.rndLast2[0] = ~mut.rndLast[1];
+  mut.rndLast2[1] = ~mut.rndLast[0];
+
+  mut.params = mutator_state_get_params(state);
+
+  const float minChance = mut.params.mutation_chance * config::param_mutation_min_fac; // ~1.1
+  const float maxChance = mut.params.mutation_chance * config::param_mutation_max_fac; // ~1 / 1.1
+  const float minRate = mut.params.mutation_rate * config::param_mutation_min_fac; // ~1.1
+  const float maxRate = mut.params.mutation_rate * config::param_mutation_max_fac; // ~1 / 1.1
+
+  std::mt19937 rnd;
+  std::uniform_real_distribution<float> chanceDist(minChance, maxChance);
+  std::uniform_real_distribution<float> rateDist(minRate, maxRate);
+
+  mut.params.mutation_chance = chanceDist(rnd);
+  mut.params.mutation_rate = rateDist(rnd);
+
+  mut.params = mutator_state_get_params(state);
+
+  mut.chance = (uint16_t)lsClamp<int64_t>((int64_t)lsRound((config::mutationChanceBase * mut.params.mutation_chance) / (float)0xFFFF), 0, 0xFFFF);
+
+  const float mutationRate = config::mutationRateBase * mut.params.mutation_rate;
+  std::normal_distribution dist(0.f, mutationRate);
+
+  // precalculate changes.
+  for (size_t i = 0; i < LS_ARRAYSIZE(mut.precalculatedChanges); i++)
+    mut.precalculatedChanges[i] = (int8_t)lsClamp((int64_t)lsRound(dist(rnd)), (int64_t)lsMinValue<int8_t>(), (int64_t)lsMaxValue<int8_t>());
+}
+
+template <typename T, typename config>
+  requires (std::is_integral_v<T>)
+inline void mutator_eval(const smart_mutator<config> &m, T &val, const T min = lsMinValue<T>(), const T max = lsMaxValue<T>())
+{
+  const __m128i a = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast));
+  const __m128i b = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast2));
+  const __m128i r = _mm_aesdec_si128(a, b);
+
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast), b);
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast2), r);
+
+  const uint64_t rand = m.rndLast[1] ^ m.rndLast[0];
+
+  if ((rand & 0xFFFF) > m.chance)
+    return;
+
+  const int8_t diff = m.precalculatedChanges[(rand >> 16) % LS_ARRAYSIZE(m.precalculatedChanges)];
+  val = (T)lsClamp<int64_t>((int64_t)val + diff, min, max);
+}
+
+template <typename config>
+inline void mutator_eval(const smart_mutator<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
+{
+  for (size_t i = 0; i < count; i++)
+    mutator_eval(m, pVal[i], min, max);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -235,8 +372,25 @@ struct evolution
   small_list<size_t, config::survivingGenes + config::newGenesPerGeneration> bestGeneIndices;
   size_t generationIndex = 0;
 
+  static constexpr bool has_mutator_state = !std::is_same_v<std::nullptr_t, typename config::mutator::state_type>;
+  typename config::mutator::state_type mutatorState;
+
   typedef size_t callback_type(const target &);
 };
+
+template <typename target, typename config>
+lsResult evolution_init_empty(evolution<target, config> &e)
+{
+  lsResult result = lsR_Success;
+
+  LS_ERROR_CHECK(pool_reserve(&e.genes, config::survivingGenes + config::newGenesPerGeneration));
+
+  if constexpr (e.has_mutator_state)
+    LS_ERROR_CHECK(mutator_state_init(e.mutatorState, config::newGenesPerGeneration));
+
+epilogue:
+  return result;
+}
 
 template <typename target, typename config>
 lsResult evolution_init(evolution<target, config> &e, const target &t, typename evolution<target, config>::callback_type *pEvalFunc)
@@ -247,24 +401,13 @@ lsResult evolution_init(evolution<target, config> &e, const target &t, typename 
   g.t = t;
   g.score = pEvalFunc(t);
 
-  LS_ERROR_CHECK(pool_reserve(&e.genes, config::survivingGenes + config::newGenesPerGeneration));
+  LS_ERROR_CHECK(evolution_init_empty(e));
 
   size_t index;
   LS_DEBUG_ERROR_ASSERT(pool_add(&e.genes, std::move(g), &index));
 
   LS_DEBUG_ERROR_ASSERT(list_add(&e.bestGeneIndices, index));
   e.generationIndex++;
-
-epilogue:
-  return result;
-}
-
-template <typename target, typename config>
-lsResult evolution_init_empty(evolution<target, config> &e)
-{
-  lsResult result = lsR_Success;
-
-  LS_ERROR_CHECK(pool_reserve(&e.genes, config::survivingGenes + config::newGenesPerGeneration));
 
 epilogue:
   return result;
@@ -311,7 +454,7 @@ void evolution_generation_make_and_eval_baby_internal(evolution<target, config> 
   crossbreed(baby.t, mama.t, papa.t, crossbreeder);
 
   typename config::mutator mutator;
-  mutator_init(mutator, e.generationIndex);
+  mutator_init(mutator, e.generationIndex, e.mutatorState);
   mutate(baby.t, mutator);
 
   baby.score = evalFunc(baby.t);
@@ -326,16 +469,39 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
   lsAssert(e.genes.count > 0);
 
   const size_t maxParentIndex = e.genes.count;
+  size_t bestScore = 0;
+  size_t bestScoreMutatorIdx = (size_t)-1;
+
+  if constexpr (e.has_mutator_state)
+  {
+    mutator_state_next_generation(e.mutatorState);
+    bestScore = pool_get(e.genes, e.bestGeneIndices[0])->score;
+  }
 
   for (size_t i = 0; i < config::newGenesPerGeneration; i++)
   {
     typename evolution<target, config>::gene baby;
     evolution_generation_make_and_eval_baby_internal(e, evalFunc, baby, maxParentIndex);
 
+    if constexpr (e.has_mutator_state)
+    {
+      if (baby.score > bestScore)
+      {
+        bestScore = baby.score;
+        bestScoreMutatorIdx = i;
+      }
+    }
+
     // Add Baby to pool and bestGeneIndices
     size_t babyIndex;
     LS_DEBUG_ERROR_ASSERT(pool_add(&e.genes, std::move(baby), &babyIndex));
     LS_DEBUG_ERROR_ASSERT(list_add(&e.bestGeneIndices, babyIndex));
+  }
+
+  if constexpr (e.has_mutator_state)
+  {
+    if (bestScoreMutatorIdx != (size_t)-1)
+      mutator_state_select(e.mutatorState, bestScoreMutatorIdx);
   }
 
   evolution_generation_finalize_internal(e);
@@ -344,6 +510,8 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
 template <typename target, typename config, typename func>
 void evolution_generation(evolution<target, config> &e, func evalFunc, thread_pool *pThreads)
 {
+  static_assert(!e.has_mutator_state);
+
   lsAssert(e.genes.count <= config::survivingGenes);
   lsAssert(e.genes.count > 0);
 

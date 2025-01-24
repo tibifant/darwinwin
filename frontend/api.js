@@ -78,8 +78,8 @@ function setupTileElements(levelContainer, grid){
     newTile.id = "tile-"+i;
     newTile.addEventListener("click", event => {showTileStats(event.target)})
     newTile._index = i;
-    newTile._posX = (i % worldData.level.width).toString();
-    newTile._posY = Math.floor(i / worldData.level.width).toString();
+    newTile._posX = (i % worldData.level.width);
+    newTile._posY = Math.floor(i / worldData.level.width);
     levelContainer.appendChild(newTile);
   })
 }
