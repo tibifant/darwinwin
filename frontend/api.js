@@ -375,6 +375,11 @@ function createCopyPasteElements(tile, optionsButtonsElement){
   const pasteButton = document.createElement("button");
   pasteButton._tileIndex = tile._index;
   pasteButton.innerText = "Paste";
+  if(!statsContainer._copiedTileId){
+    pasteButton.style.opacity = 0.5;
+    pasteButton.style.cursor = "not-allowed";
+    pasteButton.style.pointerEvents = "none";
+  }
   pasteButton.addEventListener('click', initiateSetTileRequestPaste);
   copyPasteContainer.appendChild(pasteButton);
 
