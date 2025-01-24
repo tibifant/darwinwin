@@ -295,11 +295,12 @@ Training Engine:
 - Delay fuer Start/Stop training button
 - Fix: Start/Stop training toggle button 
 
-**Jan:**
+**Jan:** N/A
 
 **Malin:**
-- Crossbreeder anpassen (Performance fix)
-- Trainingsdaten anpassen -> essen lernen
+- Neuer smart Mutator, der sich selbst mutated
+- Neues Level generiert, Ziel: beibringen zu essen
+- Code Review mehrerer Merge Requests
 
 **Aktuelle Tasks:**
 
@@ -310,4 +311,5 @@ Frontend:
 - Jan: Changes for Merge request
 
 Training Engine:
-- 
+- Crossbreeder anpassen (Performance fix)
+- Trainingsdaten anpassen -> essen lernen
