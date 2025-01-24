@@ -287,3 +287,27 @@ Frontend:
 
 Training Engine:
 - mutator, der sich selbst mutated
+
+## 24.01.2025
+
+**Marvin:**
+- Bugfix: Ai stop_training
+- Delay fuer Start/Stop training button
+- Fix: Start/Stop training toggle button 
+
+**Jan:**
+
+**Malin:**
+- Crossbreeder anpassen (Performance fix)
+- Trainingsdaten anpassen -> essen lernen
+
+**Aktuelle Tasks:**
+
+Frontend:
+- neue Actions auswaehlen fuer manualAct: `moveDiagnonalLeft`, `moveDiagnonalRight`, `wait`
+- Reset Stats: automatisch Stats screen updaten
+- set tile: checkboxes zum Auswaehlen der Tileflags, copy tileflags von anderer tile
+- Jan: Changes for Merge request
+
+Training Engine:
+- 
