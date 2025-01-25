@@ -130,11 +130,22 @@ int32_t main(const int32_t argc, const char **pArgv)
 
   } while (false);
 
-  print("DarWinWin (built " __DATE__ " " __TIME__ ") running on ", cpu_info::GetCpuName(), ".\n");
-  print("\nConfiguration:\n");
-  print("Level size: ", FF(Group, Frac(3), AllFrac)(sizeof(level) / 1024.0), " KiB\n");
-  print("Actor size: ", FF(Group, Frac(3), AllFrac)(sizeof(actor) / 1024.0), " KiB\n");
-  print("\n");
+  // Print Configuration.
+  {
+    print("DarWinWin (built " __DATE__ " " __TIME__ ") running on ", cpu_info::GetCpuName(), ".\n");
+    print("\nConfiguration:\n");
+    print("Level size: ", FF(Group, Frac(3), AllFrac)(sizeof(level) / 1024.0), " KiB\n");
+    print("Actor size: ", FF(Group, Frac(3), AllFrac)(sizeof(actor) / 1024.0), " KiB\n");
+    print("Neural Net: ", decltype(actor::brain)::layers, " Layers (");
+
+    size_t nnLayerCounts[decltype(actor::brain)::layers];
+    neural_net_get_layer_size(decltype(actor::brain)(), nnLayerCounts);
+    for (size_t i = 0; i < decltype(actor::brain)::layers; i++)
+      print(i > 0 ? ", " : "", nnLayerCounts[i]);
+    print(" Neurons)\n");
+
+    print("\n");
+  }
 
   if (_Args.runTests)
   {

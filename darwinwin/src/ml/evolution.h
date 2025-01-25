@@ -266,7 +266,11 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
 
   // precalculate changes.
   for (size_t i = 0; i < LS_ARRAYSIZE(mut.precalculatedChanges); i++)
-    mut.precalculatedChanges[i] = (int8_t)lsClamp((int64_t)lsRound(dist(rnd)), (int64_t)lsMinValue<int8_t>(), (int64_t)lsMaxValue<int8_t>());
+  {
+    float rndVal = dist(rnd);
+    rndVal += 0.5 * lsAbs(rndVal) ? 1.f : -1.f;
+    mut.precalculatedChanges[i] = (int8_t)lsClamp((int64_t)rndVal, (int64_t)lsMinValue<int8_t>(), (int64_t)lsMaxValue<int8_t>());
+  }
 }
 
 template <typename T, typename config>
