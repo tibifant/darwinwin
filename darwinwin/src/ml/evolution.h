@@ -245,10 +245,12 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
 
   mut.params = mutator_state_get_params(state);
 
-  const float minChance = mut.params.mutation_chance * config::param_mutation_min_fac; // ~1.1
-  const float maxChance = mut.params.mutation_chance * config::param_mutation_max_fac; // ~1 / 1.1
-  const float minRate = mut.params.mutation_rate * config::param_mutation_min_fac; // ~1.1
-  const float maxRate = mut.params.mutation_rate * config::param_mutation_max_fac; // ~1 / 1.1
+  static_assert(config::param_mutation_min_fac < config::param_mutation_max_fac);
+
+  const float minChance = mut.params.mutation_chance * config::param_mutation_min_fac;
+  const float maxChance = mut.params.mutation_chance * config::param_mutation_max_fac;
+  const float minRate = mut.params.mutation_rate * config::param_mutation_min_fac;
+  const float maxRate = mut.params.mutation_rate * config::param_mutation_max_fac;
 
   std::mt19937 rnd;
   std::uniform_real_distribution<float> chanceDist(minChance, maxChance);
@@ -257,7 +259,7 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
   mut.params.mutation_chance = chanceDist(rnd);
   mut.params.mutation_rate = rateDist(rnd);
 
-  mut.params = mutator_state_get_params(state);
+  mutator_state_add_params(state, mut.params);
 
   mut.chance = (uint16_t)lsClamp<int64_t>((int64_t)lsRound((config::mutationChanceBase * mut.params.mutation_chance) / (float)0xFFFF), 0, 0xFFFF);
 

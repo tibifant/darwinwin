@@ -307,7 +307,7 @@ void actor_initStats(actor *pActor)
     pActor->stats[i] = 0;
 
   pActor->stats[as_Air] = 127;
-  pActor->stats[as_Energy] = 32;
+  pActor->stats[as_Energy] = 64;
 }
 
 void actor_updateStats(actor *pActor, const viewCone &cone)
