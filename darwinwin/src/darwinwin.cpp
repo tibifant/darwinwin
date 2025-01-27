@@ -245,6 +245,7 @@ void actor_moveTwo(actor *pActor, const level &lvl);
 void actor_turnLeft(actor *pActor);
 void actor_turnRight(actor *pActor);
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
+void actor_wait(actor *pActor);
 void actor_moveDiagonalLeft(actor *pActor, const level lvl);
 void actor_moveDiagonalRight(actor *pActor, const level lvl);
 
@@ -285,6 +286,7 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
     break;
 
   case aa_Wait:
+    actor_wait(pActor);
     break;
 
   case aa_DiagonalMoveLeft:
@@ -301,37 +303,35 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
   }
 }
 
+constexpr uint8_t MinStatsValue = 0;
+constexpr uint8_t MaxStatsValue = 127;
+
 void actor_initStats(actor *pActor)
 {
   for (size_t i = 0; i < _actorStats_Count; i++)
     pActor->stats[i] = 0;
 
-  pActor->stats[as_Air] = 127;
+  pActor->stats[as_Air] = MaxStatsValue;
   pActor->stats[as_Energy] = 64;
 }
 
 void actor_updateStats(actor *pActor, const viewCone &cone)
 {
-  constexpr int64_t IdleEnergyCost = 2;
-
-  // Remove Idle Energy
-  modify_with_clamp(pActor->stats[as_Energy], -IdleEnergyCost);
-
   // Check air
-  constexpr int64_t UnderwaterAirCost = 5;
-  constexpr int64_t SurfaceAirAmount = 3;
-  constexpr int64_t NoAirEnergyCost = 8;
+  constexpr int64_t UnderwaterAirCost = 4;
+  constexpr int64_t SurfaceAirAmount = 24;
+  constexpr int64_t NoAirEnergyCost = 24;
 
   if (cone[vcp_self] & tf_Underwater)
-    modify_with_clamp(pActor->stats[as_Air], -UnderwaterAirCost);
+    modify_with_clamp(pActor->stats[as_Air], -UnderwaterAirCost, MinStatsValue, MaxStatsValue);
   else
-    modify_with_clamp(pActor->stats[as_Air], SurfaceAirAmount);
+    modify_with_clamp(pActor->stats[as_Air], SurfaceAirAmount, MinStatsValue, MaxStatsValue);
 
   if (!pActor->stats[as_Air])
-    modify_with_clamp(pActor->stats[as_Energy], -NoAirEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -NoAirEnergyCost, MinStatsValue, MaxStatsValue);
 
   // Digest
-  constexpr int64_t FoodEnergyAmount = 5;
+  constexpr int64_t FoodEnergyAmount = 1;
   constexpr int64_t FoodDigestionAmount = 1;
 
   size_t count = 0;
@@ -340,28 +340,29 @@ void actor_updateStats(actor *pActor, const viewCone &cone)
   {
     if (pActor->stats[i])
     {
-      modify_with_clamp(pActor->stats[i], -FoodDigestionAmount);
+      modify_with_clamp(pActor->stats[i], -FoodDigestionAmount, MinStatsValue, MaxStatsValue);
       count++;
     }
   }
 
-  modify_with_clamp(pActor->stats[as_Energy], count * FoodEnergyAmount);
+  if (count > 0)
+    modify_with_clamp(pActor->stats[as_Energy], (1ULL << (count - 1)) * FoodEnergyAmount, MinStatsValue, MaxStatsValue);
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-constexpr int64_t CollideEnergyCost = 4;
+constexpr int64_t CollideEnergyCost = 2;
 
 void actor_move(actor *pActor, const level &lvl)
 {
-  constexpr int64_t MovementEnergyCost = 10;
+  constexpr int64_t MovementEnergyCost = 3;
   constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, 1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -MovementEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -MovementEnergyCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < MovementEnergyCost)
     return;
@@ -371,7 +372,7 @@ void actor_move(actor *pActor, const level &lvl)
 
   if (!!(lvl.grid[newIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 
@@ -383,7 +384,7 @@ void actor_move(actor *pActor, const level &lvl)
 
 void actor_moveTwo(actor *pActor, const level &lvl)
 {
-  constexpr int64_t DoubleMovementEnergyCost = 30;
+  constexpr int64_t DoubleMovementEnergyCost = 7;
   constexpr vec2i16 LutPosDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, 2) };
   constexpr int8_t LutIdxSingle[_lookDirection_Count] = { -1, -(int64_t)level::width, 1, level::width };
 
@@ -392,7 +393,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
   lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -DoubleMovementEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -DoubleMovementEnergyCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < DoubleMovementEnergyCost)
     return;
@@ -402,7 +403,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
 
   if (!!(lvl.grid[newPosIdx] & tf_Collidable) || !!(lvl.grid[nearIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 
@@ -420,7 +421,7 @@ constexpr int64_t TurnEnergy = 2;
 void actor_turnLeft(actor *pActor)
 {
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy);
+  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < TurnEnergy)
     return;
@@ -432,7 +433,7 @@ void actor_turnLeft(actor *pActor)
 void actor_turnRight(actor *pActor)
 {
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy);
+  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < TurnEnergy)
     return;
@@ -443,16 +444,17 @@ void actor_turnRight(actor *pActor)
 
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
-  static constexpr int64_t EatEnergyCost = 1;
-  static constexpr int64_t FoodAmount = 5;
+  static constexpr int64_t EatEnergyCost = 2;
+  static constexpr int64_t NoFoodFoundEnergyCost = 2;
+  static constexpr int64_t FoodAmount = 16;
   static constexpr uint8_t StomachCapacity = 127;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -EatEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -EatEnergyCost, MinStatsValue, MaxStatsValue);
 
-  if (oldEnergy < TurnEnergy)
+  if (oldEnergy < EatEnergyCost)
     return;
 
   size_t stomachFoodCount = 0;
@@ -461,6 +463,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
     stomachFoodCount += pActor->stats[i];
 
   lsAssert(stomachFoodCount <= StomachCapacity);
+  bool anyFood = false;
 
   for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
   {
@@ -468,11 +471,21 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
     {
       stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
       pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i); // yes, actor stats & tile masks SHARE the masks for foods.
+      anyFood = true;
     }
   }
+
+  if (!anyFood)
+    modify_with_clamp(pActor->stats[as_Energy], -NoFoodFoundEnergyCost, MinStatsValue, MaxStatsValue);
 }
 
-static constexpr int64_t MoveDiagonalCost = 16;
+void actor_wait(actor *pActor)
+{
+  constexpr int64_t WaitEnergyCost = 1;
+  modify_with_clamp(pActor->stats[as_Energy], -WaitEnergyCost, MinStatsValue, MaxStatsValue);
+}
+
+static constexpr int64_t MoveDiagonalCost = 4;
 
 void actor_moveDiagonalLeft(actor *pActor, const level lvl)
 {
@@ -481,7 +494,7 @@ void actor_moveDiagonalLeft(actor *pActor, const level lvl)
   lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost);
+  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < MoveDiagonalCost)
     return;
@@ -493,7 +506,7 @@ void actor_moveDiagonalLeft(actor *pActor, const level lvl)
 
   if (!!(lvl.grid[newIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 
@@ -510,7 +523,7 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
   lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost);
+  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < MoveDiagonalCost)
     return;
@@ -522,7 +535,7 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
 
   if (!!(lvl.grid[newIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 

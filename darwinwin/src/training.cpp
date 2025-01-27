@@ -37,7 +37,7 @@ void level_gen_puddle_food_level(level *pLvl)
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin, level::total / 10);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 10);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Sugar, level::total / 10);
+  //level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Sugar, level::total / 10);
   level_gen_finalize(pLvl);
 }
 
