@@ -5,6 +5,9 @@ let actorElements = [];
 let worldData;
 let aiStepIntervalIdCache;
 
+//Assistant Variables
+let currentlySelectedTileID = null;
+
 const tileFlags = {
       Underwater: 1 << 0,
       Protein: 1 << 1,
@@ -76,9 +79,22 @@ function setupTileElements(levelContainer, grid){
     const newTile = document.createElement("div");
     newTile.classList.add("level-tile");
     newTile.id = "tile-"+i;
-    newTile.addEventListener("click", event => {showTileStats(event.target.id)})
+    newTile.addEventListener("click", event => {
+      showTileStats(event.target.id);
+      handleCurrentlySelectedTile(document.getElementById(event.target.id));
+    })
     levelContainer.appendChild(newTile);
   })
+}
+
+function handleCurrentlySelectedTile(currentlySelectedTile){
+  if(currentlySelectedTileID){
+    const previousSelectedTile = document.getElementById(currentlySelectedTileID);
+    previousSelectedTile.classList.remove("selected-tile");
+  }
+  currentlySelectedTile.classList.add("selected-tile");
+  currentlySelectedTileID = event.target.id;
+  console.log("Currently selected tile: ", currentlySelectedTileID);
 }
 
 function setupActor(actor, index){
@@ -248,16 +264,53 @@ function showBackendViewCone(actorIndex){
 
 function calculateViewConeTileIndexes(actorIndex){
   const lookDir = worldData.actor[actorIndex].lookDir;
-  const actorTileIndex = worldData.actor[actorIndex].posY * worldData.level.width + worldData.actor[actorIndex].posX;
+  const mapWidth = worldData.level.width;
+  const actorTileIndex = worldData.actor[actorIndex].posY * mapWidth + worldData.actor[actorIndex].posX;
   switch (lookDir) {
     case 0:
-      return [actorTileIndex, actorTileIndex + 31, actorTileIndex - 1, actorTileIndex - 33, actorTileIndex + 30, actorTileIndex - 2, actorTileIndex - 34, actorTileIndex - 3];
+      return [
+        actorTileIndex,
+        actorTileIndex + mapWidth - 1,
+        actorTileIndex - 1,
+        actorTileIndex - mapWidth - 1,
+        actorTileIndex + mapWidth - 2,
+        actorTileIndex - 2,
+        actorTileIndex - mapWidth - 2,
+        actorTileIndex - 3
+      ];
     case 1:
-      return [actorTileIndex, actorTileIndex - 33, actorTileIndex - 32, actorTileIndex - 31, actorTileIndex - 65, actorTileIndex - 64, actorTileIndex - 63, actorTileIndex - 96];
+      return [
+        actorTileIndex,
+        actorTileIndex - mapWidth - 1,
+        actorTileIndex - mapWidth,
+        actorTileIndex - mapWidth + 1,
+        actorTileIndex - 2 * mapWidth - 1,
+        actorTileIndex - 2 * mapWidth,
+        actorTileIndex - 2 * mapWidth + 1,
+        actorTileIndex - 3 * mapWidth
+      ];
     case 2:
-      return [actorTileIndex, actorTileIndex - 31, actorTileIndex +1, actorTileIndex + 33, actorTileIndex - 30, actorTileIndex + 2, actorTileIndex + 34, actorTileIndex + 3];
+      return [
+        actorTileIndex,
+        actorTileIndex - mapWidth + 1,
+        actorTileIndex + 1,
+        actorTileIndex + mapWidth + 1,
+        actorTileIndex - mapWidth + 2,
+        actorTileIndex + 2,
+        actorTileIndex + mapWidth + 2,
+        actorTileIndex + 3
+      ];
     case 3:
-      return [actorTileIndex, actorTileIndex + 33, actorTileIndex + 32, actorTileIndex + 31, actorTileIndex + 65, actorTileIndex + 64, actorTileIndex + 63, actorTileIndex + 96];
+      return [
+        actorTileIndex,
+        actorTileIndex + mapWidth + 1,
+        actorTileIndex + mapWidth,
+        actorTileIndex + mapWidth - 1,
+        actorTileIndex + 2 * mapWidth + 1,
+        actorTileIndex + 2 * mapWidth,
+        actorTileIndex + 2 * mapWidth - 1,
+        actorTileIndex + 3 * mapWidth
+      ];
     default:
       console.error("Error: Invalid lookDir -> function: calculateViewConeTileIndexes");
   }
@@ -275,9 +328,8 @@ function showFrontendViewCone(tileIndexes){
 }
 
 function displayActorIcon(actorTile){
-  const icon = document.createElement("img");
+  const icon = document.createElement("div");
   icon.className = "actor-icon";
-  icon.src = "assets/actor-icon.png";
   actorTile.appendChild(icon);
 }
 
@@ -288,8 +340,6 @@ function drawViewConeOnMap(index){
     if(tile === null){
       console.error("Error: Could not find tile element -> function: drawViewConeOnMap");
     }else{
-      console.log("Reducing opacity of tile: ", tile.id);
-
       const currentColor = tile.style.backgroundColor || emptyColor;
       const rgbValues = currentColor.match(/\d+/g);
       if (rgbValues) {
@@ -385,21 +435,40 @@ function fillTileStatsElements(id, labels, values, optionsButtonsElement){
   values.innerHTML = `${id}<br>${x}<br>${y}<br><br>`;
 
   const grid = worldData.level.grid;
-  for(const flag in tileFlags){
-    labels.innerHTML += flag+"<br>";
-    values.innerHTML += hasTileCondition(grid[tileIndex], flag)+"<br>";
 
-    const button = createTileButton(tileIndex, flag);
-    optionsButtonsElement.appendChild(button);
+  //TODO: Remove <br> and use CSS for spacing?
+  for(const flag in tileFlags){
+    labels.innerHTML += flag + "<br>";
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `checkbox-${flag}`;
+    checkbox.checked = hasTileCondition(grid[tileIndex], flag);
+
+    checkbox.addEventListener('change', () => {
+      //fyi: flag wird hier nicht durch den loop überschrieben, das Prinzip nennt man closure
+      console.log("Sending request for flag " + flag + " to tile " + currentlySelectedTileID);
+      postTileSetRequest(getPayload(flag), currentlySelectedTileID);
+    });
+
+    values.appendChild(checkbox);
+    values.appendChild(document.createElement('br'));
   }
 }
 
-function createTileButton(tileIndex, key){
-  const button = document.createElement('button');
-  button.id = "option-button-tile-"+tileIndex+"-"+key;
-  button.innerText = "Toggle "+key;
-  button.addEventListener('click', initiateSetTileRequest);
-  return button;
+function getPayload(flag){
+  const tileIndex = currentlySelectedTileID.split('-')[1];
+  const tile = worldData.level.grid[tileIndex];
+  const x = tileIndex % worldData.level.width;
+  const y = Math.floor(tileIndex / worldData.level.width);
+
+  const newValue = tile ^ tileFlags[flag];
+
+  return {
+    x: x,
+    y: y,
+    value: newValue
+  }
 }
 
 // ### Control Panel functions ###
@@ -460,24 +529,6 @@ function initiateActorActionRequest(event){
   const actorId = idSplit[2] + "-" + idSplit[3];
   const actionId = idSplit[4];
   postActorAction(actorId, actionId);
-}
-
-function initiateSetTileRequest(event){
-  const tileIndex = event.target.id.split('-')[3];
-  const tile = worldData.level.grid[tileIndex];
-  const condition = event.target.id.split('-')[4];
-  const x = tileIndex % worldData.level.width;
-  const y = Math.floor(tileIndex / worldData.level.width);
-
-  const newTile = tile ^ tileFlags[condition];
-
-  const payload = {
-    x: x,
-    y: y,
-    value: newTile
-  }
-
-  postTileSetRequest(payload, "tile-"+tileIndex);
 }
 
 // ### Net functions ###
@@ -550,7 +601,6 @@ function fetchTrainingState(callback){
 function postActorAction(actorId, actionId) {
   const updateFunction = showActorStats.bind(null, actorId);
   const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
-  console.log("Sending action request for actor: " + actorId + " with action: " + actionId);
   load_backend_url('manualAct', fetchAndUpdate,
     {actionId: actionId}, handleError);
 }

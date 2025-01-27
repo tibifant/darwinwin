@@ -143,6 +143,13 @@ div.box {
   font-size: 15pt;
 }
 
+.stats-info-values {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.5vw;
+}
+
 .view-cone-container {
   display: flex;
   flex-direction: column;
@@ -178,14 +185,14 @@ div.box {
 }
 
 .actor-icon {
+  display: inline-block;
   position: relative;
-  z-index: 10;
   width: 50%;
-  height: auto;
+  height: 50%;
+  background-image: url('./actor-icon.png');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
-  padding: 0.5vw;
 }
 
 .level-tile{
@@ -195,6 +202,11 @@ div.box {
   padding: 1pt;
   margin: 1pt;
   background-color: #bcb6b6;
+}
+
+.selected-tile {
+  outline: 2px solid white;
+  outline-offset: -2px;
 }
 
 .food{
