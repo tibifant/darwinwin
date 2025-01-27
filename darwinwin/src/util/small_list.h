@@ -1070,6 +1070,171 @@ inline void list_to_heap(small_list<T, internal_count> &l, const std::function<T
 
 //////////////////////////////////////////////////////////////////////////
 
+template<typename T, size_t internal_count, typename TGreaterFunc = std::greater<T>>
+inline void list_stable_sort(small_list<T, internal_count> &l)
+{
+  struct _internal
+  {
+    static void merge(small_list<T, internal_count> &l, int64_t start, int64_t mid, int64_t end)
+    {
+      TGreaterFunc _greater = TGreaterFunc();
+
+      int64_t start2 = mid + 1;
+
+      if (!_greater(l[mid], l[start2]))
+        return;
+
+      while (start <= mid && start2 <= end)
+      {
+        if (!_greater(l[start], l[mid]))
+        {
+          start++;
+          continue;
+        }
+
+        const T val = l[start2];
+        int64_t index = start2;
+
+        while (index != start)
+        {
+          l[index] = l[index - 1];
+          index--;
+        }
+
+        l[start] = val;
+
+        start++;
+        mid++;
+        start2++;
+      }
+    }
+
+    static void merge_sort(small_list<T, internal_count> &l, const int64_t start, const int64_t end)
+    {
+      if (start < end)
+      {
+        const int64_t mid = start + (end - start) / 2;
+
+        merge_sort(l, start, mid);
+        merge_sort(l, mid + 1, end);
+
+        merge(l, start, mid, end);
+      }
+    }
+  };
+
+  if (l.count)
+    _internal::merge_sort(l, 0, l.count - 1);
+}
+
+template<typename TComparable, typename T, size_t internal_count>
+inline void list_stable_sort(small_list<T, internal_count> &l, const std::function<TComparable(const T &value)> &toComparable)
+{
+  struct _internal
+  {
+    static void merge(small_list<T, internal_count> &l, int64_t start, int64_t mid, int64_t end, const std::function<TComparable(const T &value)> &toComparable)
+    {
+      int64_t start2 = mid + 1;
+
+      if (toComparable(l[mid]) <= toComparable(l[start2]))
+        return;
+
+      while (start <= mid && start2 <= end)
+      {
+        if (toComparable(l[start]) <= toComparable(l[mid]))
+        {
+          start++;
+          continue;
+        }
+
+        const T val = l[start2];
+        int64_t index = start2;
+
+        while (index != start)
+        {
+          l[index] = l[index - 1];
+          index--;
+        }
+
+        l[start] = val;
+
+        start++;
+        mid++;
+        start2++;
+      }
+    }
+
+    static void sort(small_list<T, internal_count> &l, const int64_t start, const int64_t end, const std::function<TComparable(const T &value)> &toComparable)
+    {
+      lsAssert(end >= start && end - start <= 2);
+
+      if (end - start == 2)
+      {
+        T &v0 = l[start];
+        T &v1 = l[start + 1];
+        T &v2 = l[start + 2];
+        const TComparable c0 = toComparable(v0);
+        const TComparable c1 = toComparable(v1);
+        const TComparable c2 = toComparable(v2);
+
+        if (c0 <= c1)
+        {
+          if (c2 > c1)
+            std::swap(v1, v2);
+        }
+        else if (c2 < c1)
+        {
+          std::swap(v0, v2);
+        }
+        else if (c2 < c0)
+        {
+          std::swap(v0, v1);
+          std::swap(v2, v1);
+        }
+        else
+        {
+          std::swap(v0, v1);
+        }
+      }
+      else if (end - start == 1)
+      {
+        T &v0 = l[start];
+        T &v1 = l[start + 1];
+        const TComparable c0 = toComparable(v0);
+        const TComparable c1 = toComparable(v1);
+
+        if (c0 > c1)
+          std::swap(v0, v1);
+      }
+    }
+
+    static void merge_sort(small_list<T, internal_count> &l, const int64_t start, const int64_t end, const std::function<TComparable(const T &value)> &toComparable)
+    {
+      if (start < end)
+      {
+        const int64_t mid = start + (end - start) / 2;
+
+        if (mid - start <= 2)
+          sort(l, start, mid, toComparable);
+        else
+          merge_sort(l, start, mid, toComparable);
+
+        if (end - mid - 1 <= 2)
+          sort(l, mid + 1, end, toComparable);
+        else
+          merge_sort(l, mid + 1, end, toComparable);
+
+        merge(l, start, mid, end, toComparable);
+      }
+    }
+  };
+
+  if (l.count)
+    _internal::merge_sort(l, 0, l.count - 1, toComparable);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 // Return index of first element for which l[i] < cmp is false or endIdx + 1 if for none.
 // See: https://en.cppreference.com/w/cpp/algorithm/lower_bound
 template <typename T, size_t internal_count, typename TCompare, typename TLessFunc = std::less<T>>

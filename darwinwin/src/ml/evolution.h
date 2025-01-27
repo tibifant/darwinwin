@@ -468,11 +468,11 @@ void evolution_generation_finalize_internal(evolution<target, config> &e)
     return -(int64_t)pool_get(e.genes, index)->score;
     };
 
-  constexpr bool use_stable_sort = false;
+  constexpr bool use_stable_sort = true;
 
   if constexpr (use_stable_sort)
   {
-    // TODO: implement.
+    list_stable_sort<int64_t>(e.bestGeneIndices, idxToScore);
   }
   else
   {
