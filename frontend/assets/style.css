@@ -49,7 +49,8 @@ body {
 
 #app_container {
   margin: 0;
-  background: #1a1a1a;
+  background: url('./background.jpg');
+  background-size: cover;
   width: 100vw;
   height: calc(100% - 25pt);
   padding: 40pt 0;
@@ -73,6 +74,7 @@ div.box {
 
 .control-panel {
   display: flex;
+  justify-content: space-evenly;
   padding: 5pt;
   width: fit-content;
   margin-left: auto;
@@ -82,17 +84,20 @@ div.box {
 }
 
 .control-panel button {
+  margin: 7pt;
   font-family: 'Segoe UI', sans-serif;
-  margin: 10pt;
-  font-size: 20pt;
+  font-size: 24pt;
+  border-radius: 8px;
+  border: none;
 }
 
-.control-panel span {
-  width: 30pt;
+.control-panel button:hover {
+  background-color: #c1c1c1;
 }
 
 .level-container {
   display: flex;
+  background-color: #292828;
   flex-wrap: wrap;
   padding: 1pt;
   margin: 10pt;
