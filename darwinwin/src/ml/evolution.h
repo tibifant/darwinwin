@@ -266,7 +266,9 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
 
   mutator_state_add_params(state, mut.params);
 
-  mut.chance = (uint16_t)lsClamp<int64_t>((int64_t)lsRound((smart_mutator_make_chance<config::mutationChanceBase>() * mut.params.mutation_chance) / (float)0xFFFF), 0, 0xFFFF);
+  const uint16_t smart_chance = smart_mutator_make_chance<config::mutationChanceBase>();
+  const int64_t rounded = (int64_t)lsRound(smart_chance * mut.params.mutation_chance);
+  mut.chance = (uint16_t)lsClamp<int64_t>(rounded, 1, 0xFFFF);
 
   const float mutationRate = config::mutationRateBase * mut.params.mutation_rate;
   std::normal_distribution dist(0.f, mutationRate);
@@ -303,8 +305,73 @@ inline void mutator_eval(const smart_mutator<config> &m, T &val, const T min = l
 template <typename config>
 inline void mutator_eval(const smart_mutator<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
 {
-  for (size_t i = 0; i < count; i++)
-    mutator_eval(m, pVal[i], min, max);
+  __m128i a = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast));
+  __m128i b = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast2));
+
+  size_t i = 0;
+  for (; i + 4 < count; i += 5) // Unrolling the Loop to use the full 128 bit random values by reading from `m.rndLast[0]` and `m.rndLast[1]` alternating 16 and 8 bits. So we end up using exactly 64 bits from `m.rndLast[0]` and 64 - 8 from `m.rndLast[1]`.
+  {
+    const __m128i r = _mm_aesdec_si128(a, b);
+
+    _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast), b);
+    b = r;
+
+    if ((m.rndLast[0] & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = (m.rndLast[1] & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i] + diff, min, max);
+    }
+
+    if (((m.rndLast[1] >> 8) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[0] >> 16) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 1] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 1] + diff, min, max);
+    }
+
+    if (((m.rndLast[0] >> (16 + 8)) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[1] >> (16 + 8)) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 2] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 2] + diff, min, max);
+    }
+
+    if (((m.rndLast[1] >> (16 + 2 * 8)) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[0] >> (2 * 16 + 8)) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 3] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 3] + diff, min, max);
+    }
+
+    if (((m.rndLast[0] >> (2 * 16 + 2 * 8)) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[1] >> (2 * 16 + 2 * 8)) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 4] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 4] + diff, min, max);
+    }
+  }
+
+  const __m128i r = _mm_aesdec_si128(a, b);
+
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast), b);
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast2), r);
+
+  uint64_t rnd0 = m.rndLast[0];
+  uint64_t rnd1 = m.rndLast[1];
+
+  for (; i < count; i++) // This should work out perfectly as there should never be more than 4 values remaining. So we read at max 4 * 16 = 64 bits.
+  {
+    if ((rnd0 & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((rnd1 >> 16) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i] + diff, min, max);
+    }
+
+    rnd0 >>= 16;
+    rnd1 >>= 8;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -528,7 +595,7 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
   lsAssert(e.genes.count > 0);
 
   const size_t maxParentIndex = e.genes.count;
-  size_t bestScore = pool_get(e.genes, e.bestGeneIndices[0])->score;
+  size_t bestScore = 0; // Gets set below.
   size_t bestScoreMutatorIdx = (size_t)-1;
 
   if constexpr (e.has_mutator_state)
@@ -569,6 +636,8 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
 template <typename target, typename config, typename func>
 void evolution_generation(evolution<target, config> &e, func evalFunc, thread_pool *pThreads)
 {
+  // Smart Mutator not implemented!
+
   static_assert(!e.has_mutator_state);
 
   lsAssert(e.genes.count <= config::survivingGenes);

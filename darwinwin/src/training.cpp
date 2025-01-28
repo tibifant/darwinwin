@@ -244,7 +244,6 @@ size_t evaluate_null(const actor &)
 
 constexpr size_t generationsPerLevel = 1024ULL * 4;
 
-// currently used train loop
 lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *dir)
 {
   lsResult result = lsR_Success;
