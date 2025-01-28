@@ -151,10 +151,10 @@ struct smart_mutator_config
   static constexpr float param_mutation_min_fac = 0.975f;
   static constexpr float param_mutation_max_fac = 1.f / param_mutation_min_fac;
   static constexpr float mutationChanceBase = 0.05f;
-  static constexpr float min_mutation_chance_fac = 0.005f / mutationChanceBase;
+  static constexpr float min_mutation_chance_fac = 0.1f / mutationChanceBase;
   static constexpr float max_mutation_chance_fac = 0.85f / mutationChanceBase;
   static constexpr uint16_t mutationRateBase = 32;
-  static constexpr float min_mutation_rate_fac = 3.f / (float)mutationRateBase;
+  static constexpr float min_mutation_rate_fac = 16.f / (float)mutationRateBase;
   static constexpr float max_mutation_rate_fac = 64.f / (float)mutationRateBase;
 };
 
@@ -187,7 +187,7 @@ void mutate(actor &target, const mutator &m)
 
 //////////////////////////////////////////////////////////////////////////
 
-constexpr size_t EvaluatingCycles = 32;
+constexpr size_t EvaluatingCycles = 64;
 
 size_t evaluate_actor(const actor &in)
 {
@@ -197,18 +197,18 @@ size_t evaluate_actor(const actor &in)
 
   for (size_t i = 0; i < EvaluatingCycles; i++)
   {
-    uint16_t foodCapacityBefore = 0;
+    uint16_t stomachFillLevelBefore = 0;
 
     for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
-      foodCapacityBefore += actr.stats[j];
+      stomachFillLevelBefore += actr.stats[j];
 
     if (!level_performStep(lvl, &actr, 1))
       break;
 
-    uint16_t foodCapacityAfter = 0;
+    uint16_t stomachFillLevelAfter = 0;
 
     for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
-      foodCapacityAfter += actr.stats[j];
+      stomachFillLevelAfter += actr.stats[j];
 
     uint16_t foodSeeScore = 0;
     static const uint16_t perViewConePosFoodSeeScore[] = {
@@ -231,7 +231,7 @@ size_t evaluate_actor(const actor &in)
     score += 3;
     score += !(actr.last_view_cone.values[vcp_self] & tf_Underwater) ? 1 : 0;
     score += foodSeeScore;
-    score += ((uint8_t)(foodCapacityAfter < foodCapacityBefore)) * 1000;
+    score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 1000;
   }
 
   return score;
