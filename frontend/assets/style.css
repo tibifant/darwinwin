@@ -262,6 +262,10 @@ div.box {
   background-size: 50%;
 }
 
+.level-tile.icon.fat1{
+
+}
+
 .selected-tile {
   outline: 2px solid white;
   outline-offset: -2px;
@@ -277,9 +281,13 @@ div.box {
 }
 
 .actor{
-  height: 20pt;
+  display: flex;
+  position: relative;
   width: 20pt;
-  border-radius: 50%;
-  background-color: #FFF;
+  height:20pt;
+  background-image: url('icons/bear-head.svg');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
   cursor: pointer;
 }

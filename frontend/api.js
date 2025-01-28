@@ -142,7 +142,7 @@ function setupViewCone(){
         tile.classList.add('view-cone-tile');
         tile.style.gridRow = positions[j].row;
         tile.style.gridColumn = positions[j].col;
-        tile.id = 'view-cone-tile-' + i + j;
+        tile.id = 'view-cone-tile-' + i + "-" + j;
         grid.appendChild(tile);
       }
     }
@@ -205,7 +205,7 @@ function checkTileFlags(tile, tileElement){
   }
   if(hasTileCondition(tile, "Fat")){
     hasFoodCondition = true;
-    tileElement.appendChild(createFoodOf('F'));
+    load
   }
   if(hasTileCondition(tile, "Vitamin")){
     hasFoodCondition = true;
@@ -291,12 +291,12 @@ function showBackendViewCone(actorIndex){
   const viewCone = worldData.actor[actorIndex].viewcone;
 
   for (let i = 0; i < viewCone.length; i++) {
-    const tile = document.getElementById('view-cone-tile-' + 0 + i);
+    const tile = document.getElementById('view-cone-tile-' + 0 + "-" + i);
     tile.innerText = viewCone[i];
     tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile);
   }
-  displayActorIcon(document.getElementById('view-cone-tile-00'));
+  displayActorIcon(document.getElementById('view-cone-tile-0-0'));
 }
 
 function calculateViewConeTileIndexes(actorIndex){
@@ -355,13 +355,13 @@ function calculateViewConeTileIndexes(actorIndex){
 
 function showFrontendViewCone(tileIndexes){
   tileIndexes.forEach((index, i) => {
-    const gridTile = document.getElementById('view-cone-tile-'+ 1 + i);
+    const gridTile = document.getElementById('view-cone-tile-'+ 1 + "-" + i);
     const tileValue = worldData.level.grid[index];
     gridTile.style.backgroundColor = emptyColor;
     gridTile.innerText = tileValue;
     checkTileFlags(tileValue, gridTile);
   })
-  displayActorIcon(document.getElementById('view-cone-tile-10'));
+  displayActorIcon(document.getElementById('view-cone-tile-1-0'));
 }
 
 function displayActorIcon(actorTile){
