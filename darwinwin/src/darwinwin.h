@@ -32,6 +32,7 @@ enum tileFlag_ : uint8_t
   tf_Sugar = 1ULL << as_Sugar, // actor stats & tile masks SHARE the masks for foods.
   tf_Vitamin = 1ULL << as_Vitamin, // actor stats & tile masks SHARE the masks for foods.
   tf_Fat = 1ULL << as_Fat,
+  _tileFlag_FoodMask = tf_Protein | tf_Sugar | tf_Vitamin | tf_Fat,
   tf_Collidable = 1ULL << 5,
   tf_OtherActor = 1ULL << 6, // not on the map
   tf_Hidden = 1ULL << 7, // not on the map
@@ -133,6 +134,7 @@ struct actor
   static constexpr size_t FeedbackBlocks = 1;
   neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size + FeedbackBlocks, 2, (_actorAction_Count + neural_net_block_size - 1) / neural_net_block_size + FeedbackBlocks> brain;
   actorAction last_action; // will be set by `level_performStep`, may be uninitialized.
+  viewCone last_view_cone; // will be set by `level_performStep`, may be uninitialized.
   int16_t previous_feedback_output[FeedbackBlocks * neural_net_block_size] = {}; // will be set by `level_performStep`, may be uninitialized.
 
   actor() = default;

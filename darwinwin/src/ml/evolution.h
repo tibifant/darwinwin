@@ -206,6 +206,11 @@ inline void mutator_state_select(smart_mutator_state &ms, const size_t mutationI
   ms.selected = ms.gene_data[mutationIdx];
 }
 
+inline void mutator_state_print(const smart_mutator_state &ms)
+{
+  print("mutation chance: ", FF(Max(8), Min(8))(ms.selected.mutation_chance), ", rate: ", FF(Max(8), Min(8))(ms.selected.mutation_rate), '\n');
+}
+
 template <double chance>
 constexpr uint16_t smart_mutator_make_chance()
 {
@@ -247,10 +252,10 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
 
   static_assert(config::param_mutation_min_fac < config::param_mutation_max_fac);
 
-  const float minChance = mut.params.mutation_chance * config::param_mutation_min_fac;
-  const float maxChance = mut.params.mutation_chance * config::param_mutation_max_fac;
-  const float minRate = mut.params.mutation_rate * config::param_mutation_min_fac;
-  const float maxRate = mut.params.mutation_rate * config::param_mutation_max_fac;
+  const float minChance = lsClamp(mut.params.mutation_chance * config::param_mutation_min_fac, config::min_mutation_chance_fac, config::max_mutation_chance_fac);
+  const float maxChance = lsClamp(mut.params.mutation_chance * config::param_mutation_max_fac, config::min_mutation_chance_fac, config::max_mutation_chance_fac);
+  const float minRate = lsClamp(mut.params.mutation_rate * config::param_mutation_min_fac, config::min_mutation_rate_fac, config::max_mutation_rate_fac);
+  const float maxRate = lsClamp(mut.params.mutation_rate * config::param_mutation_max_fac, config::min_mutation_rate_fac, config::max_mutation_rate_fac);
 
   std::mt19937 rnd;
   std::uniform_real_distribution<float> chanceDist(minChance, maxChance);
@@ -261,7 +266,7 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
 
   mutator_state_add_params(state, mut.params);
 
-  mut.chance = (uint16_t)lsClamp<int64_t>((int64_t)lsRound((config::mutationChanceBase * mut.params.mutation_chance) / (float)0xFFFF), 0, 0xFFFF);
+  mut.chance = (uint16_t)lsClamp<int64_t>((int64_t)lsRound((smart_mutator_make_chance<config::mutationChanceBase>() * mut.params.mutation_chance) / (float)0xFFFF), 0, 0xFFFF);
 
   const float mutationRate = config::mutationRateBase * mut.params.mutation_rate;
   std::normal_distribution dist(0.f, mutationRate);
@@ -523,7 +528,7 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
   lsAssert(e.genes.count > 0);
 
   const size_t maxParentIndex = e.genes.count;
-  size_t bestScore = 0;
+  size_t bestScore = pool_get(e.genes, e.bestGeneIndices[0])->score;
   size_t bestScoreMutatorIdx = (size_t)-1;
 
   if constexpr (e.has_mutator_state)

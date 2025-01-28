@@ -136,19 +136,19 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 
     anyAlive = true;
 
-    const viewCone cone = viewCone_get(lvl, pActors[i]);
-    actor_updateStats(&pActors[i], cone);
+    pActors[i].last_view_cone = viewCone_get(lvl, pActors[i]);
+    actor_updateStats(&pActors[i], pActors[i].last_view_cone);
 
     decltype(actor::brain)::io_buffer_t ioBuffer;
 
-    for (size_t j = 0; j < LS_ARRAYSIZE(cone.values); j++)
+    for (size_t j = 0; j < LS_ARRAYSIZE(pActors[i].last_view_cone.values); j++)
       for (size_t k = 0, bit = 1; k < 8; k++, bit <<= 1)
-        ioBuffer[j * 8 + k] = (int8_t)(cone[(viewConePosition)j] & bit);
+        ioBuffer[j * 8 + k] = (int8_t)(pActors[i].last_view_cone[(viewConePosition)j] & bit);
 
-    neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
+    neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(pActors[i].last_view_cone.values) * 8) / ioBuffer.block_size);
 
     for (size_t j = 0; j < _actorStats_Count; j++)
-      ioBuffer[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
+      ioBuffer[LS_ARRAYSIZE(pActors[i].last_view_cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
 
     lsMemcpy(&ioBuffer[pActors[i].brain.first_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], pActors[i].previous_feedback_output, LS_ARRAYSIZE(pActors[i].previous_feedback_output));
 
@@ -179,7 +179,7 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
     }
 
     pActors[i].last_action = (actorAction)bestActionIndex;
-    actor_act(&pActors[i], &lvl, cone, pActors[i].last_action);
+    actor_act(&pActors[i], &lvl, pActors[i].last_view_cone, pActors[i].last_action);
 
     lsMemcpy(pActors[i].previous_feedback_output, &ioBuffer[pActors[i].brain.last_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], LS_ARRAYSIZE(pActors[i].previous_feedback_output));
   }
@@ -318,7 +318,7 @@ void actor_initStats(actor *pActor)
 void actor_updateStats(actor *pActor, const viewCone &cone)
 {
   // Check air
-  constexpr int64_t UnderwaterAirCost = 4;
+  constexpr int64_t UnderwaterAirCost = 16;
   constexpr int64_t SurfaceAirAmount = 24;
   constexpr int64_t NoAirEnergyCost = 24;
 

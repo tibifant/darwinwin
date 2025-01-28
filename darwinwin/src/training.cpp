@@ -148,10 +148,14 @@ struct starter_random_config_independent : starter_random_config
 
 struct smart_mutator_config
 {
-  static constexpr float param_mutation_min_fac = 0.9f;
+  static constexpr float param_mutation_min_fac = 0.975f;
   static constexpr float param_mutation_max_fac = 1.f / param_mutation_min_fac;
-  static constexpr uint16_t mutationChanceBase = smart_mutator_make_chance<0.05>();
-  static constexpr uint16_t mutationRateBase = 64;
+  static constexpr float mutationChanceBase = 0.05f;
+  static constexpr float min_mutation_chance_fac = 0.005f / mutationChanceBase;
+  static constexpr float max_mutation_chance_fac = 0.85f / mutationChanceBase;
+  static constexpr uint16_t mutationRateBase = 32;
+  static constexpr float min_mutation_rate_fac = 3.f / (float)mutationRateBase;
+  static constexpr float max_mutation_rate_fac = 64.f / (float)mutationRateBase;
 };
 
 struct smart_config
@@ -183,7 +187,7 @@ void mutate(actor &target, const mutator &m)
 
 //////////////////////////////////////////////////////////////////////////
 
-constexpr size_t EvaluatingCycles = 64;
+constexpr size_t EvaluatingCycles = 32;
 
 size_t evaluate_actor(const actor &in)
 {
@@ -206,8 +210,28 @@ size_t evaluate_actor(const actor &in)
     for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
       foodCapacityAfter += actr.stats[j];
 
-    score++;
-    score += ((uint8_t)(foodCapacityAfter < foodCapacityBefore)) * 3;
+    uint16_t foodSeeScore = 0;
+    static const uint16_t perViewConePosFoodSeeScore[] = {
+        7, // vcp_self
+        4, // vcp_nearLeft
+        5, // vcp_nearCenter
+        4, // vcp_nearRight
+        2, // vcp_midLeft
+        3, // vcp_midCenter
+        2, // vcp_midRight
+        1  // vcp_farCenter
+    };
+
+    static_assert(LS_ARRAYSIZE(actr.last_view_cone.values) == LS_ARRAYSIZE(perViewConePosFoodSeeScore));
+
+    for (size_t j = 0; j < LS_ARRAYSIZE(actr.last_view_cone.values); j++)
+      if (actr.last_view_cone.values[j] & _tileFlag_FoodMask)
+        foodSeeScore += perViewConePosFoodSeeScore[j];
+
+    score += 3;
+    score += !(actr.last_view_cone.values[vcp_self] & tf_Underwater) ? 1 : 0;
+    score += foodSeeScore;
+    score += ((uint8_t)(foodCapacityAfter < foodCapacityBefore)) * 1000;
   }
 
   return score;
@@ -346,6 +370,16 @@ lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *di
 
     const actor_ref *pBestRef = list_get(&best_actor_refs, 0);
     print_log_line("Current Best: Training Cycle: ", trainingCycle, " w/ score: ", pBestRef->score, " (", FD(Group, Frac(3))(geneGenerationCount / ((endNs - startNs) * 1e-9)), " Generations/s)");
+
+    if constexpr (std::remove_cvref_t<decltype(evolutions[0])>::has_mutator_state)
+    {
+      for (size_t j = 0; j < evolutions.count; j++)
+      {
+        print('\t', FU(Min(3))(j), ": ");
+        mutator_state_print(evolutions[j].mutatorState);
+      }
+    }
+
     LS_ERROR_CHECK(actor_saveBrain(dir, best_actors[0]));
 
     trainingCycle++;
