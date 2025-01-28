@@ -92,8 +92,12 @@ function handleCurrentlySelectedTile(currentlySelectedTile){
     const previousSelectedTile = document.getElementById(currentlySelectedTileID);
     previousSelectedTile.classList.remove("selected-tile");
   }
-  currentlySelectedTile.classList.add("selected-tile");
-  currentlySelectedTileID = event.target.id;
+  if(currentlySelectedTile){
+    currentlySelectedTile.classList.add("selected-tile");
+    currentlySelectedTileID = event.target.id;
+  }else{
+    currentlySelectedTileID = null;
+  }
   console.log("Currently selected tile: ", currentlySelectedTileID);
 }
 
@@ -248,6 +252,7 @@ function showActorStats(actorId){
   const actorIndex = actorId.split('-')[1];
   showBackendViewCone(actorIndex);
   showFrontendViewCone(calculateViewConeTileIndexes(actorIndex));
+  handleCurrentlySelectedTile(null);
 }
 
 function showBackendViewCone(actorIndex){

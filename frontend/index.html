@@ -13,13 +13,11 @@
     <script type="text/javascript" language="javascript" src="api.js"></script>
     <div id="control-panel" class="control-panel">
       <button id="level-generate-button" onclick="javascript:levelGenerate()">GENERATE LEVEL</button>
-      <span></span>
       <button id="training-load-level-button" onclick="javascript:loadTrainingLevel()">LOAD TRAINING LEVEL</button>
       <button id="ai-load-brain-button" onclick="javascript:reloadBrain()">RELOAD BRAIN</button>
       <button id="ai-reset-brain-button" onclick="javascript:resetStats()">RESET STATS</button>
       <button id="ai-step-button" onclick="javascript:aiStep()">SINGLE AI STEP</button>
       <button id="ai-step-start-button" onclick="javascript:aiStepToggle()">START AI STEP</button>
-      <span></span>
       <button id="training-start-button" onclick="javascript:startTraining()">START TRAINING</button>
       <button id="training-stop-button" onclick="javascript:stopTraining()">STOP TRAINING</button>
     </div>
@@ -28,7 +26,6 @@
       <div id="stats-container" class="stats-container">
         <div class="stats-header">STATS</div>
         <div class="stats-body">
-          <div class="stats-subsection-header">INFO</div>
           <div id="stats-info" class="stats-subsection">
             <div id="stats-info-labels" class="stats-subsection-column"></div>
             <div id="stats-info-values" class="stats-subsection-column"></div>
