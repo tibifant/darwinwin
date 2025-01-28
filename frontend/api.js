@@ -205,7 +205,6 @@ function checkTileFlags(tile, tileElement){
   }
   if(hasTileCondition(tile, "Fat")){
     hasFoodCondition = true;
-    load
   }
   if(hasTileCondition(tile, "Vitamin")){
     hasFoodCondition = true;

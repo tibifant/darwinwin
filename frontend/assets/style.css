@@ -262,10 +262,6 @@ div.box {
   background-size: 50%;
 }
 
-.level-tile.icon.fat1{
-
-}
-
 .selected-tile {
   outline: 2px solid white;
   outline-offset: -2px;
