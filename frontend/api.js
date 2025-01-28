@@ -140,7 +140,6 @@ function setupViewCone(){
         tile.classList.add('view-cone-tile');
         tile.style.gridRow = positions[j].row;
         tile.style.gridColumn = positions[j].col;
-        tile.style.backgroundColor = '#c6c6c6'
         tile.id = 'view-cone-tile-' + i + j;
         grid.appendChild(tile);
       }
