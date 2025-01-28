@@ -223,33 +223,41 @@ div.box {
   background-position: center;
 }
 
-.level-tile.noFlag1 {
+.level-tile.view-cone {
+  filter: brightness(0.5);
+}
+
+.level-tile.icon{
+
+}
+
+.level-tile.icon.noFlag1 {
   background-image: url('icons/tree.svg');
   background-size: 70%;
 }
 
-.level-tile.noFlag2 {
+.level-tile.icon.noFlag2 {
   background-image: url('icons/trees.svg');
   background-size: 70%;
 }
 
-.level-tile.collidable {
+.level-tile.icon.collidable1 {
   background-color: #3e3a3a !important;
   background-image: url('icons/mountain-medium.svg');
 }
 
-.level-tile.underwater1{
+.level-tile.icon.underwater1{
   background-color: #16829E !important;
   background-image: url('icons/single-wave.svg');
   background-size: 70%;
 }
 
-.level-tile.protein1{
+.level-tile.icon.protein1{
   background-image: url('icons/steak-noOutline.svg');
   background-size: 50%;
 }
 
-.level-tile.vitamin1{
+.level-tile.icon.vitamin1{
   background-image: url('icons/apple-noOutline.svg');
   background-size: 50%;
 }

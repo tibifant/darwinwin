@@ -19,6 +19,8 @@ const tileFlags = {
       Hidden: 1 << 7,
     }
 
+let mapTiles = [];
+
 const emptyColor = "rgb(112, 168, 87)";
 
 document.addEventListener('DOMContentLoaded', setup);
@@ -172,15 +174,19 @@ function updateTiles(){
   const grid = worldData.level.grid;
   for(let i=0; i<grid.length; i++){
     const tileElement = document.getElementById("tile-"+i);
-    tileElement.innerHTML = '';
-    tileElement.style.backgroundColor = emptyColor;
+    tileElement.classList.remove("view-cone");
 
-    checkTileFlags(grid[i], tileElement);
+    if(!mapTiles || mapTiles[i] !== grid[i]) {
+      checkTileFlags(grid[i], tileElement);
+      mapTiles[i] = grid[i];
+    }
   }
 }
 
 function checkTileFlags(tile, tileElement){
   let hasFoodCondition = false;
+  tileElement.innerHTML = '';
+  tileElement.style.backgroundColor = emptyColor;
 
   if(hasTileCondition(tile, "Hidden")){
     if(tileElement.id.split('-')[0] === 'view'){
@@ -193,7 +199,7 @@ function checkTileFlags(tile, tileElement){
 
   }
   if(hasTileCondition(tile, "Collidable")){
-    tileElement.classList.add('level-tile', "collidable");
+    loadIcon(tileElement, 'collidable1', null, 1, null);
     return;
   }
   if(hasTileCondition(tile, "Fat")){
@@ -240,9 +246,9 @@ function createFoodOf(type){
 function loadIcon(tileElement, icon1, icon2, distribution, colorCode){
   const randomizer = Math.random();
   if(icon2 && randomizer > 1 - distribution/2){
-    tileElement.classList.add('level-tile', icon2);
+    tileElement.classList.add('level-tile', 'icon', icon2);
   }else if(randomizer < distribution/2 || !icon2 && randomizer < distribution){
-    tileElement.classList.add('level-tile', icon1);
+    tileElement.classList.add('level-tile', 'icon', icon1);
   }else{
     tileElement.style.backgroundColor = colorCode || emptyColor;
   }
@@ -370,11 +376,7 @@ function drawViewConeOnMap(index){
     if(tile === null){
       console.error("Error: Could not find tile element -> function: drawViewConeOnMap");
     }else{
-      const currentColor = tile.style.backgroundColor || emptyColor;
-      const rgbValues = currentColor.match(/\d+/g);
-      if (rgbValues) {
-        tile.style.backgroundColor = `rgba(${rgbValues[0]}, ${rgbValues[1]}, ${rgbValues[2]}, 0.5)`;
-      }
+      tile.classList.add('level-tile', 'view-cone');
     }
   })
 
