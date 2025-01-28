@@ -187,6 +187,7 @@ function checkTileFlags(tile, tileElement){
   let hasFoodCondition = false;
   tileElement.innerHTML = '';
   tileElement.style.backgroundColor = emptyColor;
+  tileElement.classList.remove('icon');
 
   if(hasTileCondition(tile, "Hidden")){
     if(tileElement.id.split('-')[0] === 'view'){
