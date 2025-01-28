@@ -49,7 +49,7 @@ body {
 
 #app_container {
   margin: 0;
-  background: url('./background.jpg');
+  background: url('images/background.jpg');
   background-size: cover;
   width: 100vw;
   height: calc(100% - 25pt);
@@ -203,7 +203,7 @@ div.box {
   position: relative;
   width: 50%;
   height: 50%;
-  background-image: url('./actor-icon.png');
+  background-image: url('icons/actor-icon.png');
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -217,6 +217,41 @@ div.box {
   margin: 1pt;
   background-color: #c6c6c6;
   cursor: pointer;
+  position: relative;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.level-tile.noFlag1 {
+  background-image: url('icons/tree.svg');
+  background-size: 70%;
+}
+
+.level-tile.noFlag2 {
+  background-image: url('icons/trees.svg');
+  background-size: 70%;
+}
+
+.level-tile.collidable {
+  background-color: #3e3a3a !important;
+  background-image: url('icons/mountain-medium.svg');
+}
+
+.level-tile.underwater1{
+  background-color: #16829E !important;
+  background-image: url('icons/single-wave.svg');
+  background-size: 70%;
+}
+
+.level-tile.protein1{
+  background-image: url('icons/steak-noOutline.svg');
+  background-size: 50%;
+}
+
+.level-tile.vitamin1{
+  background-image: url('icons/apple-noOutline.svg');
+  background-size: 50%;
 }
 
 .selected-tile {

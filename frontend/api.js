@@ -180,6 +180,8 @@ function updateTiles(){
 }
 
 function checkTileFlags(tile, tileElement){
+  let hasFoodCondition = false;
+
   if(hasTileCondition(tile, "Hidden")){
     if(tileElement.id.split('-')[0] === 'view'){
       tileElement.style.backgroundColor = '';
@@ -191,23 +193,36 @@ function checkTileFlags(tile, tileElement){
 
   }
   if(hasTileCondition(tile, "Collidable")){
-    tileElement.style.backgroundColor = '#3e3a3a'
+    tileElement.classList.add('level-tile', "collidable");
     return;
   }
   if(hasTileCondition(tile, "Fat")){
+    hasFoodCondition = true;
     tileElement.appendChild(createFoodOf('F'));
   }
   if(hasTileCondition(tile, "Vitamin")){
-    tileElement.appendChild(createFoodOf('V'));
+    hasFoodCondition = true;
+    loadIcon(tileElement, 'vitamin1', null, 0.5, null);
   }
   if(hasTileCondition(tile, "Sugar")){
+    hasFoodCondition = true;
     tileElement.appendChild(createFoodOf('S'));
   }
   if(hasTileCondition(tile, "Protein")){
-    tileElement.appendChild(createFoodOf('P'));
+    hasFoodCondition = true;
+    loadIcon(tileElement, 'protein1', null, 1, null);
   }
-  if(hasTileCondition(tile, "Underwater")){ //Underwater
-    tileElement.style.backgroundColor = 'rgb(50, 115, 185)';
+  if(hasTileCondition(tile, "Underwater")){
+    if(!hasFoodCondition){
+      loadIcon(tileElement, 'underwater1', null, 0.3, '#16829E');
+    }else{
+      tileElement.style.backgroundColor = '#16829E';
+    }
+  }
+  else{
+    if(!hasFoodCondition) {
+      loadIcon(tileElement, 'noFlag1', null, 0.4, null);
+    }
   }
 }
 
@@ -220,6 +235,17 @@ function createFoodOf(type){
   newItem.classList.add('food');
   newItem.innerText = type;
   return newItem;
+}
+
+function loadIcon(tileElement, icon1, icon2, distribution, colorCode){
+  const randomizer = Math.random();
+  if(icon2 && randomizer > 1 - distribution/2){
+    tileElement.classList.add('level-tile', icon2);
+  }else if(randomizer < distribution/2 || !icon2 && randomizer < distribution){
+    tileElement.classList.add('level-tile', icon1);
+  }else{
+    tileElement.style.backgroundColor = colorCode || emptyColor;
+  }
 }
 
 function updateActor(actor, index){
