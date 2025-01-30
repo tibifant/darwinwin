@@ -165,7 +165,6 @@ function updateWorld(callback){
 
   worldData.actor.forEach((actor, i) => {
       updateActor(actor, i);
-      drawViewConeOnMap(i);
   });
   if (callback) callback();
 }
@@ -177,17 +176,18 @@ function updateTiles(){
     tileElement.classList.remove("view-cone");
 
     if(!mapTiles || mapTiles[i] !== grid[i]) {
-      checkTileFlags(grid[i], tileElement);
-      mapTiles[i] = grid[i];
+      console.log("Tile-" + i + " has changed from value " + mapTiles[i] + " to " + grid[i]);
+      checkTileFlags(grid[i], tileElement, i);
+      //mapTiles[i] = grid[i];
     }
   }
 }
 
-function checkTileFlags(tile, tileElement){
+function checkTileFlags(tile, tileElement, tileIndex){
   let hasFoodCondition = false;
-  tileElement.innerHTML = '';
-  tileElement.style.backgroundColor = emptyColor;
-  tileElement.classList.remove('icon');
+  tileElement.classList.forEach(cssClass => tileElement.classList.remove(cssClass));
+  tileElement.style.backgroundColor = '';
+  tileElement.classList.add('level-tile');
 
   if(hasTileCondition(tile, "Hidden")){
     if(tileElement.id.split('-')[0] === 'view'){
@@ -205,14 +205,15 @@ function checkTileFlags(tile, tileElement){
   }
   if(hasTileCondition(tile, "Fat")){
     hasFoodCondition = true;
+    loadIcon(tileElement, 'fat1', null, 1, null);
   }
   if(hasTileCondition(tile, "Vitamin")){
     hasFoodCondition = true;
-    loadIcon(tileElement, 'vitamin1', null, 0.5, null);
+    loadIcon(tileElement, 'vitamin1', null, 1, null);
   }
   if(hasTileCondition(tile, "Sugar")){
     hasFoodCondition = true;
-    tileElement.appendChild(createFoodOf('S'));
+    loadIcon(tileElement, 'sugar1', null, 1, null);
   }
   if(hasTileCondition(tile, "Protein")){
     hasFoodCondition = true;
@@ -230,27 +231,24 @@ function checkTileFlags(tile, tileElement){
       loadIcon(tileElement, 'noFlag1', null, 0.4, null);
     }
   }
+
+  if(tileIndex){
+    mapTiles[tileIndex] = tile;
+  }
 }
 
 function hasTileCondition(tile, condition){
   return !!(tile & tileFlags[condition]);
 }
 
-function createFoodOf(type){
-  const newItem = document.createElement("div");
-  newItem.classList.add('food');
-  newItem.innerText = type;
-  return newItem;
-}
-
 function loadIcon(tileElement, icon1, icon2, distribution, colorCode){
   const randomizer = Math.random();
   if(icon2 && randomizer > 1 - distribution/2){
-    tileElement.classList.add('level-tile', 'icon', icon2);
+    tileElement.classList.add('icon', icon2);
   }else if(randomizer < distribution/2 || !icon2 && randomizer < distribution){
-    tileElement.classList.add('level-tile', 'icon', icon1);
+    tileElement.classList.add( 'icon', icon1);
   }else{
-    tileElement.style.backgroundColor = colorCode || emptyColor;
+    tileElement.style.backgroundColor = colorCode || null;
   }
 }
 
@@ -259,6 +257,12 @@ function updateActor(actor, index){
   const actorTile = document.getElementById("tile-" + (actor.posX + worldData.level.width * actor.posY));
   actorTile.appendChild(actorElements[index]);
   worldData.actor[index] = actor;
+  if(actor.stats[5] === 0){
+    actorElements[index].classList.add('dead');
+  }else{
+    actorElements[index].classList.remove('dead');
+    drawViewConeOnMap(index);
+  }
 }
 
 // ### Stats view for Actor functions ###
@@ -294,6 +298,9 @@ function showBackendViewCone(actorIndex){
     tile.innerText = viewCone[i];
     tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile);
+    //tile.classList.remove('level-tile');
+    tile.style.height = 'auto';
+    tile.style.width = 'auto';
   }
   displayActorIcon(document.getElementById('view-cone-tile-0-0'));
 }
@@ -449,7 +456,7 @@ function showTileStats(tileId){
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
   const labels = document.createElement('label');
-  const values = document.createElement('label');
+  const values = document.createElement('value');
 
   fillTileStatsElements(tileId, labels, values, optionsButtonsElement);
 

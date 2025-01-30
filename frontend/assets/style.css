@@ -161,6 +161,10 @@ div.box {
   margin-bottom: 0.5vw;
 }
 
+.checkbox{
+  cursor: pointer;
+}
+
 .view-cone-container {
   display: flex;
   flex-direction: column;
@@ -215,7 +219,7 @@ div.box {
   width: 20pt;
   padding: 1pt;
   margin: 1pt;
-  background-color: #c6c6c6;
+  background-color: #70A857;
   cursor: pointer;
   position: relative;
   background-size: contain;
@@ -224,7 +228,7 @@ div.box {
 }
 
 .level-tile.view-cone {
-  filter: brightness(0.5);
+  filter: brightness(0.6);
 }
 
 .level-tile.icon{
@@ -232,11 +236,13 @@ div.box {
 }
 
 .level-tile.icon.noFlag1 {
+  background-color: #70A857;
   background-image: url('icons/tree.svg');
-  background-size: 70%;
+  background-size: 65%;
 }
 
 .level-tile.icon.noFlag2 {
+  background-color: #70A857;
   background-image: url('icons/trees.svg');
   background-size: 70%;
 }
@@ -249,17 +255,27 @@ div.box {
 .level-tile.icon.underwater1{
   background-color: #16829E !important;
   background-image: url('icons/single-wave.svg');
-  background-size: 70%;
+  background-size: 65%;
 }
 
 .level-tile.icon.protein1{
   background-image: url('icons/steak-noOutline.svg');
-  background-size: 50%;
+  background-size: 45%;
 }
 
 .level-tile.icon.vitamin1{
   background-image: url('icons/apple-noOutline.svg');
-  background-size: 50%;
+  background-size: 45%;
+}
+
+.level-tile.icon.fat1{
+  background-image: url('icons/almond-noOutline.svg');
+  background-size: 65%;
+}
+
+.level-tile.icon.sugar1{
+  background-image: url('icons/bee-hive-on-branch-noOutline.svg');
+  background-size: 55%;
 }
 
 .selected-tile {
@@ -286,4 +302,9 @@ div.box {
   background-repeat: no-repeat;
   background-position: center;
   cursor: pointer;
+}
+
+.actor.dead{
+  background-image: url('icons/skull.svg');
+  background-size: 80%;
 }
