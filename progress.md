@@ -372,8 +372,11 @@ Training Engine:
 ## 30.01.2025
 
 **Jan:**
+- Checkboxes funktionieren, ausgewaehlte Box anzeigen
+- Design Aenderungen: Icons
 
 **Marvin:**
+- LastAction anzeigen
 
 **Malin:**
 - Debugging und Bugfixes in Evolution
