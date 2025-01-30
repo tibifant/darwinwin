@@ -104,6 +104,16 @@ div.box {
   cursor: pointer;
 }
 
+#training-start-button:active, #training-stop-button:active {
+  color: #3a3942;
+  transition: 0s;
+}
+
+#training-start-button, #training-stop-button {
+  transition: 5s;
+  transition-timing-function: ease-in;
+}
+
 .control-panel span {
   width: 30pt;
 }

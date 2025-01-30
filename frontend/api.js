@@ -17,6 +17,8 @@ const tileFlags = {
     }
 
 const emptyColor = "rgb(112, 168, 87)";
+const trainingStartButtonId = "training-start-button";
+const trainingStopButtonId = "training-stop-button";
 
 document.addEventListener('DOMContentLoaded', setup);
 
@@ -27,6 +29,7 @@ function setup(){
   fetchLevel(setupMap);
   setupStatsWindow();
   setupViewCone();
+  setupTrainingButtons();
   console.log("Setup Complete!");
 }
 
@@ -127,6 +130,18 @@ function setupViewCone(){
       grid.appendChild(tile);
     }
   }
+}
+
+function setupTrainingButtons() {
+  const callback = (e) => {
+    var visibleId = trainingStartButtonId;
+    var hiddenId = trainingStopButtonId;
+    if (e)
+      hiddenId = visibleId;
+    
+    document.getElementById(hiddenId).style.display = 'none';
+  };
+  load_backend_url("is_training", callback, {}, callback);
 }
 
 // ### Periodic Update Functions ###
@@ -518,10 +533,26 @@ function postLoadTrainingLevelRequest(){
   load_backend_url('load_training_level', fetchAllData, {}, handleError);
 }
 
+function postStartStopTrainingRequest(successVisibleId, successHiddenId, actionURL, successTrainingState) {
+  const toggleCallback = () => {
+    document.getElementById(successVisibleId).style.display = 'block';
+    document.getElementById(successHiddenId).style.display = 'none';
+  };
+
+  const conditionalAction = (e) => {
+    if (e == successTrainingState)
+      toggleCallback();
+    else
+      load_backend_url(actionURL, () => { setTimeout(toggleCallback, 3000) }, {}, handleError);
+  };
+
+  load_backend_url("is_training", conditionalAction, {}, handleError);
+}
+
 function postTrainingStartRequest(){
-  load_backend_url('start_training', {}, {}, handleError);
+  postStartStopTrainingRequest(trainingStopButtonId, trainingStartButtonId, "start_training", true);
 }
 
 function postTrainingStopRequest(){
-  load_backend_url('stop_training', {}, {}, handleError);
+  postStartStopTrainingRequest(trainingStartButtonId, trainingStopButtonId, "stop_training", false);
 }
