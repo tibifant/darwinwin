@@ -15,10 +15,10 @@ enum actorStats
 {
   as_Air,
   _actorStats_FoodBegin,
-  as_Protein = _actorStats_FoodBegin,
-  as_Sugar,
-  as_Vitamin,
-  as_Fat,
+  as_Protein = _actorStats_FoodBegin, // actor stats & tile masks SHARE the masks for foods.
+  as_Sugar, // actor stats & tile masks SHARE the masks for foods.
+  as_Vitamin, // actor stats & tile masks SHARE the masks for foods.
+  as_Fat, // actor stats & tile masks SHARE the masks for foods.
   _actorStats_FoodEnd = as_Fat,
   as_Energy,
 
@@ -27,11 +27,12 @@ enum actorStats
 
 enum tileFlag_ : uint8_t
 {
-  tf_Underwater = 1ULL << as_Air,
-  tf_Protein = 1ULL << as_Protein,
-  tf_Sugar = 1ULL << as_Sugar,
-  tf_Vitamin = 1ULL << as_Vitamin,
+  tf_Underwater = 1ULL << as_Air, // actor stats & tile masks SHARE the masks for foods.
+  tf_Protein = 1ULL << as_Protein, // actor stats & tile masks SHARE the masks for foods.
+  tf_Sugar = 1ULL << as_Sugar, // actor stats & tile masks SHARE the masks for foods.
+  tf_Vitamin = 1ULL << as_Vitamin, // actor stats & tile masks SHARE the masks for foods.
   tf_Fat = 1ULL << as_Fat,
+  _tileFlag_FoodMask = tf_Protein | tf_Sugar | tf_Vitamin | tf_Fat,
   tf_Collidable = 1ULL << 5,
   tf_OtherActor = 1ULL << 6, // not on the map
   tf_Hidden = 1ULL << 7, // not on the map
@@ -63,7 +64,6 @@ void level_print(const level &level);
 struct actor;
 
 bool level_performStep(level &lvl, actor *pActors, const size_t actorCount);
-void level_generateDefault(level *pLvl);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -130,11 +130,11 @@ struct actor
   vec2u16 pos;
   lookDirection look_dir;
   uint8_t stats[_actorStats_Count];
-  uint8_t stomach_remaining_capacity;
 
   static constexpr size_t FeedbackBlocks = 1;
   neural_net<(_viewConePosition_Count * 8 + _actorStats_Count + (neural_net_block_size - 1)) / neural_net_block_size + FeedbackBlocks, 2, (_actorAction_Count + neural_net_block_size - 1) / neural_net_block_size + FeedbackBlocks> brain;
   actorAction last_action; // will be set by `level_performStep`, may be uninitialized.
+  viewCone last_view_cone; // will be set by `level_performStep`, may be uninitialized.
   int16_t previous_feedback_output[FeedbackBlocks * neural_net_block_size] = {}; // will be set by `level_performStep`, may be uninitialized.
 
   actor() = default;
@@ -144,14 +144,3 @@ struct actor
 void actor_updateStats(actor *pActor, const viewCone &cone);
 void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action);
 void actor_initStats(actor *pActor);
-
-//////////////////////////////////////////////////////////////////////////
-
-lsResult actor_saveBrain(const char *dir, const actor &actr);
-lsResult actor_loadNewestBrain(const char *dir, actor &actr);
-lsResult actor_loadBrainFromFile(const char *filename, actor &actr);
-
-//////////////////////////////////////////////////////////////////////////
-
-lsResult train_loop(struct thread_pool *pThreadPool, const char *dir);
-lsResult train_loopIndependentEvolution(struct thread_pool *pThreadPool, const char *dir);

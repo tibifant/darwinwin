@@ -206,6 +206,11 @@ inline void mutator_state_select(smart_mutator_state &ms, const size_t mutationI
   ms.selected = ms.gene_data[mutationIdx];
 }
 
+inline void mutator_state_print(const smart_mutator_state &ms)
+{
+  print("mutation chance: ", FF(Max(8), Min(8))(ms.selected.mutation_chance), ", rate: ", FF(Max(8), Min(8))(ms.selected.mutation_rate), '\n');
+}
+
 template <double chance>
 constexpr uint16_t smart_mutator_make_chance()
 {
@@ -245,10 +250,12 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
 
   mut.params = mutator_state_get_params(state);
 
-  const float minChance = mut.params.mutation_chance * config::param_mutation_min_fac; // ~1.1
-  const float maxChance = mut.params.mutation_chance * config::param_mutation_max_fac; // ~1 / 1.1
-  const float minRate = mut.params.mutation_rate * config::param_mutation_min_fac; // ~1.1
-  const float maxRate = mut.params.mutation_rate * config::param_mutation_max_fac; // ~1 / 1.1
+  static_assert(config::param_mutation_min_fac < config::param_mutation_max_fac);
+
+  const float minChance = lsClamp(mut.params.mutation_chance * config::param_mutation_min_fac, config::min_mutation_chance_fac, config::max_mutation_chance_fac);
+  const float maxChance = lsClamp(mut.params.mutation_chance * config::param_mutation_max_fac, config::min_mutation_chance_fac, config::max_mutation_chance_fac);
+  const float minRate = lsClamp(mut.params.mutation_rate * config::param_mutation_min_fac, config::min_mutation_rate_fac, config::max_mutation_rate_fac);
+  const float maxRate = lsClamp(mut.params.mutation_rate * config::param_mutation_max_fac, config::min_mutation_rate_fac, config::max_mutation_rate_fac);
 
   std::mt19937 rnd;
   std::uniform_real_distribution<float> chanceDist(minChance, maxChance);
@@ -257,16 +264,22 @@ inline void mutator_init(smart_mutator<config> &mut, const size_t generation, ty
   mut.params.mutation_chance = chanceDist(rnd);
   mut.params.mutation_rate = rateDist(rnd);
 
-  mut.params = mutator_state_get_params(state);
+  mutator_state_add_params(state, mut.params);
 
-  mut.chance = (uint16_t)lsClamp<int64_t>((int64_t)lsRound((config::mutationChanceBase * mut.params.mutation_chance) / (float)0xFFFF), 0, 0xFFFF);
+  const uint16_t smart_chance = smart_mutator_make_chance<config::mutationChanceBase>();
+  const int64_t rounded = (int64_t)lsRound(smart_chance * mut.params.mutation_chance);
+  mut.chance = (uint16_t)lsClamp<int64_t>(rounded, 1, 0xFFFF);
 
   const float mutationRate = config::mutationRateBase * mut.params.mutation_rate;
   std::normal_distribution dist(0.f, mutationRate);
 
   // precalculate changes.
   for (size_t i = 0; i < LS_ARRAYSIZE(mut.precalculatedChanges); i++)
-    mut.precalculatedChanges[i] = (int8_t)lsClamp((int64_t)lsRound(dist(rnd)), (int64_t)lsMinValue<int8_t>(), (int64_t)lsMaxValue<int8_t>());
+  {
+    float rndVal = dist(rnd);
+    rndVal += 0.5 * lsAbs(rndVal) ? 1.f : -1.f;
+    mut.precalculatedChanges[i] = (int8_t)lsClamp((int64_t)rndVal, (int64_t)lsMinValue<int8_t>(), (int64_t)lsMaxValue<int8_t>());
+  }
 }
 
 template <typename T, typename config>
@@ -292,21 +305,98 @@ inline void mutator_eval(const smart_mutator<config> &m, T &val, const T min = l
 template <typename config>
 inline void mutator_eval(const smart_mutator<config> &m, int16_t *pVal, const size_t count, const int16_t min, const int16_t max)
 {
-  for (size_t i = 0; i < count; i++)
-    mutator_eval(m, pVal[i], min, max);
+  __m128i a = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast));
+  __m128i b = _mm_load_si128(reinterpret_cast<__m128i *>(m.rndLast2));
+
+  size_t i = 0;
+  for (; i + 4 < count; i += 5) // Unrolling the Loop to use the full 128 bit random values by reading from `m.rndLast[0]` and `m.rndLast[1]` alternating 16 and 8 bits. So we end up using exactly 64 bits from `m.rndLast[0]` and 64 - 8 from `m.rndLast[1]`.
+  {
+    const __m128i r = _mm_aesdec_si128(a, b);
+
+    _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast), b);
+    b = r;
+
+    if ((m.rndLast[0] & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = (m.rndLast[1] & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i] + diff, min, max);
+    }
+
+    if (((m.rndLast[1] >> 8) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[0] >> 16) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 1] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 1] + diff, min, max);
+    }
+
+    if (((m.rndLast[0] >> (16 + 8)) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[1] >> (16 + 8)) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 2] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 2] + diff, min, max);
+    }
+
+    if (((m.rndLast[1] >> (16 + 2 * 8)) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[0] >> (2 * 16 + 8)) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 3] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 3] + diff, min, max);
+    }
+
+    if (((m.rndLast[0] >> (2 * 16 + 2 * 8)) & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((m.rndLast[1] >> (2 * 16 + 2 * 8)) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i + 4] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i + 4] + diff, min, max);
+    }
+  }
+
+  const __m128i r = _mm_aesdec_si128(a, b);
+
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast), b);
+  _mm_store_si128(reinterpret_cast<__m128i *>(m.rndLast2), r);
+
+  uint64_t rnd0 = m.rndLast[0];
+  uint64_t rnd1 = m.rndLast[1];
+
+  for (; i < count; i++) // This should work out perfectly as there should never be more than 4 values remaining. So we read at max 4 * 16 = 64 bits.
+  {
+    if ((rnd0 & 0xFFFF) <= m.chance)
+    {
+      const uint64_t index = ((rnd1 >> 16) & 0xFF) % LS_ARRAYSIZE(m.precalculatedChanges);
+      const int8_t diff = m.precalculatedChanges[index];
+      pVal[i] = (int16_t)lsClamp<int64_t>((int64_t)pVal[i] + diff, min, max);
+    }
+
+    rnd0 >>= 16;
+    rnd1 >>= 8;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 struct crossbreeder_naive
 {
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#endif
+  LS_ALIGN(16) mutable uint64_t rndLast[2];
+  LS_ALIGN(16) mutable uint64_t rndLast2[2];
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 };
 
 inline void crossbreeder_init(crossbreeder_naive &cb, const size_t scoreParentA, const size_t scoreParentB)
 {
-  (void)cb;
   (void)scoreParentA;
   (void)scoreParentB;
+
+  cb.rndLast[0] = lsGetCurrentTimeNs();
+  cb.rndLast[1] = __rdtsc();
+  cb.rndLast2[0] = ~cb.rndLast[1];
+  cb.rndLast2[1] = ~cb.rndLast[0];
 }
 
 template <typename T>
@@ -321,8 +411,35 @@ template <typename T>
   requires (std::is_integral_v<T>)
 inline void crossbreeder_eval(const crossbreeder_naive &c, T *pVal, const size_t count, const T *pParentA, const T *pParentB)
 {
-  for (size_t i = 0; i < count; i++)
-    crossbreeder_eval(c, pVal[i], pParentA[i], pParentB[i]);
+  __m128i a = _mm_load_si128(reinterpret_cast<__m128i *>(c.rndLast));
+  __m128i b = _mm_load_si128(reinterpret_cast<__m128i *>(c.rndLast2));
+
+  size_t i = 0;
+  for (; i + 63 < count; i += 64)
+  {
+    const __m128i r = _mm_aesdec_si128(a, b);
+
+    _mm_store_si128(reinterpret_cast<__m128i *>(c.rndLast), b);
+    b = r;
+
+    const uint64_t rand = c.rndLast[1] ^ c.rndLast[0];
+
+    for (size_t j = 0; j < 64; j++)
+      pVal[i + j] = ((rand >> j) & 1) ? pParentA[i + j] : pParentB[i + j];
+  }
+
+  const __m128i r = _mm_aesdec_si128(a, b);
+
+  _mm_store_si128(reinterpret_cast<__m128i *>(c.rndLast), b);
+  _mm_store_si128(reinterpret_cast<__m128i *>(c.rndLast2), r);
+
+  uint64_t rand = c.rndLast[1] ^ c.rndLast[0];
+
+  for (; i < count; i++)
+  {
+    pVal[i] = (rand & 1) ? pParentA[i] : pParentB[i];
+    rand >>= 1;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -423,7 +540,16 @@ void evolution_generation_finalize_internal(evolution<target, config> &e)
     return -(int64_t)pool_get(e.genes, index)->score;
     };
 
-  list_sort<int64_t>(e.bestGeneIndices, idxToScore);
+  constexpr bool use_stable_sort = true;
+
+  if constexpr (use_stable_sort)
+  {
+    list_stable_sort<int64_t>(e.bestGeneIndices, idxToScore);
+  }
+  else
+  {
+    list_sort<int64_t>(e.bestGeneIndices, idxToScore);
+  }
 
   // Remove everyone from pool, who is lower than best 4 genes
   {
@@ -469,7 +595,7 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
   lsAssert(e.genes.count > 0);
 
   const size_t maxParentIndex = e.genes.count;
-  size_t bestScore = 0;
+  size_t bestScore = 0; // Gets set below.
   size_t bestScoreMutatorIdx = (size_t)-1;
 
   if constexpr (e.has_mutator_state)
@@ -510,6 +636,8 @@ void evolution_generation(evolution<target, config> &e, func evalFunc)
 template <typename target, typename config, typename func>
 void evolution_generation(evolution<target, config> &e, func evalFunc, thread_pool *pThreads)
 {
+  // Smart Mutator not implemented!
+
   static_assert(!e.has_mutator_state);
 
   lsAssert(e.genes.count <= config::survivingGenes);
