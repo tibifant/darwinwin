@@ -227,6 +227,14 @@ function updateActor(actor, index){
 
 // ### Stats view for Actor functions ###
 function showActorStats(actor){
+  const actorActions = [
+    "move",
+    "move 2",
+    "turn left",
+    "turn right",
+    "eat"
+  ]
+
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -237,11 +245,11 @@ function showActorStats(actor){
   const labelsElement = document.createElement('label')
   const valuesElement = document.createElement('label');
 
-  fillActorLabelsAndValuesElements(actor, labelsElement, valuesElement);
+  fillActorLabelsAndValuesElements(actor, labelsElement, valuesElement, actorActions);
 
   infoLabelsElement.appendChild(labelsElement);
   infoValuesElement.appendChild(valuesElement);
-  optionsElement.appendChild(createActorOptionsButtonsElement(actor));
+  optionsElement.appendChild(createActorOptionsButtonsElement(actor, actorActions));
 
   showViewCone(actor);
 
@@ -250,7 +258,7 @@ function showActorStats(actor){
   statsContainer._tileShown = null;
 }
 
-function fillActorLabelsAndValuesElements(actor, labels, values){
+function fillActorLabelsAndValuesElements(actor, labels, values, actorActions) {
   const lookDirections = [
     "left",
     "up",
@@ -268,8 +276,8 @@ function fillActorLabelsAndValuesElements(actor, labels, values){
 
   const actorIndex = actor._index;
   const targetActorStats = worldData.actor[actorIndex];
-  labels.innerHTML = "Actor ID:<br>PosX:<br>PosY:<br>LookDir:<br><br>";
-  values.innerHTML = `${actor.id}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br><br>`;
+  labels.innerHTML = "Actor ID:<br>PosX:<br>PosY:<br>LookDir:<br>Last Action<br><br>";
+  values.innerHTML = `${actor.id}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br>${actorActions[targetActorStats.lastAction]}<br><br>`;
   for (const stat in targetActorStats.stats ){
     labels.innerHTML += statDescriptions[stat] + "<br>";
     values.innerHTML += targetActorStats.stats[stat] + "<br>";
@@ -286,15 +294,7 @@ function showViewCone(actor){
   }
 }
 
-function createActorOptionsButtonsElement(actor){
-  const actorActions = [
-    "move",
-    "move 2",
-    "turn left",
-    "turn right",
-    "eat"
-  ]
-
+function createActorOptionsButtonsElement(actor, actorActions){
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
   actorActions.forEach((action, i) => {
