@@ -178,7 +178,6 @@ function updateTiles(){
     if(!mapTiles || mapTiles[i] !== grid[i]) {
       console.log("Tile-" + i + " has changed from value " + mapTiles[i] + " to " + grid[i]);
       checkTileFlags(grid[i], tileElement, i);
-      //mapTiles[i] = grid[i];
     }
   }
 }
@@ -191,8 +190,10 @@ function checkTileFlags(tile, tileElement, tileIndex){
 
   if(hasTileCondition(tile, "Hidden")){
     if(tileElement.id.split('-')[0] === 'view'){
-      tileElement.style.backgroundColor = '';
-      tileElement.style.border = '2px solid black';
+      loadIcon(tileElement, 'hidden1', null, 1, null);
+      if(tileIndex){
+        mapTiles[tileIndex] = tile;
+      }
       return;
     }
   }
@@ -297,10 +298,9 @@ function showBackendViewCone(actorIndex){
     const tile = document.getElementById('view-cone-tile-' + 0 + "-" + i);
     tile.innerText = viewCone[i];
     tile.style.backgroundColor = emptyColor;
-    checkTileFlags(viewCone[i], tile);
-    //tile.classList.remove('level-tile');
-    tile.style.height = 'auto';
-    tile.style.width = 'auto';
+    checkTileFlags(viewCone[i], tile, null);
+    //tile.style.height = 'auto';
+    //tile.style.width = 'auto';
   }
   displayActorIcon(document.getElementById('view-cone-tile-0-0'));
 }
@@ -365,7 +365,7 @@ function showFrontendViewCone(tileIndexes){
     const tileValue = worldData.level.grid[index];
     gridTile.style.backgroundColor = emptyColor;
     gridTile.innerText = tileValue;
-    checkTileFlags(tileValue, gridTile);
+    checkTileFlags(tileValue, gridTile, null);
   })
   displayActorIcon(document.getElementById('view-cone-tile-1-0'));
 }

@@ -232,7 +232,10 @@ div.box {
 }
 
 .level-tile.icon{
-
+  display: grid;
+  place-items: center;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
 }
 
 .level-tile.icon.noFlag1 {
@@ -276,6 +279,11 @@ div.box {
 .level-tile.icon.sugar1{
   background-image: url('icons/bee-hive-on-branch-noOutline.svg');
   background-size: 55%;
+}
+
+.level-tile.icon.hidden1{
+  background-color: #3e3a3a;
+  background-image: url('icons/fog-medium-noOutline.svg');
 }
 
 .selected-tile {
