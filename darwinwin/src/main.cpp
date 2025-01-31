@@ -273,6 +273,7 @@ crow::response handle_manualAct(const crow::request &req)
   viewCone cone = viewCone_get(_WebLevel, _WebActor);
   actor_updateStats(&_WebActor, cone);
   actor_act(&_WebActor, &_WebLevel, cone, actorAction(id));
+  _WebActor.last_action = (actorAction)id;
 
   return crow::response(crow::status::OK);
 }
