@@ -244,6 +244,10 @@ function showActorStats(actor){
   optionsElement.appendChild(createActorOptionsButtonsElement(actor));
 
   showViewCone(actor);
+
+  const statsContainer = document.getElementById("stats-container");
+  statsContainer._actorShown = actor;
+  statsContainer._tileShown = null;
 }
 
 function fillActorLabelsAndValuesElements(actor, labels, values){
@@ -329,6 +333,10 @@ function showTileStats(tile){
   infoLabelsElement.appendChild(labels);
   infoValuesElement.appendChild(values);
   optionsElement.appendChild(optionsButtonsElement);
+
+  const statsContainer = document.getElementById("stats-container");
+  statsContainer._actorShown = null;
+  statsContainer._tileShown = tile;
 }
 
 function fillTileStatsElements(tile, labels, values, optionsButtonsElement){
@@ -493,7 +501,17 @@ function postResetStatsRequest(){
 }
 
 function postAiStepRequest(){
-  load_backend_url('ai_step', fetchAllData, {}, handleError);
+  const statsContainer = document.getElementById('stats-container');
+  let updateFunction = null;
+  if (statsContainer._tileShown) {
+    updateFunction = showTileStats.bind(null, statsContainer._tileShown);
+  }
+  if (statsContainer._actorShown) {
+    updateFunction = showActorStats.bind(null, statsContainer._actorShown);
+  }
+  const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
+
+  load_backend_url('ai_step', fetchAndUpdate, {}, handleError);
 }
 
 function postLoadBrainRequest(){
