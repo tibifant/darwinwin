@@ -16,6 +16,8 @@ const tileFlags = {
     }
 
 const emptyColor = "rgb(112, 168, 87)";
+const trainingStartButtonId = "training-start-button";
+const trainingStopButtonId = "training-stop-button";
 
 document.addEventListener('DOMContentLoaded', setup);
 
@@ -26,11 +28,11 @@ function setup(){
   fetchLevel(setupMap);
   setupStatsWindow();
   setupViewCone();
+  setupTrainingButtons();
   console.log("Setup Complete!");
 }
 
 function setupControlPanel(){
-  fetchTrainingState(switchTrainingButton);
 }
 
 function setupStatsWindow(){
@@ -127,6 +129,18 @@ function setupViewCone(){
       grid.appendChild(tile);
     }
   }
+}
+
+function setupTrainingButtons() {
+  const callback = (e) => {
+    var visibleId = trainingStartButtonId;
+    var hiddenId = trainingStopButtonId;
+    if (e)
+      hiddenId = visibleId;
+
+    document.getElementById(hiddenId).style.display = 'none';
+  };
+  load_backend_url("is_training", callback, {}, callback);
 }
 
 // ### Periodic Update Functions ###
@@ -399,7 +413,6 @@ function copyConditions(event){
 // ### Control Panel functions ###
 
 function levelGenerate(){
-  //Amend in case generation options become available
   postGenerateLevelRequest();
 }
 
@@ -417,16 +430,12 @@ function aiStepStop(event){
   button.innerText = "Start AI Step";
 }
 
-function switchTrainingButton(isTraining){
-  const toggleTrainingButton = document.getElementById('training-toggle-button');
-  if(isTraining){
-    toggleTrainingButton.onclick = postTrainingStopRequest;
-    toggleTrainingButton.innerText = "Stop Training";
-  }
-  else {
-    toggleTrainingButton.onclick = postTrainingStartRequest;
-    toggleTrainingButton.innerText = "Start Training";
-  }
+function startTraining(){
+  postTrainingStartRequest();
+}
+
+function stopTraining(){
+  postTrainingStopRequest();
 }
 
 // ### Set functions ###
@@ -532,18 +541,6 @@ function fetchLevel(callback){
     {}, handleError);
 }
 
-function fetchTrainingState(callback){
-  const trainingToggleButton = document.getElementById('training-toggle-button');
-  trainingToggleButton.style.opacity = 0.5;
-  trainingToggleButton.style.cursor = 'wait';
-
-  setTimeout(() =>{
-    load_backend_url('is_training', callback, {}, handleError)
-    trainingToggleButton.style.opacity = 1;
-    trainingToggleButton.style.cursor = 'pointer';
-  }, 2000)
-}
-
 function postActorAction(actor, actionId) {
   const updateFunction = showActorStats.bind(null, actor);
   const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
@@ -580,14 +577,28 @@ function postLoadTrainingLevelRequest(){
   load_backend_url('load_training_level', fetchAllData, {}, handleError);
 }
 
+function postStartStopTrainingRequest(successVisibleId, successHiddenId, actionURL, successTrainingState) {
+  const toggleCallback = () => {
+    document.getElementById(successVisibleId).style.display = 'block';
+    document.getElementById(successHiddenId).style.display = 'none';
+  };
+
+  const conditionalAction = (e) => {
+    if (e == successTrainingState)
+      toggleCallback();
+    else
+      load_backend_url(actionURL, () => { setTimeout(toggleCallback, 3000) }, {}, handleError);
+  };
+
+  load_backend_url("is_training", conditionalAction, {}, handleError);
+}
+
 function postTrainingStartRequest(){
-  const callback = fetchTrainingState.bind(null, switchTrainingButton);
-  load_backend_url('start_training', callback, {}, handleError);
+  postStartStopTrainingRequest(trainingStopButtonId, trainingStartButtonId, "start_training", true);
 }
 
 function postTrainingStopRequest(){
-  const callback = fetchTrainingState.bind(null, switchTrainingButton);
-  load_backend_url('stop_training', callback, {}, handleError);
+  postStartStopTrainingRequest(trainingStartButtonId, trainingStopButtonId, "stop_training", false);
 }
 
 function getUpdateStatsWindowFunction(){
