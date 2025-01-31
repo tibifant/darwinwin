@@ -254,7 +254,6 @@ function showBackendViewCone(actorIndex){
 
   for (let i = 0; i < viewCone.length; i++) {
     const tile = document.getElementById('view-cone-tile-' + 0 + "-" + i);
-    tile.innerText = viewCone[i];
     tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile);
   }
@@ -320,7 +319,6 @@ function showFrontendViewCone(tileIndexes){
     const gridTile = document.getElementById('view-cone-tile-'+ 1 + "-" + i);
     const tileValue = worldData.level.grid[index];
     gridTile.style.backgroundColor = emptyColor;
-    gridTile.innerText = tileValue;
     checkTileFlags(tileValue, gridTile);
   })
   displayActorIcon(document.getElementById('view-cone-tile-1-0'));
@@ -445,7 +443,6 @@ function fillTileStatsElements(id, labels, values, optionsButtonsElement){
     checkbox.checked = hasTileCondition(grid[tileIndex], flag);
 
     checkbox.addEventListener('change', () => {
-      //fyi: flag wird hier nicht durch den loop überschrieben, das Prinzip nennt man closure
       console.log("Sending request for flag " + flag + " to tile " + currentlySelectedTileID);
       postTileSetRequest(getPayload(flag), currentlySelectedTileID);
     });
