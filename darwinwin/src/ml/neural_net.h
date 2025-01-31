@@ -113,6 +113,7 @@ struct neural_net
   constexpr static uint8_t io_version = 0;
   constexpr static size_t first_layer_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::first_layer_blocks * neural_net_block_size;
   constexpr static size_t last_layer_count = nn_internal::unwrap_layers<layer_blocks_per_layer...>::last_layer_blocks * neural_net_block_size;
+  constexpr static size_t layers = sizeof...(layer_blocks_per_layer);
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -148,6 +149,18 @@ struct neural_net_buffer
     return data[idx];
   }
 };
+
+//////////////////////////////////////////////////////////////////////////
+
+template <size_t ...layer_blocks_per_layer>
+void neural_net_get_layer_size(const neural_net<layer_blocks_per_layer...> &, _Out_ size_t(&outLayerCounts)[sizeof...(layer_blocks_per_layer)])
+{
+  const uint64_t per_layer_blocks[] = { layer_blocks_per_layer... };
+  static_assert(LS_ARRAYSIZE(per_layer_blocks) == sizeof...(layer_blocks_per_layer));
+
+  for (size_t i = 0; i < LS_ARRAYSIZE(per_layer_blocks); i++)
+    outLayerCounts[i] = per_layer_blocks[i] * neural_net_block_size;
+}
 
 //////////////////////////////////////////////////////////////////////////
 

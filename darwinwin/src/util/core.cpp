@@ -87,8 +87,8 @@ int64_t lsGetCurrentTimeNs()
 uint64_t lsGetRand()
 {
 #ifdef LS_PLATFORM_WINDOWS
-  LS_ALIGN(16) static uint64_t last[2] = { (uint64_t)lsGetCurrentTimeNs(), __rdtsc() };
-  LS_ALIGN(16) static uint64_t last2[2] = { ~__rdtsc(), ~(uint64_t)lsGetCurrentTimeNs() };
+  LS_ALIGN(16) thread_local static uint64_t last[2] = { (uint64_t)lsGetCurrentTimeNs(), __rdtsc() };
+  LS_ALIGN(16) thread_local static uint64_t last2[2] = { ~__rdtsc(), ~(uint64_t)lsGetCurrentTimeNs() };
 
   const __m128i a = _mm_load_si128(reinterpret_cast<__m128i *>(last));
   const __m128i b = _mm_load_si128(reinterpret_cast<__m128i *>(last2));

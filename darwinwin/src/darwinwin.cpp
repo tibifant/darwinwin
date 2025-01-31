@@ -1,11 +1,4 @@
 #include "darwinwin.h"
-#include "io.h"
-#include "level_generator.h"
-#include "evolution.h"
-#include "local_list.h"
-
-#include <time.h>
-#include <filesystem>
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -130,50 +123,6 @@ void level_print(const level &level)
 
 //////////////////////////////////////////////////////////////////////////
 
-void level_gen_water_level(level *pLvl)
-{
-  level_gen_init(pLvl, tf_Underwater);
-  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
-  level_gen_grow(pLvl, 0);
-  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
-  level_gen_finalize(pLvl);
-}
-
-void level_gen_water_food_level(level *pLvl)
-{
-  level_gen_init(pLvl, tf_Underwater);
-  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, 0, level::total / 10);
-  level_gen_grow(pLvl, 0);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin | tf_Underwater, level::total / 10);
-  level_gen_random_sprinkle_replace(pLvl, tf_Vitamin | tf_Underwater, tf_Vitamin | tf_Underwater | tf_Fat, level::total / 3); // UVF looks sus
-  level_gen_sprinkle_grow_into_mask(pLvl, tf_Underwater | tf_Vitamin, tf_Underwater, level_gen_make_chance<0.75>());
-  level_gen_sprinkle_grow_into_inv_mask(pLvl, tf_Underwater, tf_Underwater, level_gen_make_chance<0.5>());
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
-  level_gen_finalize(pLvl);
-}
-
-void level_gen_puddle_food_level(level *pLvl)
-{
-  level_gen_init(pLvl, 0);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 10);
-  level_gen_grow(pLvl, tf_Underwater);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin, level::total / 10);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 10);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Sugar, level::total / 10);
-  level_gen_finalize(pLvl);
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-void level_generateDefault(level *pLvl)
-{
-  //level_gen_water_food_level(pLvl);
-  level_gen_puddle_food_level(pLvl);
-}
-
-//////////////////////////////////////////////////////////////////////////
-
 bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 {
   // TODO: optional level internal step. (grow plants, etc.)
@@ -187,19 +136,19 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 
     anyAlive = true;
 
-    const viewCone cone = viewCone_get(lvl, pActors[i]);
-    actor_updateStats(&pActors[i], cone);
+    pActors[i].last_view_cone = viewCone_get(lvl, pActors[i]);
+    actor_updateStats(&pActors[i], pActors[i].last_view_cone);
 
     decltype(actor::brain)::io_buffer_t ioBuffer;
 
-    for (size_t j = 0; j < LS_ARRAYSIZE(cone.values); j++)
+    for (size_t j = 0; j < LS_ARRAYSIZE(pActors[i].last_view_cone.values); j++)
       for (size_t k = 0, bit = 1; k < 8; k++, bit <<= 1)
-        ioBuffer[j * 8 + k] = (int8_t)(cone[(viewConePosition)j] & bit);
+        ioBuffer[j * 8 + k] = (int8_t)(pActors[i].last_view_cone[(viewConePosition)j] & bit);
 
-    neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(cone.values) * 8) / ioBuffer.block_size);
+    neural_net_buffer_prepare(ioBuffer, (LS_ARRAYSIZE(pActors[i].last_view_cone.values) * 8) / ioBuffer.block_size);
 
     for (size_t j = 0; j < _actorStats_Count; j++)
-      ioBuffer[LS_ARRAYSIZE(cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
+      ioBuffer[LS_ARRAYSIZE(pActors[i].last_view_cone.values) * 8 + j] = (int8_t)((int64_t)pActors[i].stats[j] - 128);
 
     lsMemcpy(&ioBuffer[pActors[i].brain.first_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], pActors[i].previous_feedback_output, LS_ARRAYSIZE(pActors[i].previous_feedback_output));
 
@@ -214,26 +163,23 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
 
     size_t bestActionIndex = 0;
 
-    if (actionValueCount > 0)
+    const size_t rand = lsGetRand() % lsMax(actionValueCount, 1);
+
+    for (size_t actionIndex = 0; actionIndex < _actorAction_Count; actionIndex++)
     {
-      const size_t rand = lsGetRand() % actionValueCount;
+      const int16_t val = ioBuffer[actionIndex];
 
-      for (size_t actionIndex = 0; actionIndex < _actorAction_Count; actionIndex++)
+      if (val < rand)
       {
-        const int16_t val = ioBuffer[actionIndex];
-
-        if (val < rand)
-        {
-          bestActionIndex = actionIndex;
-          break;
-        }
-
-        actionValueCount -= val;
+        bestActionIndex = actionIndex;
+        break;
       }
 
-      pActors[i].last_action = (actorAction)bestActionIndex;
-      actor_act(&pActors[i], &lvl, cone, pActors[i].last_action);
+      actionValueCount -= val;
     }
+
+    pActors[i].last_action = (actorAction)bestActionIndex;
+    actor_act(&pActors[i], &lvl, pActors[i].last_view_cone, pActors[i].last_action);
 
     lsMemcpy(pActors[i].previous_feedback_output, &ioBuffer[pActors[i].brain.last_layer_count - LS_ARRAYSIZE(pActors[i].previous_feedback_output)], LS_ARRAYSIZE(pActors[i].previous_feedback_output));
   }
@@ -299,6 +245,7 @@ void actor_moveTwo(actor *pActor, const level &lvl);
 void actor_turnLeft(actor *pActor);
 void actor_turnRight(actor *pActor);
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
+void actor_wait(actor *pActor);
 void actor_moveDiagonalLeft(actor *pActor, const level lvl);
 void actor_moveDiagonalRight(actor *pActor, const level lvl);
 
@@ -339,6 +286,7 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
     break;
 
   case aa_Wait:
+    actor_wait(pActor);
     break;
 
   case aa_DiagonalMoveLeft:
@@ -355,37 +303,35 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
   }
 }
 
+constexpr uint8_t MinStatsValue = 0;
+constexpr uint8_t MaxStatsValue = 127;
+
 void actor_initStats(actor *pActor)
 {
   for (size_t i = 0; i < _actorStats_Count; i++)
-    pActor->stats[i] = 32;
+    pActor->stats[i] = 0;
 
-  pActor->stats[as_Air] = 127;
-  pActor->stats[as_Energy] = 127;
+  pActor->stats[as_Air] = MaxStatsValue;
+  pActor->stats[as_Energy] = 64;
 }
 
 void actor_updateStats(actor *pActor, const viewCone &cone)
 {
-  constexpr int64_t IdleEnergyCost = 2;
-
-  // Remove Idle Energy
-  modify_with_clamp(pActor->stats[as_Energy], -IdleEnergyCost);
-
   // Check air
-  constexpr int64_t UnderwaterAirCost = 5;
-  constexpr int64_t SurfaceAirAmount = 3;
-  constexpr int64_t NoAirEnergyCost = 8;
+  constexpr int64_t UnderwaterAirCost = 16;
+  constexpr int64_t SurfaceAirAmount = 24;
+  constexpr int64_t NoAirEnergyCost = 24;
 
   if (cone[vcp_self] & tf_Underwater)
-    modify_with_clamp(pActor->stats[as_Air], -UnderwaterAirCost);
+    modify_with_clamp(pActor->stats[as_Air], -UnderwaterAirCost, MinStatsValue, MaxStatsValue);
   else
-    modify_with_clamp(pActor->stats[as_Air], SurfaceAirAmount);
+    modify_with_clamp(pActor->stats[as_Air], SurfaceAirAmount, MinStatsValue, MaxStatsValue);
 
   if (!pActor->stats[as_Air])
-    modify_with_clamp(pActor->stats[as_Energy], -NoAirEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -NoAirEnergyCost, MinStatsValue, MaxStatsValue);
 
   // Digest
-  constexpr int64_t FoodEnergyAmount = 5;
+  constexpr int64_t FoodEnergyAmount = 1;
   constexpr int64_t FoodDigestionAmount = 1;
 
   size_t count = 0;
@@ -394,28 +340,29 @@ void actor_updateStats(actor *pActor, const viewCone &cone)
   {
     if (pActor->stats[i])
     {
-      modify_with_clamp(pActor->stats[i], -FoodDigestionAmount);
+      modify_with_clamp(pActor->stats[i], -FoodDigestionAmount, MinStatsValue, MaxStatsValue);
       count++;
     }
   }
 
-  modify_with_clamp(pActor->stats[as_Energy], count * FoodEnergyAmount);
+  if (count > 0)
+    modify_with_clamp(pActor->stats[as_Energy], (1ULL << (count - 1)) * FoodEnergyAmount, MinStatsValue, MaxStatsValue);
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-constexpr int64_t CollideEnergyCost = 4;
+constexpr int64_t CollideEnergyCost = 2;
 
 void actor_move(actor *pActor, const level &lvl)
 {
-  constexpr int64_t MovementEnergyCost = 10;
+  constexpr int64_t MovementEnergyCost = 3;
   constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, 1) };
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
   lsAssert(!(lvl.grid[pActor->pos.y * level::width + pActor->pos.x] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -MovementEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -MovementEnergyCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < MovementEnergyCost)
     return;
@@ -425,7 +372,7 @@ void actor_move(actor *pActor, const level &lvl)
 
   if (!!(lvl.grid[newIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 
@@ -437,7 +384,7 @@ void actor_move(actor *pActor, const level &lvl)
 
 void actor_moveTwo(actor *pActor, const level &lvl)
 {
-  constexpr int64_t DoubleMovementEnergyCost = 30;
+  constexpr int64_t DoubleMovementEnergyCost = 7;
   constexpr vec2i16 LutPosDouble[_lookDirection_Count] = { vec2i16(-2, 0), vec2i16(0, -2), vec2i16(2, 0), vec2i16(0, 2) };
   constexpr int8_t LutIdxSingle[_lookDirection_Count] = { -1, -(int64_t)level::width, 1, level::width };
 
@@ -446,7 +393,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
   lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -DoubleMovementEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -DoubleMovementEnergyCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < DoubleMovementEnergyCost)
     return;
@@ -456,7 +403,7 @@ void actor_moveTwo(actor *pActor, const level &lvl)
 
   if (!!(lvl.grid[newPosIdx] & tf_Collidable) || !!(lvl.grid[nearIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 
@@ -474,7 +421,7 @@ constexpr int64_t TurnEnergy = 2;
 void actor_turnLeft(actor *pActor)
 {
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy);
+  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < TurnEnergy)
     return;
@@ -486,7 +433,7 @@ void actor_turnLeft(actor *pActor)
 void actor_turnRight(actor *pActor)
 {
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy);
+  modify_with_clamp(pActor->stats[as_Energy], -TurnEnergy, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < TurnEnergy)
     return;
@@ -497,16 +444,17 @@ void actor_turnRight(actor *pActor)
 
 void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 {
-  static constexpr int64_t EatEnergyCost = 3;
-  static constexpr int64_t FoodAmount = 2;
-  static constexpr uint8_t StomachCapacity = 255;
+  static constexpr int64_t EatEnergyCost = 2;
+  static constexpr int64_t NoFoodFoundEnergyCost = 2;
+  static constexpr int64_t FoodAmount = 16;
+  static constexpr uint8_t StomachCapacity = 127;
 
   lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -EatEnergyCost);
+  modify_with_clamp(pActor->stats[as_Energy], -EatEnergyCost, MinStatsValue, MaxStatsValue);
 
-  if (oldEnergy < TurnEnergy)
+  if (oldEnergy < EatEnergyCost)
     return;
 
   size_t stomachFoodCount = 0;
@@ -515,18 +463,29 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
     stomachFoodCount += pActor->stats[i];
 
   lsAssert(stomachFoodCount <= StomachCapacity);
+  bool anyFood = false;
 
   for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
   {
     if (cone[vcp_self] & (1ULL << i))
     {
       stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
-      pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i);
+      pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i); // yes, actor stats & tile masks SHARE the masks for foods.
+      anyFood = true;
     }
   }
+
+  if (!anyFood)
+    modify_with_clamp(pActor->stats[as_Energy], -NoFoodFoundEnergyCost, MinStatsValue, MaxStatsValue);
 }
 
-static constexpr int64_t MoveDiagonalCost = 16;
+void actor_wait(actor *pActor)
+{
+  constexpr int64_t WaitEnergyCost = 1;
+  modify_with_clamp(pActor->stats[as_Energy], -WaitEnergyCost, MinStatsValue, MaxStatsValue);
+}
+
+static constexpr int64_t MoveDiagonalCost = 4;
 
 void actor_moveDiagonalLeft(actor *pActor, const level lvl)
 {
@@ -535,7 +494,7 @@ void actor_moveDiagonalLeft(actor *pActor, const level lvl)
   lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost);
+  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < MoveDiagonalCost)
     return;
@@ -547,7 +506,7 @@ void actor_moveDiagonalLeft(actor *pActor, const level lvl)
 
   if (!!(lvl.grid[newIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 
@@ -564,7 +523,7 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
   lsAssert(!(lvl.grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
-  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost);
+  modify_with_clamp(pActor->stats[as_Energy], -MoveDiagonalCost, MinStatsValue, MaxStatsValue);
 
   if (oldEnergy < MoveDiagonalCost)
     return;
@@ -576,7 +535,7 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
 
   if (!!(lvl.grid[newIdx] & tf_Collidable))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
   }
 
@@ -585,377 +544,3 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
 
   pActor->pos = newPos;
 }
-
-//////////////////////////////////////////////////////////////////////////
-
-lsResult actor_saveBrain(const char *dir, const actor &actr)
-{
-  lsResult result = lsR_Success;
-
-  const uint64_t now = (uint64_t)time(nullptr);
-  char filename[256];
-  sformat_to(filename, LS_ARRAYSIZE(filename), dir, "/", now, ".brain");
-
-  print("Saving brain to file: '", filename, '\n');
-
-  {
-    cached_file_byte_stream_writer<> write_stream;
-    LS_ERROR_CHECK(write_byte_stream_init(write_stream, filename));
-    value_writer<decltype(write_stream)> writer;
-    LS_ERROR_CHECK(value_writer_init(writer, &write_stream));
-
-    LS_ERROR_CHECK(neural_net_write(actr.brain, writer));
-    LS_ERROR_CHECK(write_byte_stream_flush(write_stream));
-  }
-
-epilogue:
-  return result;
-}
-
-lsResult actor_loadBrainFromFile(const char *filename, actor &actr)
-{
-  lsResult result = lsR_Success;
-
-  print("Loading brain from file: ", filename, '\n');
-
-  cached_file_byte_stream_reader<> read_stream;
-  value_reader<cached_file_byte_stream_reader<>> reader;
-  LS_ERROR_CHECK(read_byte_stream_init(read_stream, filename));
-  LS_ERROR_CHECK(value_reader_init(reader, &read_stream));
-
-  LS_ERROR_CHECK(neural_net_read(actr.brain, reader));
-  read_byte_stream_destroy(read_stream);
-
-epilogue:
-  return result;
-}
-
-lsResult actor_loadNewestBrain(const char *dir, actor &actr)
-{
-  lsResult result = lsR_Success;
-
-  const std::filesystem::path path(dir);
-
-  int64_t bestTime = -1;
-  std::string best;
-
-  for (const std::filesystem::directory_entry &dir_entry : std::filesystem::directory_iterator(dir))
-  {
-    if (dir_entry.is_regular_file())
-    {
-      const std::filesystem::file_time_type &timestamp = dir_entry.last_write_time();
-      const int64_t timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()).count();
-
-      if (bestTime < timeMs)
-      {
-        bestTime = timeMs;
-        best = dir_entry.path().filename().string();
-      }
-    }
-  }
-
-  LS_ERROR_IF(best.empty(), lsR_ResourceNotFound);
-  lsAssert(bestTime >= 0);
-  char filename[256];
-  sformat_to(filename, LS_ARRAYSIZE(filename), dir, '/', best.c_str());
-  LS_ERROR_CHECK(actor_loadBrainFromFile(filename, actr));
-
-epilogue:
-  return result;
-}
-
-// load specific brain: list and then select in console
-
-//////////////////////////////////////////////////////////////////////////
-
-struct starter_random_config
-{
-  using mutator = mutator_random;
-  using crossbreeder = crossbreeder_naive;
-
-  static constexpr size_t survivingGenes = 16;
-  static constexpr size_t newGenesPerGeneration = 3 * 2 * 5 * 8;
-};
-
-struct starter_random_config_independent : starter_random_config
-{
-  static constexpr size_t survivingGenes = 4;
-  static constexpr size_t newGenesPerGeneration = 16;
-};
-
-struct smart_mutator_config
-{
-  static constexpr float param_mutation_min_fac = 1.1f;
-  static constexpr float param_mutation_max_fac = 1.f / param_mutation_min_fac;
-  static constexpr uint16_t mutationChanceBase = smart_mutator_make_chance<0.05>();
-  static constexpr uint16_t mutationRateBase = 64;
-};
-
-struct smart_config
-{
-  using mutator = smart_mutator<smart_mutator_config>;
-  using crossbreeder = crossbreeder_naive;
-
-  static constexpr size_t survivingGenes = 4;
-  static constexpr size_t newGenesPerGeneration = 16;
-};
-
-//////////////////////////////////////////////////////////////////////////
-
-template <typename crossbreeder>
-void crossbreed(actor &val, const actor parentA, const actor parentB, const crossbreeder &c)
-{
-  val.look_dir = parentA.look_dir;
-  val.pos = parentA.pos;
-  lsMemcpy(val.stats, parentA.stats, LS_ARRAYSIZE(val.stats));
-
-  crossbreeder_eval(c, val.brain.values, LS_ARRAYSIZE(val.brain.values), parentA.brain.values, parentB.brain.values);
-}
-
-template <typename mutator>
-void mutate(actor &target, const mutator &m)
-{
-  mutator_eval(m, &target.brain.values[0], LS_ARRAYSIZE(target.brain.values), (int16_t)lsMinValue<int8_t>(), (int16_t)lsMaxValue<int8_t>());
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-constexpr size_t EvaluatingCycles = 8;
-
-size_t evaluate_actor(const actor &in)
-{
-  actor actr = in;
-  level lvl = _CurrentLevel;
-  size_t score = 0;
-
-  for (size_t i = 0; i < EvaluatingCycles; i++)
-  {
-    const uint8_t foodCapacityBefore = actr.stomach_remaining_capacity;
-
-    if (!level_performStep(lvl, &actr, 1))
-      break;
-
-    score++;
-    score += ((uint8_t)(foodCapacityBefore > actr.stomach_remaining_capacity)) * 3;
-  }
-
-  return score;
-}
-
-size_t evaluate_null(const actor &)
-{
-  return 0;
-}
-
-constexpr size_t generationsPerLevel = 128;
-
-lsResult train_loop(thread_pool *pThreadPool, const char *dir)
-{
-  lsResult result = lsR_Success;
-
-  constexpr bool trainSynchronously = true;
-
-  {
-    actor actr;
-    actor_loadNewestBrain(dir, actr);
-
-    uint64_t rand = lsGetRand();
-    actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
-    actr.pos += vec2u16(level::wallThickness);
-    actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
-
-    actor_initStats(&actr);
-
-    evolution<actor, smart_config> evl;
-    evolution_init(evl, actr, evaluate_null); // because no level is generated yet!
-
-    size_t levelIndex = 0;
-
-    while (_DoTraining)
-    {
-      level_generateDefault(&_CurrentLevel);
-      size_t maxRetries = 32;
-
-      do
-      {
-        rand = lsGetRand();
-        actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
-        actr.pos += vec2u16(level::wallThickness);
-        actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
-        maxRetries--;
-      } while ((_CurrentLevel.grid[actr.pos.x + actr.pos.y * level::width] & tf_Collidable) && maxRetries);
-
-      evolution_for_each(evl, [&](actor &a) { a.pos = actr.pos; a.look_dir = actr.look_dir; });
-
-      if (maxRetries == 0)
-      {
-        print_error_line("Failed to find non-collidable position in lvl.");
-        continue;
-      }
-
-      evolution_reevaluate(evl, evaluate_actor);
-
-      const actor *pBest = nullptr;
-      size_t score, bestScore = 0;
-
-      for (size_t i = 0; i < generationsPerLevel && _DoTraining; i++)
-      {
-        if constexpr (trainSynchronously)
-          evolution_generation(evl, evaluate_actor);
-        else
-          evolution_generation(evl, evaluate_actor, pThreadPool);
-
-        evolution_get_best(evl, &pBest, score);
-
-        if (score > bestScore)
-        {
-          print_log_line("New Best: Level ", levelIndex, ", Generation ", i, ": ", score);
-          bestScore = score;
-        }
-      }
-
-      LS_ERROR_CHECK(actor_saveBrain(dir, *pBest));
-      levelIndex++;
-    }
-  }
-
-epilogue:
-  _TrainingRunning = false;
-  return result;
-}
-
-lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *dir)
-{
-  lsResult result = lsR_Success;
-
-  using config = starter_random_config_independent;
-  using evl_type = evolution<actor, config>;
-  small_list<evl_type> evolutions;
-
-  struct actor_ref
-  {
-    size_t score, evolution_idx, idx;
-    actor_ref() = default; // actor_ref': no appropriate default constructor available -> yes?
-    actor_ref(const size_t score, const size_t evolution_idx, const size_t idx) : score(score), evolution_idx(evolution_idx), idx(idx) {}
-    bool operator > (const actor_ref &other) const { return score < other.score; }
-    bool operator < (const actor_ref &other) const { return score > other.score; }
-  };
-
-  small_list<actor_ref> best_actor_refs;
-  actor best_actors[config::survivingGenes];
-
-  actor actr;
-  actor_loadNewestBrain(dir, actr);
-
-  uint64_t rand = lsGetRand();
-  actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
-  actr.pos += vec2u16(level::wallThickness);
-  actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
-
-  actor_initStats(&actr);
-  size_t trainingCycle = 0;
-  const size_t geneGenerationCount = thread_pool_thread_count(pThreadPool) * config::newGenesPerGeneration * generationsPerLevel;
-
-  print("Starting Training: ", thread_pool_thread_count(pThreadPool), " Threads x ", config::newGenesPerGeneration, " Genes x ", generationsPerLevel, " Generations / Level x ", EvaluatingCycles, " Evaluating Cycles Max = ", FU(Group)(thread_pool_thread_count(pThreadPool) * config::newGenesPerGeneration * generationsPerLevel * EvaluatingCycles), '\n');
-
-  for (size_t i = 0; i < thread_pool_thread_count(pThreadPool); i++)
-  {
-    evl_type evl;
-    LS_ERROR_CHECK(evolution_init_empty(evl));
-
-    evolution_add_unevaluated_target(evl, std::move(actr));
-
-    LS_ERROR_CHECK(list_add(&evolutions, std::move(evl)));
-  }
-
-  while (_DoTraining)
-  {
-    list_clear(&best_actor_refs);
-
-    level_generateDefault(&_CurrentLevel);
-    size_t maxRetries = 32;
-
-    do
-    {
-      rand = lsGetRand();
-      actr.pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
-      actr.pos += vec2u16(level::wallThickness);
-      actr.look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
-      maxRetries--;
-    } while ((_CurrentLevel.grid[actr.pos.x + actr.pos.y * level::width] & tf_Collidable) && maxRetries);
-
-    for (auto &evol : evolutions)
-      evolution_for_each(evol, [&](actor &a) { a.pos = actr.pos; a.look_dir = actr.look_dir; });
-
-    if (maxRetries == 0)
-    {
-      print_error_line("Failed to find non-collidable position in lvl.");
-      continue;
-    }
-
-    for (auto &evol : evolutions)
-      evolution_reevaluate(evol, evaluate_actor);
-
-    const int64_t startNs = lsGetCurrentTimeNs();
-
-    for (size_t i = 0; i < evolutions.count; i++)
-    {
-      evl_type *pEvolution = &evolutions[i];
-
-      std::function<void()> async_func = [=]()
-        {
-          for (size_t j = 0; j < generationsPerLevel && _DoTraining; j++)
-            evolution_generation(*pEvolution, evaluate_actor);
-        };
-
-      thread_pool_add(pThreadPool, async_func);
-    }
-
-    thread_pool_await(pThreadPool);
-
-    const int64_t endNs = lsGetCurrentTimeNs();
-
-    // extract actor refs w/ score
-    size_t index = 0;
-    for (auto &evol : evolutions)
-    {
-      for (size_t j = 0; j < evolution_get_count(evol); j++)
-      {
-        size_t idx;
-        size_t score;
-        evolution_get_at(evol, j, idx, score);
-        LS_ERROR_CHECK(list_add(&best_actor_refs, actor_ref(score, index, idx)));
-      }
-
-      index++;
-    }
-
-    // sort
-    list_sort(best_actor_refs);
-
-    // extract best actors to best_actors
-    for (size_t i = 0; i < LS_ARRAYSIZE(best_actors); i++)
-      best_actors[i] = std::move(pool_get(evolutions[best_actor_refs[i].evolution_idx].genes, best_actor_refs[i].idx)->t);
-
-    for (auto &evol : evolutions)
-    {
-      // clear evolutions
-      evolution_clear(evol);
-
-      // insert best actors to evolutions
-      for (size_t i = 0; i < LS_ARRAYSIZE(best_actors); i++)
-        evolution_add_unevaluated_target(evol, best_actors[i]);
-    }
-
-    const actor_ref *pBestRef = list_get(&best_actor_refs, 0);
-    print_log_line("Current Best: Training Cycle: ", trainingCycle, " w/ score: ", pBestRef->score, " (", FD(Group, Frac(3))(geneGenerationCount / ((endNs - startNs) * 1e-9)), " Generations/s)");
-    LS_ERROR_CHECK(actor_saveBrain(dir, best_actors[0]));
-
-    trainingCycle++;
-  }
-
-epilogue:
-  _TrainingRunning = false;
-  return result;
-}
-
