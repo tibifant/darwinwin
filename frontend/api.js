@@ -178,6 +178,7 @@ function updateTiles(){
     if(!mapTiles || mapTiles[i] !== grid[i]) {
       console.log("Tile-" + i + " has changed from value " + mapTiles[i] + " to " + grid[i]);
       checkTileFlags(grid[i], tileElement, i);
+      mapTiles[i] = grid[i];
     }
   }
 }
