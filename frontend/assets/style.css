@@ -4,6 +4,8 @@ body {
   height: 100%;
   margin: 0;
   overflow: hidden;
+  font-family: 'Segoe UI', sans-serif;
+  user-select: none;
 }
 
 * {
@@ -77,14 +79,39 @@ div.box {
   width: fit-content;
   margin-left: auto;
   margin-right: auto;
-  background-color: gray;
   border-radius: 2pt;
+  background: linear-gradient(0deg, #2b2b2b, #343434);
+  color: #ddd;
+  border-radius: 8pt;
 }
 
 .control-panel button {
   font-family: 'Segoe UI', sans-serif;
-  margin: 10pt;
-  font-size: 20pt;
+  margin: 8pt;
+  font-size: 15pt;
+  color: #fff;
+  background: linear-gradient(10deg, #3b4f7c, #3d6f6d);
+  border: 1.5pt solid #7cb3b3;
+  border-radius: 8pt;
+  padding: 2pt 8pt 3pt;
+  box-shadow: 1pt 1pt 3pt #0002;
+  font-weight: 600;
+}
+
+.control-panel button:hover, .control-panel button:active {
+  background: linear-gradient(10deg, #4c6398, #4b8482);
+  border: 1.5pt solid #8fcaca;
+  cursor: pointer;
+}
+
+#training-start-button:active, #training-stop-button:active {
+  color: #3a3942;
+  transition: 0s;
+}
+
+#training-start-button, #training-stop-button {
+  transition: 5s;
+  transition-timing-function: ease-in;
 }
 
 .control-panel span {
@@ -105,7 +132,8 @@ div.box {
   height: fit-content;
   margin: 10pt;
   padding: 10pt;
-  background-color: gray;
+  background-color: #363636;
+  color: #ddd;
 }
 
 .stats-header {
@@ -152,7 +180,8 @@ div.box {
   height: fit-content;
   margin: 10pt;
   padding: 10pt;
-  background-color: gray;
+  background-color: #363636;
+  color: #ddd;
 }
 
 .view-cone-header {

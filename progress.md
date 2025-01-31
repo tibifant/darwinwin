@@ -98,6 +98,7 @@ Aktuelle Tasks:
 - Grundgeruest des Genetic Algorithm ist implementiert und mit einfachem Beispiel erfolgreich getestet
 - Anpassungen der Logik in verschiedenen Actor-Actions.
 - Code Review durchgefuehrt
+- Crossbreed und Mutate Funktionen fuer Aktor (Mittwochs)
 
 **Aktuelle Tasks:**
 - Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
@@ -126,9 +127,9 @@ Aktuelle Tasks:
 - setTile post request + tile info mit stats
 
 **Malin:**
-- mutator und crossbreeder verwenden Pointer
-- Tests fuer Evolution und NN
-- Neuronales Netz unterstuetzt unterschiedliche grosse Layers in einem Netz
+- mutator und crossbreeder verwenden Pointer, um ganze Datenbloecke auf einmal zu handlen
+- Komplettes Rewrite des Neuronalen Netzes: unterstuetzt unterschiedliche grosse Layers in einem Netz (Wochenende)
+- Tests fuer Evolution und NN (Wochenende)
 
 **Aktuelle Tasks:**
 
@@ -177,8 +178,9 @@ Training Engine:
 
 **Malin:**
 - viewcone zu getlevel hinzugefuegt
-- Load and Save fuer neuestes Brain
 - Level Generator
+- Neuronales Netzwerk kann gespeichert und das neueste geladen werden (Mittwochs)
+- Funktion zur Reevaluierung der Gene im Evolutionsprozess (Mittwochs)
 
 Aktuelle Tasks:
 
@@ -222,12 +224,13 @@ Training Engine:
 - Anpassung, fuer mehrere Actor
 
 **Jan:**
-- Testing actor Funktionalitaeten
+- Testing actor Funktionalitaeten (Wochenende)
 
 **Malin:**
 - Code Review
-- Merge request
-- Fehler gefixt vom Testing
+- Weitere API calls hinzugefuegt
+- Merge request gemerged (Wochenende)
+- Fehler gefixt, dank Jans Testing (Wochenende)
 
 Aktuelle Tasks:
 
@@ -249,7 +252,7 @@ Training Engine:
 
 **Malin:**
 - Erste Testdurchlauefe zum Trainieren
-- Frontend: neue Apis und BUttons hinzugefuegt
+- Frontend: neue Apis und Buttons hinzugefuegt
 
 **Aktuelle Tasks:**
 
@@ -261,21 +264,21 @@ Frontend:
 
 Training Engine:
 - diagnonal move hinzufuegen
-- trainloop anpassen (asynchron unabhaengig voneinander trainieren lassen)
 - Outputs gewichtet auswaehlen
+- trainloop anpassen (asynchron unabhaengig voneinander trainieren lassen)
 
 ## 23.01.2025
 
-**Marvin:**
+**Marvin:** N/A
 
 **Jan:**
 - implementieren von grid-based viewcone
 
 **Malin:**
 - Diagonal Move, Logik und API calls hinzugefuegt
-- Outputs des NN gewichtet auswaehlen
-- Outputs wieder in das neuronales Netzwerk
-- neues Trainings-Loop, dass unabhaengige Instanzen parallel trainieren laesst -> massiver Performance Anhieb
+- Outputs des NNs gewichtet auswaehlen
+- Outputs wieder in das neuronales Netzwerk als inputs zurueck fuettern
+- neues Trainings-Loop, dass unabhaengige Instanzen parallel trainieren laesst -> massiver Performance Anhieb  (Mittwochs)
 
 **Aktuelle Tasks:**
 
@@ -287,3 +290,104 @@ Frontend:
 
 Training Engine:
 - mutator, der sich selbst mutated
+
+## 24.01.2025
+
+**Marvin:**
+- Bugfix: Ai stop_training
+- Delay fuer Start/Stop training button
+- Fix: Start/Stop training toggle button 
+
+**Jan:** N/A
+
+**Malin:**
+- Neuer smart Mutator, der sich selbst mutated
+- Neues Level generiert, Ziel: beibringen zu essen
+- Code Review mehrerer Merge Requests
+
+**Aktuelle Tasks:**
+
+Frontend:
+- neue Actions auswaehlen fuer manualAct: `moveDiagnonalLeft`, `moveDiagnonalRight`, `wait`
+- Reset Stats: automatisch Stats screen updaten
+- set tile: checkboxes zum Auswaehlen der Tileflags, copy tileflags von anderer tile
+- Jan: Changes for Merge request
+
+Training Engine:
+- Crossbreeder anpassen (Performance fix)
+- Trainingsdaten anpassen -> essen lernen
+
+## 27.01.2025
+
+**Jan:** - 
+
+**Marvin:**
+- Ai_step auto updates Stats view (war Donnerstag, hatte aber MR noch nicht gemacht)
+- Buttons für neue actions
+- cooy paste tileflags
+
+**Malin:**
+- Verbesserte, viel effizientere Variante fuer den Crossbreeder
+- Bugfixes im Mutator
+- Refactoring
+- Optimisierierung
+- Hinzufuegen eines Inplace-Mergesort-Algorithmus, um die Reihenfolge der besten Ergebnisse im Training beizubehalten  
+
+**Aktuelle Tasks:**
+
+Frontend:
+- view cone Merge Request Änderungen implementieren
+- Check boxes für set tile
+- In stats zusätzlich letzten Zug des Actors anzeigen (fehlt noch im backend, aber füge ich dann hinzu sobald ich kann -> actor bekommt noch zusätzlichen Datenpunkt “lastAction”)
+- Blickrichtung des Actors auf Map anzeigen
+
+Training Engine:
+- Debugging im Training
+
+## 28.01.2025
+
+**Jan:**
+- checkboxes fertig gemacht 
+- merge request Änderungen (die die ich verstanden hab) 
+- Design: 
+- ⁠selected tile wird farblich markiert 
+- ⁠diverse css Änderungen zur Verschönerung des Designs
+
+**Marvin:** -
+
+**Malin:**
+- Ueberarbeitung der Energiewerte/Nahrungs/Luft-Werte in der Simulation damit das System ausgeglichen ist
+
+**Aktuelle Tasks:**
+
+Frontend:
+- Marvin: bitte noch in deiner MR mit dem Start/Stop Training button, das so anpassen wie wir besprochen hatten
+- ⁠lastAction anzeigen
+- ⁠Jan: MR Änderungen anpassen
+
+Training Engine:
+- Debugging Evolution
+- Training zum Essen Lernen
+
+## 30.01.2025
+
+**Jan:**
+- Checkboxes funktionieren, ausgewaehlte Box anzeigen
+- Design Aenderungen: Icons
+
+**Marvin:**
+- LastAction anzeigen
+
+**Malin:**
+- Debugging und Bugfixes in Evolution
+- Bugfix in Berechnung des Scores fuer die Actor
+- Training: Essen lernen
+- Neues Level hinzugefuegt (Mittwochs)
+
+**Aktuelle Tasks:**
+
+Frontend:
+- Alle Merge Requests fertigstellen
+
+Training Engine:
+- Actors beibringen um Collidables zu laufen
