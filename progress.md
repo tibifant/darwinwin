@@ -391,3 +391,26 @@ Frontend:
 
 Training Engine:
 - Actors beibringen um Collidables zu laufen
+
+## 31.01.2025
+
+**Jan:**
+- Bugfixes in Designchanges Branch
+- Bugfixes bei Viewcones
+
+**Marvin:**
+- LastAction implementiert
+
+**Malin:**
+- Abschlusspraesentation
+- Start/Stop Training Button
+- Mergen mit Malin
+
+**Aktuelle Tasks:**
+
+Frontend:
+- Fertigmachen, was fertig gemacht werden muss
+
+Training Engine:
+- MR/Code Reviews
+- Iteration Text
