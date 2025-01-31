@@ -208,6 +208,7 @@ crow::response handle_getLevel(const crow::request &req)
   ret["actor"][0]["posX"] = _WebActor.pos.x;
   ret["actor"][0]["posY"] = _WebActor.pos.y;
   ret["actor"][0]["lookDir"] = _WebActor.look_dir;
+  ret["actor"][0]["lastAction"] = _WebActor.last_action; // Will be unitiialzed before first time acting.
 
   for (size_t i = 0; i < _actorStats_Count; i++)
   {
