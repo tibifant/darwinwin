@@ -3,7 +3,6 @@ const server_url = 'http://localhost:21110/';
 //Cached Variables
 let actorElements = [];
 let worldData;
-let aiStepIntervalIdCache;
 
 const tileFlags = {
       Underwater: 1 << 0,
@@ -138,7 +137,7 @@ function setupTrainingButtons() {
     var hiddenId = trainingStopButtonId;
     if (e)
       hiddenId = visibleId;
-    
+
     document.getElementById(hiddenId).style.display = 'none';
   };
   load_backend_url("is_training", callback, {}, callback);
@@ -362,44 +361,20 @@ function levelGenerate(){
   postGenerateLevelRequest();
 }
 
-function reloadBrain(){
-  postLoadBrainRequest();
+function aiStepStart(event){
+  const button = event.target;
+  button.dataset.intervalId = setInterval(postAiStepRequest, 1000).toString();
+  button.onclick = aiStepStop;
+  button.innerText = "Stop AI Step";
 }
 
-function resetStats(){
-  postResetStatsRequest();
+function aiStepStop(event){
+  const button = event.target;
+  clearInterval(parseInt(button.dataset.intervalId));
+  button.onclick = aiStepStart;
+  button.innerText = "Start AI Step";
 }
 
-function aiStep(){
-  postAiStepRequest();
-}
-
-function aiStepToggle(event){
-  const element = event.target;
-  switch (element.id.split('-')[2]) {
-    case 'start':
-      aiStepIntervalIdCache = setInterval(aiStep, 1000);
-      element.id = "ai-step-stop-button";
-      element.innerText = "Stop AI Step";
-      break;
-    case 'stop':
-      if(!aiStepIntervalIdCache){
-        console.error("Stop AI Step interval was called before interval was started.")
-      }
-      clearInterval(aiStepIntervalIdCache);
-      element.id = "ai-step-start-button";
-      element.innerText = "Start AI Step";
-      break;
-    default:
-      console.error("StepToggle - ID not recognized: " + element.id);
-  }
-}
-
-function loadTrainingLevel(){
-  postLoadTrainingLevelRequest();
-}
-
-//TODO: Merge Buttons into single one, that switches function based on state
 function startTraining(){
   postTrainingStartRequest();
 }
@@ -493,10 +468,6 @@ function fetchLevel(callback){
       callback(worldData);
      },
     {}, handleError);
-}
-
-function fetchTrainingState(callback){
-  load_backend_url('is_training', callback, {}, handleError)
 }
 
 function postActorAction(actor, actionId) {
