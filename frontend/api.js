@@ -233,7 +233,8 @@ function checkTileFlags(tile, tileElement, tileIndex){
     }
   }
 
-  if(tileIndex){
+  if(tileIndex !== null){
+    console.log("Updating tile " + tileIndex + " to value " + tile);
     mapTiles[tileIndex] = tile;
   }
 }
