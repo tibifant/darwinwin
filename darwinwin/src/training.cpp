@@ -114,12 +114,27 @@ lsResult actor_loadNewestBrain(const char *dir, actor &actr)
   int64_t bestTime = -1;
   std::string best;
 
+  char bestChar = '0';
+  std::string bestByName;
+  int64_t bestNameTime = -1;
+
   for (const std::filesystem::directory_entry &dir_entry : std::filesystem::directory_iterator(dir))
   {
     if (dir_entry.is_regular_file())
     {
       const std::filesystem::file_time_type &timestamp = dir_entry.last_write_time();
       const int64_t timeMs = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp.time_since_epoch()).count();
+
+      if (!lsIsUInt(dir_entry.path().stem().c_str()))
+      {
+        const std::string n = dir_entry.path().stem().string();
+        if (bestChar < n[0])
+        {
+          bestChar = n[0];
+          bestByName = dir_entry.path().filename().string();
+          bestNameTime = timeMs;
+        }
+      }
 
       if (bestTime < timeMs)
       {
@@ -128,6 +143,9 @@ lsResult actor_loadNewestBrain(const char *dir, actor &actr)
       }
     }
   }
+
+  if (bestTime < bestNameTime)
+    best = bestByName;
 
   LS_ERROR_IF(best.empty(), lsR_ResourceNotFound);
   lsAssert(bestTime >= 0);
