@@ -544,3 +544,17 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
 
   pActor->pos = newPos;
 }
+
+void actor_dragItem(actor *pActor, level *pLvl, const viewCone cone)
+{
+  constexpr int16_t DragCost = 4;
+
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], -DragCost, MinStatsValue, MaxStatsValue);
+
+  if (oldEnergy < MoveDiagonalCost)
+    return;
+
+  // check for sugar
+  //
+}
