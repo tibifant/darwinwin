@@ -232,7 +232,10 @@ function showActorStats(actor){
     "move 2",
     "turn left",
     "turn right",
-    "eat"
+    "eat",
+    "wait",
+    "diagonal left",
+    "diagonal right",
   ]
 
   const infoLabelsElement = document.getElementById("stats-info-labels");
