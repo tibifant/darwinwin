@@ -171,6 +171,14 @@ div.box {
   font-size: 15pt;
 }
 
+.stats-copy-paste-container {
+  display: flex;
+  width: 25%;
+  justify-content: space-around;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .view-cone-container {
   display: flex;
   flex-direction: column;

@@ -351,6 +351,8 @@ function fillTileStatsElements(tile, labels, values, optionsButtonsElement){
     const button = createTileButton(tile._index, flag);
     optionsButtonsElement.appendChild(button);
   }
+
+  optionsButtonsElement.appendChild(createCopyPasteElements(tile, optionsButtonsElement));
 }
 
 function createTileButton(tileIndex, key){
@@ -361,6 +363,49 @@ function createTileButton(tileIndex, key){
   button.innerText = "Toggle "+key;
   button.addEventListener('click', initiateSetTileRequest);
   return button;
+}
+
+function createCopyPasteElements(tile, optionsButtonsElement){
+  const statsContainer = document.getElementById("stats-container");
+  const copyPasteLabel = document.createElement("label");
+  const copyId = statsContainer._copiedTileId;
+  if(copyId){
+    copyPasteLabel.innerText = "Clipboard: " + copyId;
+  }
+  else {
+    copyPasteLabel.innerText = "Click copy to copy this tile's stats";
+  }
+  optionsButtonsElement.appendChild(copyPasteLabel);
+
+  const copyPasteContainer = document.createElement("div");
+  copyPasteContainer.classList.add('stats-copy-paste-container');
+
+  const copyButton = document.createElement("button");
+  copyButton._tileIndex = tile._index;
+  copyButton.innerText = "Copy";
+  copyButton.addEventListener('click', copyConditions);
+  copyPasteContainer.appendChild(copyButton);
+
+  const pasteButton = document.createElement("button");
+  pasteButton._tileIndex = tile._index;
+  pasteButton.innerText = "Paste";
+  if(!statsContainer._copiedTileId){
+    pasteButton.disabled = true;
+  }
+  pasteButton.addEventListener('click', initiateSetTileRequestPaste);
+  copyPasteContainer.appendChild(pasteButton);
+
+  return copyPasteContainer;
+}
+
+function copyConditions(event){
+  const button = event.target;
+  const tile = document.getElementById("tile-"+button._tileIndex);
+  const statsContainer = document.getElementById("stats-container");
+  statsContainer._copiedTileStats = tile._conditionsValue;
+  statsContainer._copiedTileId = tile.id;
+
+  fetchAllData(getUpdateStatsWindowFunction());
 }
 
 // ### Control Panel functions ###
@@ -405,6 +450,22 @@ function initiateSetTileRequest(event){
   const tile = document.getElementById("tile-"+tileIndex);
 
   const newTileValue = tile._conditionsValue ^ tileFlags[condition];
+
+  const payload = {
+    x: tile._posX,
+    y: tile._posY,
+    value: newTileValue
+  }
+
+  postTileSetRequest(payload, tile);
+}
+
+function initiateSetTileRequestPaste(event){
+  const button = event.target;
+  const tileIndex = button._tileIndex;
+  const statsContainer = document.getElementById("stats-container");
+  const newTileValue = statsContainer._copiedTileStats;
+  const tile = document.getElementById("tile-"+tileIndex);
 
   const payload = {
     x: tile._posX,
@@ -501,15 +562,7 @@ function postResetStatsRequest(){
 }
 
 function postAiStepRequest(){
-  const statsContainer = document.getElementById('stats-container');
-  let updateFunction = null;
-  if (statsContainer._tileShown) {
-    updateFunction = showTileStats.bind(null, statsContainer._tileShown);
-  }
-  if (statsContainer._actorShown) {
-    updateFunction = showActorStats.bind(null, statsContainer._actorShown);
-  }
-  const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
+  const fetchAndUpdate = fetchAllData.bind(null, getUpdateStatsWindowFunction());
 
   load_backend_url('ai_step', fetchAndUpdate, {}, handleError);
 }
@@ -544,4 +597,17 @@ function postTrainingStartRequest(){
 
 function postTrainingStopRequest(){
   postStartStopTrainingRequest(trainingStartButtonId, trainingStopButtonId, "stop_training", false);
+}
+
+function getUpdateStatsWindowFunction(){
+  const statsContainer = document.getElementById('stats-container');
+  let updateStatsWindowFunction = null;
+  if (statsContainer._tileShown) {
+    updateStatsWindowFunction = showTileStats.bind(null, statsContainer._tileShown);
+  }
+  if (statsContainer._actorShown) {
+    updateStatsWindowFunction = showActorStats.bind(null, statsContainer._actorShown);
+  }
+
+  return updateStatsWindowFunction;
 }
