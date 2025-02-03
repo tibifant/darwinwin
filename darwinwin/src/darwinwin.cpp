@@ -556,5 +556,8 @@ void actor_dragItem(actor *pActor, level *pLvl, const viewCone cone)
     return;
 
   // check for sugar
-  //
+  if (!(cone[vcp_self] & tf_Sugar))
+    return;
+  
+  // move actor and sugar
 }
