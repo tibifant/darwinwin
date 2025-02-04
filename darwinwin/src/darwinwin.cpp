@@ -472,11 +472,8 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
 
   for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
   {
-    if (cone[vcp_self] & (1ULL << i))
+    if (cone[vcp_self] & (1ULL << i) && !(!!(cone[vcp_self] & (tf_Sugar | tf_Underwater))))
     {
-      if (i == as_Sugar && !!(cone[vcp_self] & tf_Underwater)) // actor stats and tile flags are aligned
-        continue;
-
       stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
       pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i); // yes, actor stats & tile masks SHARE the masks for foods.
       anyFood = true;
@@ -571,19 +568,23 @@ void actor_dragSugar(actor *pActor, level *pLvl)
   const vec2u16 newPos = vec2u16(vec2i16(pActor->pos) + lut[pActor->look_dir]);
   const size_t newIdx = newPos.y * level::width + newPos.x;
 
-  // remove energy for trying to move to collidable or for trying to drag without an item being there
-  if (!!(pLvl->grid[newIdx] & tf_Collidable) || !(pLvl->grid[currentIdx] & tf_Sugar))
+  constexpr tileFlag FoodMask = tf_Protein | tf_Fat | tf_Vitamin | tf_Vitamin;
+  const tileFlag targetTile = pLvl->grid[newIdx];
+  const tileFlag currentTile = pLvl->grid[currentIdx];
+
+  if (!!(targetTile & tf_Collidable) || !!(targetTile & FoodMask) || !(currentTile & FoodMask))
   {
-    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue); // should this add up?
     return;
   }
 
-  lsAssert(!(pLvl->grid[currentIdx] & tf_Sugar));
-  lsAssert(!(pLvl->grid[newIdx] & tf_Collidable));
+  lsAssert(!(currentTile & tf_Sugar));
+  lsAssert(!(targetTile & tf_Collidable));
   lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
 
-  pLvl->grid[currentIdx] &= ~tf_Sugar;
+  const tileFlag item = currentTile & FoodMask;
+  pLvl->grid[currentIdx] &= ~FoodMask;
 
-  pLvl->grid[newIdx] |= tf_Sugar;
+  pLvl->grid[newIdx] |= item;
   pActor->pos = newPos;
 }
