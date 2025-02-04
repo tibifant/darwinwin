@@ -248,6 +248,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
 void actor_wait(actor *pActor);
 void actor_moveDiagonalLeft(actor *pActor, const level lvl);
 void actor_moveDiagonalRight(actor *pActor, const level lvl);
+void actor_dragSugar(actor *pActor, level *pLvl);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -295,6 +296,10 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
 
   case aa_DiagonalMoveRight:
     actor_moveDiagonalRight(pActor, *pLevel);
+    break;
+
+  case aa_DragSugar:
+    actor_dragSugar(pActor, pLevel);
     break;
 
   default:
@@ -469,6 +474,9 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
   {
     if (cone[vcp_self] & (1ULL << i))
     {
+      if (i == as_Sugar && !!(cone[vcp_self] & tf_Underwater)) // actor stats and tile flags are aligned
+        continue;
+
       stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
       pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i); // yes, actor stats & tile masks SHARE the masks for foods.
       anyFood = true;
@@ -545,19 +553,37 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
   pActor->pos = newPos;
 }
 
-void actor_dragItem(actor *pActor, level *pLvl, const viewCone cone)
+void actor_dragSugar(actor *pActor, level *pLvl)
 {
   constexpr int16_t DragCost = 4;
+  constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, 1) };
+
+  const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
+  lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
+  lsAssert(!(pLvl->grid[currentIdx] & tf_Collidable));
 
   const size_t oldEnergy = pActor->stats[as_Energy];
   modify_with_clamp(pActor->stats[as_Energy], -DragCost, MinStatsValue, MaxStatsValue);
 
-  if (oldEnergy < MoveDiagonalCost)
+  if (oldEnergy < DragCost)
     return;
 
-  // check for sugar
-  if (!(cone[vcp_self] & tf_Sugar))
+  const vec2u16 newPos = vec2u16(vec2i16(pActor->pos) + lut[pActor->look_dir]);
+  const size_t newIdx = newPos.y * level::width + newPos.x;
+
+  // remove energy for trying to move to collidable or for trying to drag without an item being there
+  if (!!(pLvl->grid[newIdx] & tf_Collidable) || !(pLvl->grid[currentIdx] & tf_Sugar))
+  {
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue);
     return;
-  
-  // move actor and sugar
+  }
+
+  lsAssert(!(pLvl->grid[currentIdx] & tf_Sugar));
+  lsAssert(!(pLvl->grid[newIdx] & tf_Collidable));
+  lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
+
+  pLvl->grid[currentIdx] &= ~tf_Sugar;
+
+  pLvl->grid[newIdx] |= tf_Sugar;
+  pActor->pos = newPos;
 }
