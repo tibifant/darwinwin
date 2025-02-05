@@ -248,7 +248,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
 void actor_wait(actor *pActor);
 void actor_moveDiagonalLeft(actor *pActor, const level lvl);
 void actor_moveDiagonalRight(actor *pActor, const level lvl);
-void actor_dragSugar(actor *pActor, level *pLvl);
+void actor_dragItem(actor *pActor, level *pLvl);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -299,7 +299,7 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
     break;
 
   case aa_DragSugar:
-    actor_dragSugar(pActor, pLevel);
+    actor_dragItem(pActor, pLevel);
     break;
 
   default:
@@ -550,7 +550,7 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
   pActor->pos = newPos;
 }
 
-void actor_dragSugar(actor *pActor, level *pLvl)
+void actor_dragItem(actor *pActor, level *pLvl)
 {
   constexpr int16_t DragCost = 4;
   constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, 1) };
