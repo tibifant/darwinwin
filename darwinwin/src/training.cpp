@@ -55,9 +55,9 @@ void level_gen_puddle_food_sugar_underwater_level(level *pLvl)
   level_gen_init(pLvl, 0);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 8);
   level_gen_grow(pLvl, tf_Underwater);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin, level::total / 10);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin, level::total / 50);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 50);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 50);
   level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Underwater, level::total / 10);
   //level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Fat | tf_Underwater, level::total / 10);
   level_gen_finalize(pLvl);
@@ -239,7 +239,7 @@ void mutate(actor &target, const mutator &m)
 
 //////////////////////////////////////////////////////////////////////////
 
-constexpr size_t EvaluatingCycles = 64;
+constexpr size_t EvaluatingCycles = 256;
 
 // score: more sugar = more good
 // if sugar at vcp_self, then position changed, then still sugar at vcp_self
@@ -252,7 +252,6 @@ size_t evaluate_actor(const actor &in)
 
   for (size_t i = 0; i < EvaluatingCycles; i++)
   {
-    const vec2u16 posBefore = actr.pos;
     const bool underwaterBefore = !!(actr.last_view_cone[vcp_self] & tf_Underwater);
     const bool sugarAtPosBefore = !!(actr.last_view_cone[vcp_self] & tf_Sugar);
 
@@ -263,8 +262,13 @@ size_t evaluate_actor(const actor &in)
 
     const uint16_t sugarLevelBefore = actr.stats[as_Sugar];
 
+    level_gen_random_sprinkle_replace_mask(&lvl, tf_Underwater, tf_Underwater | tf_Sugar, level::total / 100);
+
     if (!level_performStep(lvl, &actr, 1))
       break;
+
+    const bool underwaterAfter = !!(actr.last_view_cone[vcp_self] & tf_Underwater);
+    const bool sugarAtPosAfter = !!(actr.last_view_cone[vcp_self] & tf_Sugar);
 
     const uint16_t sugarLevelAfter = actr.stats[as_Sugar];
     uint16_t stomachFillLevelAfter = 0;
@@ -290,14 +294,15 @@ size_t evaluate_actor(const actor &in)
       if (actr.last_view_cone.values[j] & tf_Sugar) //_tileFlag_FoodMask)
         foodSeeScore += perViewConePosFoodSeeScore[j];
 
-    score += 3;
+    score += 30;
     score += !(actr.last_view_cone.values[vcp_self] & tf_Underwater) ? 1 : 0;
-    score += foodSeeScore;
-    score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 100;
-    score += ((uint8_t)(sugarLevelAfter > sugarLevelBefore)) * 1000;
+    score += foodSeeScore * 5;
+    score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 1000ULL;
+    score += ((uint8_t)(sugarLevelAfter > sugarLevelBefore)) * 1000ULL;
 
     // score: if pos changed and sugar at vcp_self before and now.
-    score += (underwaterBefore && (actr.last_action == aa_DragItem) && sugarAtPosBefore && !!(actr.last_view_cone[vcp_self])) * 600;
+    score += (size_t)(underwaterBefore && (actr.last_action == aa_DragItem) && sugarAtPosBefore && sugarAtPosAfter) * 100;
+    score += ((size_t)(underwaterBefore && !underwaterAfter && sugarAtPosBefore && sugarAtPosAfter && actr.last_action == aa_DragItem)) * 200;
   }
 
   return score;

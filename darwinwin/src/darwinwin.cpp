@@ -470,9 +470,11 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
   lsAssert(stomachFoodCount <= StomachCapacity);
   bool anyFood = false;
 
+  constexpr uint8_t underwater_and_sugar = (tf_Sugar | tf_Underwater);
+
   for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
   {
-    if (cone[vcp_self] & (1ULL << i) && !(!!(cone[vcp_self] & (tf_Sugar | tf_Underwater))))
+    if (cone[vcp_self] & (1ULL << i) && !((cone[vcp_self] & underwater_and_sugar) == underwater_and_sugar))
     {
       stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
       pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i); // yes, actor stats & tile masks SHARE the masks for foods.
