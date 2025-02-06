@@ -59,6 +59,7 @@ void level_gen_puddle_food_sugar_underwater_level(level *pLvl)
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 10);
   level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Underwater, level::total / 10);
+  level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Fat | tf_Underwater, level::total / 10);
   level_gen_finalize(pLvl);
 }
 
@@ -79,6 +80,7 @@ void level_gen_sprinkle_collidable_level(level *pLvl)
 void level_generateDefault(level *pLvl)
 {
   level_gen_puddle_sugar_underwater_level(pLvl);
+  //level_gen_puddle_food_sugar_underwater_level(pLvl);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -250,6 +252,9 @@ size_t evaluate_actor(const actor &in)
 
   for (size_t i = 0; i < EvaluatingCycles; i++)
   {
+    const vec2u16 posBefore = actr.pos;
+    const bool sugarAtPosBefore = !!(actr.last_view_cone[vcp_self] & tf_Sugar);
+
     uint16_t stomachFillLevelBefore = 0;
 
     for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
@@ -278,13 +283,16 @@ size_t evaluate_actor(const actor &in)
     static_assert(LS_ARRAYSIZE(actr.last_view_cone.values) == LS_ARRAYSIZE(perViewConePosFoodSeeScore));
 
     for (size_t j = 0; j < LS_ARRAYSIZE(actr.last_view_cone.values); j++)
-      if (actr.last_view_cone.values[j] & _tileFlag_FoodMask)
+      if (actr.last_view_cone.values[j] & tf_Sugar) //_tileFlag_FoodMask)
         foodSeeScore += perViewConePosFoodSeeScore[j];
 
     score += 3;
     score += !(actr.last_view_cone.values[vcp_self] & tf_Underwater) ? 1 : 0;
     score += foodSeeScore;
     score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 1000;
+
+    // score: if pos changed and sugar at vcp_self before and now.
+    score += (posBefore != actr.pos && sugarAtPosBefore && !!(actr.last_view_cone[vcp_self])) ? 3000 : 0;
   }
 
   return score;
