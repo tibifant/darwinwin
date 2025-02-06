@@ -292,7 +292,11 @@ function createActorOptionsButtonsElement(actor){
     "move 2",
     "turn left",
     "turn right",
-    "eat"
+    "eat",
+    "wait",
+    "moveDiagonalLeft",
+    "moveDiagonalRight",
+    "drag item"
   ]
 
   const optionsButtonsElement = document.createElement('div');

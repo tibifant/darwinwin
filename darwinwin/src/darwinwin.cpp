@@ -568,7 +568,7 @@ void actor_dragItem(actor *pActor, level *pLvl)
   const vec2u16 newPos = vec2u16(vec2i16(pActor->pos) + lut[pActor->look_dir]);
   const size_t newIdx = newPos.y * level::width + newPos.x;
 
-  constexpr tileFlag FoodMask = tf_Protein | tf_Fat | tf_Vitamin | tf_Vitamin;
+  constexpr tileFlag FoodMask = tf_Protein | tf_Fat | tf_Vitamin | tf_Sugar;
   const tileFlag targetTile = pLvl->grid[newIdx];
   const tileFlag currentTile = pLvl->grid[currentIdx];
 
