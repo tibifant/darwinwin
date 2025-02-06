@@ -118,7 +118,6 @@ function setupActor(actor, index){
 
 function setupViewCone(){
   //TODO: Possible to make this more dynamic?
-  const viewConeSize = 8;
   const positions = [
     { row: 1, col: 2 },
     { row: 2, col: 1 },
@@ -134,18 +133,15 @@ function setupViewCone(){
 
   for (let i = 0; i < view_cone_grids.length; i++) {
     const grid = view_cone_grids[i];
-    if (grid.length === 0) {
-      console.error("Error: Could not find view-cone-grid element");
-    } else {
-      for (let j = 0; j < viewConeSize; j++) {
+      positions.forEach((pos, j) => {
         const tile = document.createElement('div');
         tile.classList.add('view-cone-tile');
         tile.style.gridRow = positions[j].row;
         tile.style.gridColumn = positions[j].col;
         tile.id = 'view-cone-tile-' + i + "-" + j;
         grid.appendChild(tile);
-      }
-    }
+      });
+
   }
 }
 
@@ -173,7 +169,7 @@ function updateTiles(){
   const grid = worldData.level.grid;
   for(let i=0; i<grid.length; i++){
     const tileElement = document.getElementById("tile-"+i);
-    tileElement.classList.remove("view-cone");
+    tileElement.classList.remove("map-view-cone-shader");
 
     if(!mapTiles || mapTiles[i] !== grid[i]) {
       console.log("Tile-" + i + " has changed from value " + mapTiles[i] + " to " + grid[i]);
@@ -222,6 +218,7 @@ function checkTileFlags(tile, tileElement, tileIndex){
     loadIcon(tileElement, 'protein1', null, 1, null);
   }
   if(hasTileCondition(tile, "Underwater")){
+    tileElement.classList.remove('noFlag1', 'noFlag2');
     if(!hasFoodCondition){
       loadIcon(tileElement, 'underwater1', null, 0.3, '#16829E');
     }else{
@@ -301,10 +298,10 @@ function showBackendViewCone(actorIndex){
     tile.innerText = viewCone[i];
     tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile, null);
+    //adaptStyleForViewCone(tile);
     //tile.style.height = 'auto';
     //tile.style.width = 'auto';
   }
-  displayActorIcon(document.getElementById('view-cone-tile-0-0'));
 }
 
 function calculateViewConeTileIndexes(actorIndex){
@@ -362,20 +359,27 @@ function calculateViewConeTileIndexes(actorIndex){
 }
 
 function showFrontendViewCone(tileIndexes){
+
   tileIndexes.forEach((index, i) => {
     const gridTile = document.getElementById('view-cone-tile-'+ 1 + "-" + i);
-    const tileValue = worldData.level.grid[index];
-    gridTile.style.backgroundColor = emptyColor;
-    gridTile.innerText = tileValue;
-    checkTileFlags(tileValue, gridTile, null);
-  })
-  displayActorIcon(document.getElementById('view-cone-tile-1-0'));
-}
+    const mapTile = document.getElementById('tile-'+index);
 
-function displayActorIcon(actorTile){
-  const icon = document.createElement("div");
-  icon.className = "actor-icon";
-  actorTile.appendChild(icon);
+    gridTile.classList.forEach(cssClass => gridTile.classList.remove(cssClass));
+    mapTile.classList.forEach(className => {
+      if (!className.includes('shader') && !className.includes('actor') && !className.includes('view-cone-tile')) {
+        gridTile.classList.add(className);
+      }
+      console.log("Adding class " + className + " to view-cone-tile-" + 1 + "-" + i);
+    });
+    console.log(mapTile.classList);
+    gridTile.style.height = 'auto';
+    gridTile.style.width = 'auto';
+
+    //gridTile.innerText = tileValue;
+    //checkTileFlags(tileValue, gridTile, null);
+    gridTile.style.backgroundColor = mapTile.style.backgroundColor;
+  })
+  document.getElementById('view-cone-tile-1-0').classList.add('actor', 'icon');
 }
 
 function drawViewConeOnMap(index){
@@ -385,7 +389,7 @@ function drawViewConeOnMap(index){
     if(tile === null){
       console.error("Error: Could not find tile element -> function: drawViewConeOnMap");
     }else{
-      tile.classList.add('level-tile', 'view-cone');
+      tile.classList.add('level-tile', 'map-view-cone-shader');
     }
   })
 

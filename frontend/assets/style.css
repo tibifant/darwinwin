@@ -202,17 +202,6 @@ div.box {
   background-color: #c6c6c6;
 }
 
-.actor-icon {
-  display: inline-block;
-  position: relative;
-  width: 50%;
-  height: 50%;
-  background-image: url('icons/actor-icon.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
 .level-tile{
   display: flex;
   height: 20pt;
@@ -227,7 +216,7 @@ div.box {
   background-position: center;
 }
 
-.level-tile.view-cone {
+.level-tile.map-view-cone-shader {
   filter: brightness(0.6);
 }
 
@@ -282,7 +271,6 @@ div.box {
 }
 
 .level-tile.icon.hidden1{
-  background-color: #3e3a3a;
   background-image: url('icons/fog-medium-noOutline.svg');
 }
 
@@ -310,6 +298,12 @@ div.box {
   background-repeat: no-repeat;
   background-position: center;
   cursor: pointer;
+}
+
+.actor.icon{
+  z-index: 10;
+  background-size: 80%;
+  background-image: url('icons/bear-head.svg');
 }
 
 .actor.dead{
