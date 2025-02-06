@@ -298,7 +298,7 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
     actor_moveDiagonalRight(pActor, *pLevel);
     break;
 
-  case aa_DragSugar:
+  case aa_DragItem:
     actor_dragItem(pActor, pLevel);
     break;
 

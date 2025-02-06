@@ -121,7 +121,7 @@ enum actorAction
   aa_Wait,
   aa_DiagonalMoveLeft,
   aa_DiagonalMoveRight,
-  aa_DragSugar,
+  aa_DragItem,
 
   _actorAction_Count
 };

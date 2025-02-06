@@ -59,7 +59,7 @@ void level_gen_puddle_food_sugar_underwater_level(level *pLvl)
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 10);
   level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Underwater, level::total / 10);
-  level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Fat | tf_Underwater, level::total / 10);
+  //level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Fat | tf_Underwater, level::total / 10);
   level_gen_finalize(pLvl);
 }
 
@@ -79,8 +79,8 @@ void level_gen_sprinkle_collidable_level(level *pLvl)
 
 void level_generateDefault(level *pLvl)
 {
-  level_gen_puddle_sugar_underwater_level(pLvl);
-  //level_gen_puddle_food_sugar_underwater_level(pLvl);
+  //level_gen_puddle_sugar_underwater_level(pLvl);
+  level_gen_puddle_food_sugar_underwater_level(pLvl);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -253,12 +253,13 @@ size_t evaluate_actor(const actor &in)
   for (size_t i = 0; i < EvaluatingCycles; i++)
   {
     const vec2u16 posBefore = actr.pos;
+    const bool underwaterBefore = !!(actr.last_view_cone[vcp_self] & tf_Underwater);
     const bool sugarAtPosBefore = !!(actr.last_view_cone[vcp_self] & tf_Sugar);
 
-    //uint16_t stomachFillLevelBefore = 0;
+    uint16_t stomachFillLevelBefore = 0;
 
-    //for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
-      //stomachFillLevelBefore += actr.stats[j];
+    for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
+      stomachFillLevelBefore += actr.stats[j];
 
     const uint16_t sugarLevelBefore = actr.stats[as_Sugar];
 
@@ -266,10 +267,10 @@ size_t evaluate_actor(const actor &in)
       break;
 
     const uint16_t sugarLevelAfter = actr.stats[as_Sugar];
-    //uint16_t stomachFillLevelAfter = 0;
+    uint16_t stomachFillLevelAfter = 0;
 
-    //for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
-      //stomachFillLevelAfter += actr.stats[j];
+    for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
+      stomachFillLevelAfter += actr.stats[j];
 
     uint16_t foodSeeScore = 0;
     static const uint16_t perViewConePosFoodSeeScore[] = {
@@ -292,10 +293,11 @@ size_t evaluate_actor(const actor &in)
     score += 3;
     score += !(actr.last_view_cone.values[vcp_self] & tf_Underwater) ? 1 : 0;
     score += foodSeeScore;
+    score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 100;
     score += ((uint8_t)(sugarLevelAfter > sugarLevelBefore)) * 1000;
 
     // score: if pos changed and sugar at vcp_self before and now.
-    score += (posBefore != actr.pos && sugarAtPosBefore && !!(actr.last_view_cone[vcp_self])) * 1000;
+    score += (underwaterBefore && (actr.last_action == aa_DragItem) && sugarAtPosBefore && !!(actr.last_view_cone[vcp_self])) * 600;
   }
 
   return score;
