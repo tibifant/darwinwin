@@ -255,18 +255,21 @@ size_t evaluate_actor(const actor &in)
     const vec2u16 posBefore = actr.pos;
     const bool sugarAtPosBefore = !!(actr.last_view_cone[vcp_self] & tf_Sugar);
 
-    uint16_t stomachFillLevelBefore = 0;
+    //uint16_t stomachFillLevelBefore = 0;
 
-    for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
-      stomachFillLevelBefore += actr.stats[j];
+    //for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
+      //stomachFillLevelBefore += actr.stats[j];
+
+    const uint16_t sugarLevelBefore = actr.stats[as_Sugar];
 
     if (!level_performStep(lvl, &actr, 1))
       break;
 
-    uint16_t stomachFillLevelAfter = 0;
+    const uint16_t sugarLevelAfter = actr.stats[as_Sugar];
+    //uint16_t stomachFillLevelAfter = 0;
 
-    for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
-      stomachFillLevelAfter += actr.stats[j];
+    //for (size_t j = _actorStats_FoodBegin; j <= _actorStats_FoodEnd; j++)
+      //stomachFillLevelAfter += actr.stats[j];
 
     uint16_t foodSeeScore = 0;
     static const uint16_t perViewConePosFoodSeeScore[] = {
@@ -289,10 +292,10 @@ size_t evaluate_actor(const actor &in)
     score += 3;
     score += !(actr.last_view_cone.values[vcp_self] & tf_Underwater) ? 1 : 0;
     score += foodSeeScore;
-    score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 1000;
+    score += ((uint8_t)(sugarLevelAfter > sugarLevelBefore)) * 1000;
 
     // score: if pos changed and sugar at vcp_self before and now.
-    score += (posBefore != actr.pos && sugarAtPosBefore && !!(actr.last_view_cone[vcp_self])) ? 3000 : 0;
+    score += (posBefore != actr.pos && sugarAtPosBefore && !!(actr.last_view_cone[vcp_self])) * 1000;
   }
 
   return score;
