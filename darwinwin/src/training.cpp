@@ -46,7 +46,7 @@ void level_gen_puddle_sugar_underwater_level(level *pLvl)
   level_gen_init(pLvl, 0);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 8);
   level_gen_grow(pLvl, tf_Underwater);
-  level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Underwater, level::total / 7);
+  level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Underwater, level::total / 4);
   level_gen_finalize(pLvl);
 }
 
