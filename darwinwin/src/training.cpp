@@ -41,6 +41,27 @@ void level_gen_puddle_food_level(level *pLvl)
   level_gen_finalize(pLvl);
 }
 
+void level_gen_puddle_sugar_underwater_level(level *pLvl)
+{
+  level_gen_init(pLvl, 0);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 8);
+  level_gen_grow(pLvl, tf_Underwater);
+  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, tf_Sugar, level::total / 10);
+  level_gen_finalize(pLvl);
+}
+
+void level_gen_puddle_food_sugar_underwater_level(level *pLvl)
+{
+  level_gen_init(pLvl, 0);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 8);
+  level_gen_grow(pLvl, tf_Underwater);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 10);
+  level_gen_random_sprinkle_replace_mask(pLvl, tf_Underwater, tf_Sugar, level::total / 10);
+  level_gen_finalize(pLvl);
+}
+
 void level_gen_sprinkle_collidable_level(level *pLvl)
 {
   level_gen_init(pLvl, 0);
@@ -58,7 +79,6 @@ void level_gen_sprinkle_collidable_level(level *pLvl)
 void level_generateDefault(level *pLvl)
 {
   level_gen_puddle_food_level(pLvl);
-  //level_gen_sprinkle_collidable_level(pLvl);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -218,6 +238,9 @@ void mutate(actor &target, const mutator &m)
 //////////////////////////////////////////////////////////////////////////
 
 constexpr size_t EvaluatingCycles = 64;
+
+// score: more sugar = more good
+// if sugar at vcp_self, then position changed, then still sugar at vcp_self
 
 size_t evaluate_actor(const actor &in)
 {
