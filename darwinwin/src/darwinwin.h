@@ -145,3 +145,4 @@ struct actor
 void actor_updateStats(actor *pActor, const viewCone &cone);
 void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action);
 void actor_initStats(actor *pActor);
+void actor_initStatsTraining(actor *pActor);

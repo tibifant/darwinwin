@@ -320,6 +320,15 @@ void actor_initStats(actor *pActor)
   pActor->stats[as_Energy] = 128;
 }
 
+void actor_initStatsTraining(actor *pActor)
+{
+  for (size_t i = 0; i < _actorStats_Count; i++)
+    pActor->stats[i] = 0;
+
+  pActor->stats[as_Air] = MaxStatsValue;
+  pActor->stats[as_Energy] = 64;
+}
+
 void actor_updateStats(actor *pActor, const viewCone &cone)
 {
   // Check air
