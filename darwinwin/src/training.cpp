@@ -60,7 +60,7 @@ void level_gen_puddle_food_sugar_underwater_level(level *pLvl)
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 50);
   level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Underwater, level::total / 10);
   //level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Fat | tf_Underwater, level::total / 10);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Collidable, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Collidable, level::total / 30);
   level_gen_sprinkle_grow(pLvl, tf_Collidable, level_gen_make_chance<0.5>());
   level_gen_finalize(pLvl);
 }
@@ -299,12 +299,12 @@ size_t evaluate_actor(const actor &in)
     score += 30;
     score += !(actr.last_view_cone.values[vcp_self] & tf_Underwater) ? 1 : 0;
     score += foodSeeScore * 5;
-    score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 1000ULL;
-    score += ((uint8_t)(sugarLevelAfter > sugarLevelBefore)) * 1000ULL;
+    score += ((uint8_t)(stomachFillLevelAfter > stomachFillLevelBefore)) * 2000ULL;
+    score += ((uint8_t)(sugarLevelAfter > sugarLevelBefore)) * 10000ULL;
 
     // score: if pos changed and sugar at vcp_self before and now.
-    score += (size_t)(underwaterBefore && (actr.last_action == aa_DragItem) && sugarAtPosBefore && sugarAtPosAfter) * 100;
-    score += ((size_t)(underwaterBefore && !underwaterAfter && sugarAtPosBefore && sugarAtPosAfter && actr.last_action == aa_DragItem)) * 200;
+    score += (size_t)(underwaterBefore && (actr.last_action == aa_DragItem) && sugarAtPosBefore && sugarAtPosAfter) * 300;
+    score += ((size_t)(underwaterBefore && !underwaterAfter && sugarAtPosBefore && sugarAtPosAfter && actr.last_action == aa_DragItem)) * 800;
   }
 
   return score;
@@ -390,6 +390,7 @@ lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *di
       evolution_reevaluate(evol, evaluate_actor);
 
     const int64_t startNs = lsGetCurrentTimeNs();
+    const int64_t startMs = lsGetCurrentTimeMs();
 
     for (size_t i = 0; i < evolutions.count; i++)
     {
@@ -397,7 +398,7 @@ lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *di
 
       std::function<void()> async_func = [=]()
         {
-          for (size_t j = 0; j < generationsPerLevel && _DoTraining; j++)
+          for (size_t j = 0; _DoTraining && lsGetCurrentTimeMs() - startMs < 2500; j++)
             evolution_generation(*pEvolution, evaluate_actor);
         };
 
@@ -441,16 +442,16 @@ lsResult train_loopIndependentEvolution(thread_pool *pThreadPool, const char *di
     }
 
     const actor_ref *pBestRef = list_get(&best_actor_refs, 0);
-    print_log_line("Current Best: Training Cycle: ", trainingCycle, " w/ score: ", pBestRef->score, " (", FD(Group, Frac(3))(geneGenerationCount / ((endNs - startNs) * 1e-9)), " Generations/s)");
+    print_log_line("Current Best: Training Cycle: ", trainingCycle, " w/ score: ", pBestRef->score, " (", FD(Group, Frac(3))(geneGenerationCount / ((endNs - startNs) * 1e-9)), " Generations/s (THIS IS NOW A LIE, AS WE'RE TIME-BASED!))");
 
-    if constexpr (std::remove_cvref_t<decltype(evolutions[0])>::has_mutator_state)
-    {
-      for (size_t j = 0; j < evolutions.count; j++)
-      {
-        print('\t', FU(Min(3))(j), ": ");
-        mutator_state_print(evolutions[j].mutatorState);
-      }
-    }
+    //if constexpr (std::remove_cvref_t<decltype(evolutions[0])>::has_mutator_state)
+    //{
+    //  for (size_t j = 0; j < evolutions.count; j++)
+    //  {
+    //    print('\t', FU(Min(3))(j), ": ");
+    //    mutator_state_print(evolutions[j].mutatorState);
+    //  }
+    //}
 
     LS_ERROR_CHECK(actor_saveBrain(dir, best_actors[0]));
 

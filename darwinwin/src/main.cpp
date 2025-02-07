@@ -305,15 +305,23 @@ crow::response handle_aiStep(const crow::request &)
   {
     if (_WebActors[i].stats[as_Energy] == 0)
     {
-      const uint64_t rand = lsGetRand();
-      _WebActors[i].pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
-      _WebActors[i].pos += vec2u16(level::wallThickness);
-      _WebActors[i].look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+      size_t maxRetries = 10;
+      uint64_t rand;
+
+      do
+      {
+        rand = lsGetRand();
+        _WebActors[i].pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+        _WebActors[i].pos += vec2u16(level::wallThickness);
+        _WebActors[i].look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+        maxRetries--;
+      } while ((_WebLevel.grid[_WebActors[i].pos.x + _WebActors[i].pos.y * level::width] & tf_Collidable) && maxRetries);
+
       lsZeroMemory(_WebActors[i].previous_feedback_output, LS_ARRAYSIZE(_WebActors[i].previous_feedback_output));
 
       actor_initStats(&_WebActors[i]);
 
-      if (rand & (0b1111ULL << 24))
+      if (rand & (0b1111ULL << 48))
       {
         actor_loadNewestBrain(_TrainingDirectory, _WebActors[i]);
       }
