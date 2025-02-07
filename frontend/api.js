@@ -191,16 +191,16 @@ function checkTileFlags(tile, tileElement){
     return;
   }
   if(hasTileCondition(tile, "Fat")){
-    tileElement.appendChild(createFoodOf('F'));
+    tileElement.appendChild(createFoodOf('🍕'));
   }
   if(hasTileCondition(tile, "Vitamin")){
-    tileElement.appendChild(createFoodOf('V'));
+    tileElement.appendChild(createFoodOf('🍎'));
   }
   if(hasTileCondition(tile, "Sugar")){
-    tileElement.appendChild(createFoodOf('S'));
+    tileElement.appendChild(createFoodOf('🍭'));
   }
   if(hasTileCondition(tile, "Protein")){
-    tileElement.appendChild(createFoodOf('P'));
+    tileElement.appendChild(createFoodOf('🫘'));
   }
   if(hasTileCondition(tile, "Underwater")){ //Underwater
     tileElement.style.backgroundColor = 'rgb(50, 115, 185)';
@@ -280,7 +280,12 @@ function showViewCone(actor){
   const viewCone = worldData.actor[actor._index].viewcone;
   for(let i=0; i<viewCone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
-    tile.innerText = viewCone[i];
+    
+    if (i == 0)
+      tile.innerText = '👁️';
+    else
+      tile.innerText = '';
+    
     tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile);
   }
@@ -301,10 +306,10 @@ function createActorOptionsButtonsElement(actor){
 
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
-  actorActions.forEach((action, i) => {
-    const button = createActorButton(actor, action, i);
-    optionsButtonsElement.appendChild(button);
-  })
+  //actorActions.forEach((action, i) => {
+  //  const button = createActorButton(actor, action, i);
+  //  optionsButtonsElement.appendChild(button);
+  //})
   return optionsButtonsElement;
 }
 

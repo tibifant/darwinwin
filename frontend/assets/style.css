@@ -202,6 +202,7 @@ div.box {
 
 .view-cone-tile {
   display: flex;
+  font-size: 40pt;
 }
 
 .level-tile{
