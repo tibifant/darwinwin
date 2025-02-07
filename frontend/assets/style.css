@@ -126,6 +126,14 @@ div.box {
   flex-direction: row;
 }
 
+.fgh {
+  color: #FFF;
+  margin: 50pt;  
+  padding: 10pt;
+  background-color: #363636;  
+  font-size: 20pt;
+}
+
 .stats-container {
   width: 20vw;
   min-height: 100pt;

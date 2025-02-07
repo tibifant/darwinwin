@@ -42,9 +42,9 @@ function setupStatsWindow(){
   let statsMessage = document.createElement("label")
   statsMessage.innerText = "Click on tile or actor to reveal stats..."
   infoLabelsElement.appendChild(statsMessage);
-  statsMessage = document.createElement("label")
-  statsMessage.innerText = "Click on tile or actor to see options..."
-  optionsElement.appendChild(statsMessage);
+  //statsMessage = document.createElement("label")
+  //statsMessage.innerText = "Click on tile or actor to see options..."
+  //optionsElement.appendChild(statsMessage);
 }
 
 function setupMap(){
@@ -357,8 +357,8 @@ function fillTileStatsElements(tile, labels, values, optionsButtonsElement){
     labels.innerHTML += flag+"<br>";
     values.innerHTML += hasTileCondition(grid[tile._index], flag)+"<br>";
 
-    const button = createTileButton(tile._index, flag);
-    optionsButtonsElement.appendChild(button);
+    //const button = createTileButton(tile._index, flag);
+    //optionsButtonsElement.appendChild(button);
   }
 }
 
@@ -380,7 +380,7 @@ function levelGenerate(){
 
 function aiStepStart(event){
   const button = event.target;
-  button.dataset.intervalId = setInterval(postAiStepRequest, 1000).toString();
+  button.dataset.intervalId = setInterval(postAiStepRequest, 500).toString();
   button.onclick = aiStepStop;
   button.innerText = "Stop AI Step";
 }
