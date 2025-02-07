@@ -126,9 +126,9 @@ div.box {
   flex-direction: row;
 }
 
-.fgh {
+.info {
   color: #FFF;
-  margin: 50pt;  
+  margin: 10pt;  
   padding: 10pt;
   background-color: #363636;  
   font-size: 20pt;
