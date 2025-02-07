@@ -314,10 +314,10 @@ constexpr uint8_t MaxStatsValue = 127;
 void actor_initStats(actor *pActor)
 {
   for (size_t i = 0; i < _actorStats_Count; i++)
-    pActor->stats[i] = 0;
+    pActor->stats[i] = 32;
 
   pActor->stats[as_Air] = MaxStatsValue;
-  pActor->stats[as_Energy] = 64;
+  pActor->stats[as_Energy] = 128;
 }
 
 void actor_updateStats(actor *pActor, const viewCone &cone)

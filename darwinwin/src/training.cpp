@@ -53,13 +53,15 @@ void level_gen_puddle_sugar_underwater_level(level *pLvl)
 void level_gen_puddle_food_sugar_underwater_level(level *pLvl)
 {
   level_gen_init(pLvl, 0);
-  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 8);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Underwater, level::total / 10);
   level_gen_grow(pLvl, tf_Underwater);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Vitamin, level::total / 50);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Protein, level::total / 50);
   level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Fat, level::total / 50);
   level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Underwater, level::total / 10);
   //level_gen_random_sprinkle_replace(pLvl, tf_Underwater, tf_Sugar | tf_Fat | tf_Underwater, level::total / 10);
+  level_gen_random_sprinkle_replace_inv_mask(pLvl, tf_Underwater, tf_Collidable, level::total / 10);
+  level_gen_sprinkle_grow(pLvl, tf_Collidable, level_gen_make_chance<0.5>());
   level_gen_finalize(pLvl);
 }
 
