@@ -126,12 +126,17 @@ div.box {
   flex-direction: row;
 }
 
-.info {
-  color: #FFF;
-  margin: 10pt;  
+.fgh {
+  color: #131313;
+  margin: 6pt;
   padding: 10pt;
-  background-color: #363636;  
-  font-size: 20pt;
+  background-color: #ffffff;  
+  font-size: 18pt;
+}
+
+a {
+  color: #888888;
+  font-size: 10pt;
 }
 
 .stats-container {
