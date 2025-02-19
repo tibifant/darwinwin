@@ -49,6 +49,7 @@ Vorab: Ziel Testbarkeit fuer Actor movement, level Generierung und Interaktion, 
 - Konsultierung eines Subject Matter Experts zum evolutionären Algorithmus, Evaluierung des Sketchouts fuer den evulutionären Algorithmus und Neuronales Netzwerk Implementierung in SIMD
 - Ablauf eines Zuges: Aktuelle Stats anpassen, Viewcone erfassen, Neuronales Netzwerk evaluiert Werte, Ergebnis als Aktion des Actors auswerten und ausfuehren.
 - Funktionen fuer Frontend-Anbindung: `getLevel` um das gesamte Level zu erhalten, `setTile` um eine einzelne Tile im Level auf einen Wert zu setzen, `manualAct` um den Actor manuell eine Aktion ausfuehren zu lassen.
+- Setup des Frontends: index.html, Stylesheet, API-Anbindug
 
 ## 06.01.2025: Besprechung der Grundlagen und Rahmenbedingungen.
 
@@ -98,7 +99,7 @@ Aktuelle Tasks:
 - Grundgeruest des Genetic Algorithm ist implementiert und mit einfachem Beispiel erfolgreich getestet
 - Anpassungen der Logik in verschiedenen Actor-Actions.
 - Code Review durchgefuehrt
-- Crossbreed und Mutate Funktionen fuer Aktor (Mittwochs)
+- Crossbreed und Mutate Funktionen fuer Actor (Mittwochs)
 
 **Aktuelle Tasks:**
 - Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
@@ -143,7 +144,7 @@ Training Engine:
 - Speichersystem NN
 - Level Generator
 
-# 14.01.2025
+## 14.01.2025
 
 **Marvin:**
 - Refactoring, collidables werden korrekt angezeigt
