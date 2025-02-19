@@ -82,7 +82,7 @@ Aktuelle Tasks:
 **Malin:**
 - Das Weblevel wird mit Testwerten initalisiert.
 - Der Actor erhaelt Energie zurueck, wenn er Dinge isst.
-- Erstellen und Updaten der Readne.md und des Progress Reports
+- Erstellen und Updaten der Readme.md und des Progress Reports
 
 **Hauptrioritaet Frontend:** Visualisierung Level.
 
@@ -166,7 +166,7 @@ Frontend:
 - Clean-Up und Refactoring
 
 Training Engine:
-- getLevel viewcone hinzufuegen
+- `/get_level` viewcone hinzufuegen
 - NN in Datei schreiben
 - Level Generator
 
@@ -178,7 +178,7 @@ Training Engine:
 - Anfang view cone Implementierung
 
 **Malin:**
-- viewcone zu getlevel hinzugefuegt
+- viewcone zu `/get_level` hinzugefuegt
 - Level Generator
 - Neuronales Netzwerk kann gespeichert und das neueste geladen werden (Mittwochs)
 - Funktion zur Reevaluierung der Gene im Evolutionsprozess (Mittwochs)
@@ -325,14 +325,14 @@ Training Engine:
 **Marvin:**
 - Ai_step auto updates Stats view (war Donnerstag, hatte aber MR noch nicht gemacht)
 - Buttons für neue actions
-- cooy paste tileflags
+- copy paste tileflags
 
 **Malin:**
 - Verbesserte, viel effizientere Variante fuer den Crossbreeder
 - Bugfixes im Mutator
 - Refactoring
-- Optimisierierung
-- Hinzufuegen eines Inplace-Mergesort-Algorithmus, um die Reihenfolge der besten Ergebnisse im Training beizubehalten  
+- Optimisierierung (Wochenende)
+- Hinzufuegen eines Inplace-Mergesort-Algorithmus, um die Reihenfolge der besten Ergebnisse im Training beizubehalten (Wochenende)
 
 **Aktuelle Tasks:**
 
@@ -405,7 +405,7 @@ Training Engine:
 **Malin:**
 - Abschlusspraesentation
 - Start/Stop Training Button
-- Mergen mit Malin
+- Merge Requests bearbeiten
 
 **Aktuelle Tasks:**
 
