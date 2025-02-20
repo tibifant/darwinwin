@@ -105,12 +105,12 @@ function setupViewCone(){
   const viewConeSize = 8;
   const positions = [
     { row: 1, col: 2 },
-    { row: 2, col: 3 },
-    { row: 2, col: 2 },
     { row: 2, col: 1 },
-    { row: 3, col: 3 },
-    { row: 3, col: 2 },
+    { row: 2, col: 2 },
+    { row: 2, col: 3 },
     { row: 3, col: 1 },
+    { row: 3, col: 2 },
+    { row: 3, col: 3 },
     { row: 4, col: 2 },
   ];
 
@@ -380,7 +380,7 @@ function levelGenerate(){
 
 function aiStepStart(event){
   const button = event.target;
-  button.dataset.intervalId = setInterval(postAiStepRequest, 800).toString();
+  button.dataset.intervalId = setInterval(postAiStepRequest, 500).toString();
   button.onclick = aiStepStop;
   button.innerText = "Stop AI Step";
 }
