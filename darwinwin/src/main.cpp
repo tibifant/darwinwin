@@ -160,7 +160,7 @@ int32_t main(const int32_t argc, const char **pArgv)
       if (LS_FAILED(lsCreateDirectory(_TrainingDirectory)))
         print_error_line("Failed to create training directory at '", _TrainingDirectory, "'.");
 
-    _pThreadPool = thread_pool_new(lsMax(1, thread_pool_max_threads() / 4));
+    _pThreadPool = thread_pool_new(lsMax(1, thread_pool_max_threads()));
 
     if (!_pThreadPool)
       print_error_line("Failed to initialize thread pool.");
