@@ -42,9 +42,9 @@ function setupStatsWindow(){
   let statsMessage = document.createElement("label")
   statsMessage.innerText = "Click on tile or actor to reveal stats..."
   infoLabelsElement.appendChild(statsMessage);
-  //statsMessage = document.createElement("label")
-  //statsMessage.innerText = "Click on tile or actor to see options..."
-  //optionsElement.appendChild(statsMessage);
+  statsMessage = document.createElement("label")
+  statsMessage.innerText = "Click on tile or actor to see options..."
+  optionsElement.appendChild(statsMessage);
 }
 
 function setupMap(){
@@ -236,6 +236,7 @@ function showActorStats(actor){
     "wait",
     "diagonal left",
     "diagonal right",
+    "drag item",
   ]
 
   const infoLabelsElement = document.getElementById("stats-info-labels");
