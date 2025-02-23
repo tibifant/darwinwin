@@ -248,6 +248,7 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone);
 void actor_wait(actor *pActor);
 void actor_moveDiagonalLeft(actor *pActor, const level lvl);
 void actor_moveDiagonalRight(actor *pActor, const level lvl);
+void actor_dragItem(actor *pActor, level *pLvl);
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -297,6 +298,10 @@ void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAc
     actor_moveDiagonalRight(pActor, *pLevel);
     break;
 
+  case aa_DragItem:
+    actor_dragItem(pActor, pLevel);
+    break;
+
   default:
     lsFail(); // not implemented.
     break;
@@ -307,6 +312,15 @@ constexpr uint8_t MinStatsValue = 0;
 constexpr uint8_t MaxStatsValue = 127;
 
 void actor_initStats(actor *pActor)
+{
+  for (size_t i = 0; i < _actorStats_Count; i++)
+    pActor->stats[i] = 32;
+
+  pActor->stats[as_Air] = MaxStatsValue;
+  pActor->stats[as_Energy] = 128;
+}
+
+void actor_initStatsTraining(actor *pActor)
 {
   for (size_t i = 0; i < _actorStats_Count; i++)
     pActor->stats[i] = 0;
@@ -465,9 +479,11 @@ void actor_eat(actor *pActor, level *pLvl, const viewCone &cone)
   lsAssert(stomachFoodCount <= StomachCapacity);
   bool anyFood = false;
 
+  constexpr uint8_t underwater_and_sugar = (tf_Sugar | tf_Underwater);
+
   for (size_t i = _actorStats_FoodBegin; i <= _actorStats_FoodEnd; i++)
   {
-    if (cone[vcp_self] & (1ULL << i))
+    if (cone[vcp_self] & (1ULL << i) && !((cone[vcp_self] & underwater_and_sugar) == underwater_and_sugar))
     {
       stomachFoodCount += modify_with_clamp(pActor->stats[i], FoodAmount, lsMinValue<uint8_t>(), (uint8_t)((StomachCapacity - stomachFoodCount) + pActor->stats[i]));
       pLvl->grid[pActor->pos.y * level::width + pActor->pos.x] &= ~(1ULL << i); // yes, actor stats & tile masks SHARE the masks for foods.
@@ -542,5 +558,44 @@ void actor_moveDiagonalRight(actor *pActor, const level lvl)
   lsAssert(!(lvl.grid[newIdx] & tf_Collidable));
   lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
 
+  pActor->pos = newPos;
+}
+
+void actor_dragItem(actor *pActor, level *pLvl)
+{
+  constexpr int16_t DragCost = 4;
+  constexpr vec2i16 lut[_lookDirection_Count] = { vec2i16(-1, 0), vec2i16(0, -1), vec2i16(1, 0), vec2i16(0, 1) };
+
+  const size_t currentIdx = pActor->pos.y * level::width + pActor->pos.x;
+  lsAssert(pActor->pos.x < level::width && pActor->pos.y < level::height);
+  lsAssert(!(pLvl->grid[currentIdx] & tf_Collidable));
+
+  const size_t oldEnergy = pActor->stats[as_Energy];
+  modify_with_clamp(pActor->stats[as_Energy], -DragCost, MinStatsValue, MaxStatsValue);
+
+  if (oldEnergy < DragCost)
+    return;
+
+  const vec2u16 newPos = vec2u16(vec2i16(pActor->pos) + lut[pActor->look_dir]);
+  const size_t newIdx = newPos.y * level::width + newPos.x;
+
+  constexpr tileFlag FoodMask = tf_Protein | tf_Fat | tf_Vitamin | tf_Sugar;
+  const tileFlag targetTile = pLvl->grid[newIdx];
+  const tileFlag currentTile = pLvl->grid[currentIdx];
+
+  if (!!(targetTile & tf_Collidable) || !!(targetTile & FoodMask) || !(currentTile & FoodMask))
+  {
+    modify_with_clamp(pActor->stats[as_Energy], -CollideEnergyCost, MinStatsValue, MaxStatsValue); // should this add up?
+    return;
+  }
+
+  lsAssert(!(currentTile & tf_Sugar));
+  lsAssert(!(targetTile & tf_Collidable));
+  lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
+
+  const tileFlag item = currentTile & FoodMask;
+  pLvl->grid[currentIdx] &= ~FoodMask;
+
+  pLvl->grid[newIdx] |= item;
   pActor->pos = newPos;
 }

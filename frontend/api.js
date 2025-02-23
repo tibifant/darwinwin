@@ -191,16 +191,16 @@ function checkTileFlags(tile, tileElement){
     return;
   }
   if(hasTileCondition(tile, "Fat")){
-    tileElement.appendChild(createFoodOf('F'));
+    tileElement.appendChild(createFoodOf('🍕'));
   }
   if(hasTileCondition(tile, "Vitamin")){
-    tileElement.appendChild(createFoodOf('V'));
+    tileElement.appendChild(createFoodOf('🍎'));
   }
   if(hasTileCondition(tile, "Sugar")){
-    tileElement.appendChild(createFoodOf('S'));
+    tileElement.appendChild(createFoodOf('🍭'));
   }
   if(hasTileCondition(tile, "Protein")){
-    tileElement.appendChild(createFoodOf('P'));
+    tileElement.appendChild(createFoodOf('🫘'));
   }
   if(hasTileCondition(tile, "Underwater")){ //Underwater
     tileElement.style.backgroundColor = 'rgb(50, 115, 185)';
@@ -236,6 +236,7 @@ function showActorStats(actor){
     "wait",
     "diagonal left",
     "diagonal right",
+    "drag item",
   ]
 
   const infoLabelsElement = document.getElementById("stats-info-labels");
@@ -291,7 +292,12 @@ function showViewCone(actor){
   const viewCone = worldData.actor[actor._index].viewcone;
   for(let i=0; i<viewCone.length; i++){
     const tile = document.getElementById('view-cone-tile-'+i);
-    tile.innerText = viewCone[i];
+    
+    if (i == 0)
+      tile.innerText = '👁️';
+    else
+      tile.innerText = '';
+    
     tile.style.backgroundColor = emptyColor;
     checkTileFlags(viewCone[i], tile);
   }
@@ -419,7 +425,7 @@ function levelGenerate(){
 
 function aiStepStart(event){
   const button = event.target;
-  button.dataset.intervalId = setInterval(postAiStepRequest, 1000).toString();
+  button.dataset.intervalId = setInterval(postAiStepRequest, 500).toString();
   button.onclick = aiStepStop;
   button.innerText = "Stop AI Step";
 }

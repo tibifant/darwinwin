@@ -76,7 +76,7 @@ static void print_args();
 
 static std::atomic<bool> _IsRunning = true;
 static level _WebLevel;
-static actor _WebActor(vec2u8(level::width / 2, level::height / 2), ld_up);
+static actor _WebActors[8];
 static std::thread *_pTrainingThread = nullptr;
 static thread_pool *_pThreadPool = nullptr;
 static const char *_TrainingDirectory = "training/";
@@ -168,7 +168,17 @@ int32_t main(const int32_t argc, const char **pArgv)
     crow::App<crow::CORSHandler> app;
 
     level_generateDefault(&_WebLevel);
-    actor_initStats(&_WebActor);
+
+    for (size_t i = 0; i < LS_ARRAYSIZE(_WebActors); i++)
+    {
+      const uint64_t rand = lsGetRand();
+      _WebActors[i].pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+      _WebActors[i].pos += vec2u16(level::wallThickness);
+      _WebActors[i].look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+      lsZeroMemory(_WebActors[i].previous_feedback_output, LS_ARRAYSIZE(_WebActors[i].previous_feedback_output));
+
+      actor_initStats(&_WebActors[i]);
+    }
 
     auto &cors = app.get_middleware<crow::CORSHandler>();
 #ifndef DARWINWIN_LOCALHOST
@@ -217,23 +227,26 @@ crow::response handle_getLevel(const crow::request &req)
     item = _WebLevel.grid[i];
   }
 
-  ret["actor"][0]["posX"] = _WebActor.pos.x;
-  ret["actor"][0]["posY"] = _WebActor.pos.y;
-  ret["actor"][0]["lookDir"] = _WebActor.look_dir;
-  ret["actor"][0]["lastAction"] = _WebActor.last_action; // Will be unitiialzed before first time acting.
-
-  for (size_t i = 0; i < _actorStats_Count; i++)
+  for (uint32_t j = 0; j < LS_ARRAYSIZE(_WebActors); j++)
   {
-    auto &item = ret["actor"][0]["stats"][(uint32_t)i];
-    item = _WebActor.stats[i];
-  }
+    ret["actor"][j]["posX"] = _WebActors[j].pos.x;
+    ret["actor"][j]["posY"] = _WebActors[j].pos.y;
+    ret["actor"][j]["lookDir"] = _WebActors[j].look_dir;
+    ret["actor"][j]["lastAction"] = _WebActors[j].last_action; // Will be unitiialzed before first time acting.
 
-  viewCone cone = viewCone_get(_WebLevel, _WebActor);
+    for (size_t i = 0; i < _actorStats_Count; i++)
+    {
+      auto &item = ret["actor"][j]["stats"][(uint32_t)i];
+      item = _WebActors[j].stats[i];
+    }
 
-  for (size_t i = 0; i < _viewConePosition_Count; i++)
-  {
-    auto &item = ret["actor"][0]["viewcone"][(uint32_t)i];
-    item = cone[(viewConePosition)i];
+    const viewCone cone = viewCone_get(_WebLevel, _WebActors[j]);
+
+    for (size_t k = 0; k < _viewConePosition_Count; k++)
+    {
+      auto &item = ret["actor"][j]["viewcone"][(uint32_t)k];
+      item = cone[(viewConePosition)k];
+    }
   }
 
   return ret;
@@ -270,17 +283,59 @@ crow::response handle_manualAct(const crow::request &req)
   if (id > _actorAction_Count)
     return crow::response(crow::status::BAD_REQUEST);
 
-  viewCone cone = viewCone_get(_WebLevel, _WebActor);
-  actor_updateStats(&_WebActor, cone);
-  actor_act(&_WebActor, &_WebLevel, cone, actorAction(id));
-  _WebActor.last_action = (actorAction)id;
+  for (size_t i = 0; i < LS_ARRAYSIZE(_WebActors); i++)
+  {
+    viewCone cone = viewCone_get(_WebLevel, _WebActors[i]);
+    actor_updateStats(&_WebActors[i], cone);
+    actor_act(&_WebActors[i], &_WebLevel, cone, actorAction(id));
+    _WebActors[i].last_action = (actorAction)id;
+  }
 
   return crow::response(crow::status::OK);
 }
 
 crow::response handle_aiStep(const crow::request &)
 {
-  level_performStep(_WebLevel, &_WebActor, 1);
+  level_gen_random_sprinkle_replace_inv_mask_count(&_WebLevel, tf_Underwater | tf_Collidable, tf_Fat, level::total / 2500, 2);
+  level_gen_random_sprinkle_replace_inv_mask_count(&_WebLevel, tf_Underwater | tf_Collidable, tf_Protein, level::total / 2500, 2);
+  level_gen_random_sprinkle_replace_inv_mask_count(&_WebLevel, tf_Underwater | tf_Collidable, tf_Vitamin, level::total / 2500, 2);
+  level_gen_random_sprinkle_replace_mask(&_WebLevel, tf_Underwater, tf_Underwater | tf_Sugar, level::total / 500);
+
+  for (size_t i = 0; i < LS_ARRAYSIZE(_WebActors); i++)
+  {
+    if (_WebActors[i].stats[as_Energy] == 0)
+    {
+      size_t maxRetries = 10;
+      uint64_t rand;
+
+      do
+      {
+        rand = lsGetRand();
+        _WebActors[i].pos = vec2u16((rand & 0xFFFF) % (level::width - level::wallThickness * 2), ((rand >> 16) & 0xFFFF) % (level::height - level::wallThickness * 2));
+        _WebActors[i].pos += vec2u16(level::wallThickness);
+        _WebActors[i].look_dir = (lookDirection)((rand >> 32) % _lookDirection_Count);
+        maxRetries--;
+      } while ((_WebLevel.grid[_WebActors[i].pos.x + _WebActors[i].pos.y * level::width] & tf_Collidable) && maxRetries);
+
+      lsZeroMemory(_WebActors[i].previous_feedback_output, LS_ARRAYSIZE(_WebActors[i].previous_feedback_output));
+
+      actor_initStats(&_WebActors[i]);
+
+      if (rand & (0b1111ULL << 48))
+      {
+        actor_loadNewestBrain(_TrainingDirectory, _WebActors[i]);
+      }
+      else
+      {
+        char filename[0x100];
+        sformat_to(filename, LS_ARRAYSIZE(filename), _TrainingDirectory, "/charles.brain");
+
+        actor_loadBrainFromFile(filename, _WebActors[i]);
+      }
+    }
+
+    level_performStep(_WebLevel, &_WebActors[i], 1);
+  }
 
   return crow::response(crow::status::OK);
 }
@@ -343,14 +398,16 @@ crow::response handle_loadTrainingLevel()
 
 crow::response handle_loadTrainingActor()
 {
-  actor_loadNewestBrain(_TrainingDirectory, _WebActor);
+  for (size_t i = 0; i < LS_ARRAYSIZE(_WebActors); i++)
+    actor_loadNewestBrain(_TrainingDirectory, _WebActors[i]);
 
   return crow::response(crow::status::OK);
 }
 
 crow::response handle_resetStats()
 {
-  actor_initStats(&_WebActor);
+  for (size_t i = 0; i < LS_ARRAYSIZE(_WebActors); i++)
+    actor_initStats(&_WebActors[i]);
 
   return crow::response(crow::status::OK);
 }

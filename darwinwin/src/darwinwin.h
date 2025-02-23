@@ -27,11 +27,11 @@ enum actorStats
 
 enum tileFlag_ : uint8_t
 {
-  tf_Underwater = 1ULL << as_Air, // actor stats & tile masks SHARE the masks for foods.
+  tf_Underwater = 1ULL << 0,
   tf_Protein = 1ULL << as_Protein, // actor stats & tile masks SHARE the masks for foods.
   tf_Sugar = 1ULL << as_Sugar, // actor stats & tile masks SHARE the masks for foods.
   tf_Vitamin = 1ULL << as_Vitamin, // actor stats & tile masks SHARE the masks for foods.
-  tf_Fat = 1ULL << as_Fat,
+  tf_Fat = 1ULL << as_Fat,  // actor stats & tile masks SHARE the masks for foods.
   _tileFlag_FoodMask = tf_Protein | tf_Sugar | tf_Vitamin | tf_Fat,
   tf_Collidable = 1ULL << 5,
   tf_OtherActor = 1ULL << 6, // not on the map
@@ -53,7 +53,7 @@ struct level
   static constexpr size_t height = 1ULL << heightBits;
   static constexpr size_t total = width * height;
 
-  static constexpr uint8_t wallThickness = 3; // this needs a shorter name
+  static constexpr uint8_t wallThickness = 3;
 
   uint8_t grid[width * height];
 };
@@ -121,6 +121,7 @@ enum actorAction
   aa_Wait,
   aa_DiagonalMoveLeft,
   aa_DiagonalMoveRight,
+  aa_DragItem,
 
   _actorAction_Count
 };
@@ -144,3 +145,4 @@ struct actor
 void actor_updateStats(actor *pActor, const viewCone &cone);
 void actor_act(actor *pActor, level *pLevel, const viewCone &cone, const actorAction action);
 void actor_initStats(actor *pActor);
+void actor_initStatsTraining(actor *pActor);
