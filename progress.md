@@ -49,6 +49,7 @@ Vorab: Ziel Testbarkeit fuer Actor movement, level Generierung und Interaktion, 
 - Konsultierung eines Subject Matter Experts zum evolutionären Algorithmus, Evaluierung des Sketchouts fuer den evulutionären Algorithmus und Neuronales Netzwerk Implementierung in SIMD
 - Ablauf eines Zuges: Aktuelle Stats anpassen, Viewcone erfassen, Neuronales Netzwerk evaluiert Werte, Ergebnis als Aktion des Actors auswerten und ausfuehren.
 - Funktionen fuer Frontend-Anbindung: `getLevel` um das gesamte Level zu erhalten, `setTile` um eine einzelne Tile im Level auf einen Wert zu setzen, `manualAct` um den Actor manuell eine Aktion ausfuehren zu lassen.
+- Setup des Frontends: index.html, Stylesheet, API-Anbindug
 
 ## 06.01.2025: Besprechung der Grundlagen und Rahmenbedingungen.
 
@@ -81,7 +82,7 @@ Aktuelle Tasks:
 **Malin:**
 - Das Weblevel wird mit Testwerten initalisiert.
 - Der Actor erhaelt Energie zurueck, wenn er Dinge isst.
-- Erstellen und Updaten der Readne.md und des Progress Reports
+- Erstellen und Updaten der Readme.md und des Progress Reports
 
 **Hauptrioritaet Frontend:** Visualisierung Level.
 
@@ -98,7 +99,7 @@ Aktuelle Tasks:
 - Grundgeruest des Genetic Algorithm ist implementiert und mit einfachem Beispiel erfolgreich getestet
 - Anpassungen der Logik in verschiedenen Actor-Actions.
 - Code Review durchgefuehrt
-- Crossbreed und Mutate Funktionen fuer Aktor (Mittwochs)
+- Crossbreed und Mutate Funktionen fuer Actor (Mittwochs)
 
 **Aktuelle Tasks:**
 - Frontend: angefragte Anpassungen implementieren, handling von `manualAct`
@@ -143,7 +144,7 @@ Training Engine:
 - Speichersystem NN
 - Level Generator
 
-# 14.01.2025
+## 14.01.2025
 
 **Marvin:**
 - Refactoring, collidables werden korrekt angezeigt
@@ -165,7 +166,7 @@ Frontend:
 - Clean-Up und Refactoring
 
 Training Engine:
-- getLevel viewcone hinzufuegen
+- `/get_level` viewcone hinzufuegen
 - NN in Datei schreiben
 - Level Generator
 
@@ -177,7 +178,7 @@ Training Engine:
 - Anfang view cone Implementierung
 
 **Malin:**
-- viewcone zu getlevel hinzugefuegt
+- viewcone zu `/get_level` hinzugefuegt
 - Level Generator
 - Neuronales Netzwerk kann gespeichert und das neueste geladen werden (Mittwochs)
 - Funktion zur Reevaluierung der Gene im Evolutionsprozess (Mittwochs)
@@ -324,14 +325,14 @@ Training Engine:
 **Marvin:**
 - Ai_step auto updates Stats view (war Donnerstag, hatte aber MR noch nicht gemacht)
 - Buttons für neue actions
-- cooy paste tileflags
+- copy paste tileflags
 
 **Malin:**
 - Verbesserte, viel effizientere Variante fuer den Crossbreeder
 - Bugfixes im Mutator
 - Refactoring
-- Optimisierierung
-- Hinzufuegen eines Inplace-Mergesort-Algorithmus, um die Reihenfolge der besten Ergebnisse im Training beizubehalten  
+- Optimisierierung (Wochenende)
+- Hinzufuegen eines Inplace-Mergesort-Algorithmus, um die Reihenfolge der besten Ergebnisse im Training beizubehalten (Wochenende)
 
 **Aktuelle Tasks:**
 
@@ -404,7 +405,7 @@ Training Engine:
 **Malin:**
 - Abschlusspraesentation
 - Start/Stop Training Button
-- Mergen mit Malin
+- Merge Requests bearbeiten
 
 **Aktuelle Tasks:**
 

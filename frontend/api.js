@@ -227,6 +227,17 @@ function updateActor(actor, index){
 
 // ### Stats view for Actor functions ###
 function showActorStats(actor){
+  const actorActions = [
+    "move",
+    "move 2",
+    "turn left",
+    "turn right",
+    "eat",
+    "wait",
+    "diagonal left",
+    "diagonal right",
+  ]
+
   const infoLabelsElement = document.getElementById("stats-info-labels");
   const infoValuesElement = document.getElementById("stats-info-values");
   const optionsElement = document.getElementById("stats-options");
@@ -237,11 +248,11 @@ function showActorStats(actor){
   const labelsElement = document.createElement('label')
   const valuesElement = document.createElement('label');
 
-  fillActorLabelsAndValuesElements(actor, labelsElement, valuesElement);
+  fillActorLabelsAndValuesElements(actor, labelsElement, valuesElement, actorActions);
 
   infoLabelsElement.appendChild(labelsElement);
   infoValuesElement.appendChild(valuesElement);
-  optionsElement.appendChild(createActorOptionsButtonsElement(actor));
+  optionsElement.appendChild(createActorOptionsButtonsElement(actor, actorActions));
 
   showViewCone(actor);
 
@@ -250,7 +261,7 @@ function showActorStats(actor){
   statsContainer._tileShown = null;
 }
 
-function fillActorLabelsAndValuesElements(actor, labels, values){
+function fillActorLabelsAndValuesElements(actor, labels, values, actorActions) {
   const lookDirections = [
     "left",
     "up",
@@ -268,8 +279,8 @@ function fillActorLabelsAndValuesElements(actor, labels, values){
 
   const actorIndex = actor._index;
   const targetActorStats = worldData.actor[actorIndex];
-  labels.innerHTML = "Actor ID:<br>PosX:<br>PosY:<br>LookDir:<br><br>";
-  values.innerHTML = `${actor.id}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br><br>`;
+  labels.innerHTML = "Actor ID:<br>PosX:<br>PosY:<br>LookDir:<br>Last Action<br><br>";
+  values.innerHTML = `${actor.id}<br>${targetActorStats.posX}<br>${targetActorStats.posY}<br>${lookDirections[targetActorStats.lookDir]}<br>${actorActions[targetActorStats.lastAction]}<br><br>`;
   for (const stat in targetActorStats.stats ){
     labels.innerHTML += statDescriptions[stat] + "<br>";
     values.innerHTML += targetActorStats.stats[stat] + "<br>";
@@ -291,25 +302,13 @@ function showViewCone(actor){
   }
 }
 
-function createActorOptionsButtonsElement(actor){
-  const actorActions = [
-    "move",
-    "move 2",
-    "turn left",
-    "turn right",
-    "eat",
-    "wait",
-    "moveDiagonalLeft",
-    "moveDiagonalRight",
-    "drag item"
-  ]
-
+function createActorOptionsButtonsElement(actor, actorActions){
   const optionsButtonsElement = document.createElement('div');
   optionsButtonsElement.classList.add('stats-subsection-column');
-  //actorActions.forEach((action, i) => {
-  //  const button = createActorButton(actor, action, i);
-  //  optionsButtonsElement.appendChild(button);
-  //})
+  actorActions.forEach((action, i) => {
+    const button = createActorButton(actor, action, i);
+    optionsButtonsElement.appendChild(button);
+  })
   return optionsButtonsElement;
 }
 
@@ -357,9 +356,11 @@ function fillTileStatsElements(tile, labels, values, optionsButtonsElement){
     labels.innerHTML += flag+"<br>";
     values.innerHTML += hasTileCondition(grid[tile._index], flag)+"<br>";
 
-    //const button = createTileButton(tile._index, flag);
-    //optionsButtonsElement.appendChild(button);
+    const button = createTileButton(tile._index, flag);
+    optionsButtonsElement.appendChild(button);
   }
+
+  optionsButtonsElement.appendChild(createCopyPasteElements(tile, optionsButtonsElement));
 }
 
 function createTileButton(tileIndex, key){
@@ -370,6 +371,49 @@ function createTileButton(tileIndex, key){
   button.innerText = "Toggle "+key;
   button.addEventListener('click', initiateSetTileRequest);
   return button;
+}
+
+function createCopyPasteElements(tile, optionsButtonsElement){
+  const statsContainer = document.getElementById("stats-container");
+  const copyPasteLabel = document.createElement("label");
+  const copyId = statsContainer._copiedTileId;
+  if(copyId){
+    copyPasteLabel.innerText = "Clipboard: " + copyId;
+  }
+  else {
+    copyPasteLabel.innerText = "Click copy to copy this tile's stats";
+  }
+  optionsButtonsElement.appendChild(copyPasteLabel);
+
+  const copyPasteContainer = document.createElement("div");
+  copyPasteContainer.classList.add('stats-copy-paste-container');
+
+  const copyButton = document.createElement("button");
+  copyButton._tileIndex = tile._index;
+  copyButton.innerText = "Copy";
+  copyButton.addEventListener('click', copyConditions);
+  copyPasteContainer.appendChild(copyButton);
+
+  const pasteButton = document.createElement("button");
+  pasteButton._tileIndex = tile._index;
+  pasteButton.innerText = "Paste";
+  if(!statsContainer._copiedTileId){
+    pasteButton.disabled = true;
+  }
+  pasteButton.addEventListener('click', initiateSetTileRequestPaste);
+  copyPasteContainer.appendChild(pasteButton);
+
+  return copyPasteContainer;
+}
+
+function copyConditions(event){
+  const button = event.target;
+  const tile = document.getElementById("tile-"+button._tileIndex);
+  const statsContainer = document.getElementById("stats-container");
+  statsContainer._copiedTileStats = tile._conditionsValue;
+  statsContainer._copiedTileId = tile.id;
+
+  fetchAllData(getUpdateStatsWindowFunction());
 }
 
 // ### Control Panel functions ###
@@ -414,6 +458,22 @@ function initiateSetTileRequest(event){
   const tile = document.getElementById("tile-"+tileIndex);
 
   const newTileValue = tile._conditionsValue ^ tileFlags[condition];
+
+  const payload = {
+    x: tile._posX,
+    y: tile._posY,
+    value: newTileValue
+  }
+
+  postTileSetRequest(payload, tile);
+}
+
+function initiateSetTileRequestPaste(event){
+  const button = event.target;
+  const tileIndex = button._tileIndex;
+  const statsContainer = document.getElementById("stats-container");
+  const newTileValue = statsContainer._copiedTileStats;
+  const tile = document.getElementById("tile-"+tileIndex);
 
   const payload = {
     x: tile._posX,
@@ -510,15 +570,7 @@ function postResetStatsRequest(){
 }
 
 function postAiStepRequest(){
-  const statsContainer = document.getElementById('stats-container');
-  let updateFunction = null;
-  if (statsContainer._tileShown) {
-    updateFunction = showTileStats.bind(null, statsContainer._tileShown);
-  }
-  if (statsContainer._actorShown) {
-    updateFunction = showActorStats.bind(null, statsContainer._actorShown);
-  }
-  const fetchAndUpdate = fetchAllData.bind(null, updateFunction);
+  const fetchAndUpdate = fetchAllData.bind(null, getUpdateStatsWindowFunction());
 
   load_backend_url('ai_step', fetchAndUpdate, {}, handleError);
 }
@@ -553,4 +605,17 @@ function postTrainingStartRequest(){
 
 function postTrainingStopRequest(){
   postStartStopTrainingRequest(trainingStartButtonId, trainingStopButtonId, "stop_training", false);
+}
+
+function getUpdateStatsWindowFunction(){
+  const statsContainer = document.getElementById('stats-container');
+  let updateStatsWindowFunction = null;
+  if (statsContainer._tileShown) {
+    updateStatsWindowFunction = showTileStats.bind(null, statsContainer._tileShown);
+  }
+  if (statsContainer._actorShown) {
+    updateStatsWindowFunction = showActorStats.bind(null, statsContainer._actorShown);
+  }
+
+  return updateStatsWindowFunction;
 }
