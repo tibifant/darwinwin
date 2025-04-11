@@ -589,7 +589,7 @@ void actor_dragItem(actor *pActor, level *pLvl)
     return;
   }
 
-  lsAssert(!(currentTile & tf_Sugar));
+  lsAssert(!(targetTile & tf_Sugar));
   lsAssert(!(targetTile & tf_Collidable));
   lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
 
