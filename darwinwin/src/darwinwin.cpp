@@ -161,7 +161,7 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
     for (size_t j = 0; j < _actorAction_Count; j++)
       actionValueCount += ioBuffer[j];
 
-    const size_t rand = lsGetRand() % lsMax(actionValueCount, 1);
+    size_t rand = lsGetRand() % lsMax(actionValueCount, 1);
     size_t bestActionIndex = 0;
 
     for (; bestActionIndex < _actorAction_Count - 1; bestActionIndex++)
