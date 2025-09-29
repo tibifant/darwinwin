@@ -161,21 +161,20 @@ bool level_performStep(level &lvl, actor *pActors, const size_t actorCount)
     for (size_t j = 0; j < _actorAction_Count; j++)
       actionValueCount += ioBuffer[j];
 
+    size_t rand = lsGetRand() % lsMax(actionValueCount, 1);
     size_t bestActionIndex = 0;
 
-    const size_t rand = lsGetRand() % lsMax(actionValueCount, 1);
-
-    for (size_t actionIndex = 0; actionIndex < _actorAction_Count; actionIndex++)
+    for (; bestActionIndex < _actorAction_Count - 1; bestActionIndex++)
     {
-      const int16_t val = ioBuffer[actionIndex];
+      const int16_t val = ioBuffer[bestActionIndex];
 
-      if (val < rand)
+      if (rand <= val)
       {
-        bestActionIndex = actionIndex;
+        bestActionIndex = bestActionIndex;
         break;
       }
 
-      actionValueCount -= val;
+      rand -= val;
     }
 
     pActors[i].last_action = (actorAction)bestActionIndex;
@@ -589,7 +588,7 @@ void actor_dragItem(actor *pActor, level *pLvl)
     return;
   }
 
-  lsAssert(!(currentTile & tf_Sugar));
+  lsAssert(!(targetTile & tf_Sugar));
   lsAssert(!(targetTile & tf_Collidable));
   lsAssert(newPos.x < level::width - level::wallThickness && newPos.y < level::height - level::wallThickness && newPos.x >= level::wallThickness && newPos.y >= level::wallThickness);
 
