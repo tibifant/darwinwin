@@ -50,7 +50,7 @@ void read_byte_stream_destroy(raw_file_byte_stream_reader &stream)
 
 lsResult read_byte_stream_read(raw_file_byte_stream_reader &stream, uint8_t &value)
 {
-  if (1 == fread(&value, 1, 1, reinterpret_cast<FILE *>(stream.pHandle))) _LIKELY
+  if (1 == fread(&value, 1, 1, reinterpret_cast<FILE *>(stream.pHandle))) LS_LIKELY
   {
     stream.position++;
     return lsR_Success;
