@@ -71,7 +71,7 @@ inline lsResult read_byte_stream_read(cached_byte_stream_reader<source_stream, b
 {
   lsResult result = lsR_Success;
 
-  if (stream.position == stream.buffer_size) _UNLIKELY
+  if (stream.position == stream.buffer_size) LS_UNLIKELY
     LS_ERROR_CHECK(read_byte_stream_pull_internal(stream));
 
   value = stream.buffer[stream.position];
@@ -88,7 +88,7 @@ inline lsResult read_byte_stream_read(cached_byte_stream_reader<source_stream, b
 
   const size_t initiallyAvailableSize = stream.buffer_size - stream.position;
 
-  if (initiallyAvailableSize >= size) _LIKELY
+  if (initiallyAvailableSize >= size) LS_LIKELY
   {
     lsMemcpy(pData, stream.buffer + stream.position, size);
     stream.position += size;
