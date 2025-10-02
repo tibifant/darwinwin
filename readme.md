@@ -16,4 +16,7 @@ Web Interface for visualization.
 - Run `create_project.bat`
 - Select `1. Visual Studio 2022 Solution` 
 
+<a><img src="./images/webui.png" alt="web ui" style="width: 800pt; max-width: 100%; margin: 0pt auto;"></a>
+  <br>
+
 See Progress Report [here](https://github.com/tibifant/darwinwin/blob/main/progress.md).
